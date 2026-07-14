@@ -67,7 +67,7 @@ export const Sidebar = () => {
         {visibleMenus.map((item) => {
           const isActive = pathname === item.path;
           return (
-            <Link key={item.name} href={item.path} className={`flex items-center rounded-lg transition-all group relative ${!isExpanded ? 'justify-center py-3' : 'px-3 py-2.5'} ${isActive ? 'bg-[var(--color-surface)] shadow-sm border border-[var(--color-border)]/50 text-[var(--color-primary)] font-bold' : 'text-[var(--color-text-sub)] hover:bg-gray-200/50 hover:text-[var(--color-text-main)] font-medium border border-transparent'}`}>
+            <Link key={item.name} href={item.path} className={`flex items-center rounded-lg transition-all group relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:z-10 ${!isExpanded ? 'justify-center py-3' : 'px-3 py-2.5'} ${isActive ? 'bg-[var(--color-surface)] shadow-sm border border-[var(--color-border)]/50 text-[var(--color-primary)] font-bold' : 'text-[var(--color-text-sub)] hover:bg-gray-200/50 hover:text-[var(--color-text-main)] font-medium border border-transparent'}`}>
               <item.icon className={`flex-shrink-0 ${isExpanded ? 'w-4 h-4 mr-3' : isCompact ? 'w-5 h-5' : 'w-4 h-4'} ${isActive ? 'text-[var(--color-primary)]' : ''}`} />
               {isExpanded && <span className="truncate text-[13px]">{item.name}</span>}
               

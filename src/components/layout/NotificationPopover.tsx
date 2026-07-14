@@ -4,6 +4,8 @@ import { useAuthStore } from '@/store/authStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import { Bell, CheckCircle2, AlertCircle, CalendarClock, Briefcase, FileText } from 'lucide-react';
 import { Notification } from '@/types/models';
+import { useTranslationStore } from '@/store/translationStore';
+import { useTranslation } from '@/lib/localization';
 
 export const NotificationPopover = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -11,6 +13,8 @@ export const NotificationPopover = () => {
   
   const { currentUser } = useAuthStore();
   const { notifications, markAsRead, markAllAsRead } = useNotificationStore();
+  const { settings } = useTranslationStore();
+  const t = useTranslation(settings.uiLanguage);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -47,7 +51,7 @@ export const NotificationPopover = () => {
     <div className="relative" ref={popoverRef}>
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="p-2 text-[var(--color-text-sub)] hover:bg-gray-100 rounded-full relative transition-colors"
+        className="p-2 text-[var(--color-text-sub)] hover:bg-gray-100 rounded-full relative transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
@@ -58,13 +62,13 @@ export const NotificationPopover = () => {
       {isOpen && (
         <div className="absolute right-0 mt-2 w-80 bg-[var(--color-surface)] rounded-xl shadow-xl border border-[var(--color-border)] z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
           <div className="p-4 border-b flex justify-between items-center bg-[var(--color-bg)]/50">
-            <h3 className="font-bold text-[var(--color-text-main)]">알림</h3>
+            <h3 className="font-bold text-[var(--color-text-main)]">{t('notification.title')}</h3>
             {unreadCount > 0 && (
               <button 
                 onClick={() => markAllAsRead(currentUser.id)}
-                className="text-xs text-blue-600 font-medium hover:underline flex items-center gap-1"
+                className="text-xs text-blue-600 font-medium hover:underline flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] rounded px-1"
               >
-                <CheckCircle2 className="w-3 h-3" /> 모두 읽음
+                <CheckCircle2 className="w-3 h-3" /> {t('notification.readAll')}
               </button>
             )}
           </div>
@@ -72,7 +76,7 @@ export const NotificationPopover = () => {
           <div className="max-h-96 overflow-y-auto custom-scrollbar">
             {myNotifications.length === 0 ? (
               <div className="p-8 text-center text-[var(--color-text-sub)] text-sm">
-                새로운 알림이 없습니다.
+                {t('notification.empty')}
               </div>
             ) : (
               myNotifications.map(n => (
@@ -83,7 +87,7 @@ export const NotificationPopover = () => {
                     markAsRead(n.id);
                     setIsOpen(false);
                   }}
-                  className={`block p-4 border-b last:border-0 hover:bg-[var(--color-bg)] transition-colors ${!n.isRead ? 'bg-blue-50/30' : ''}`}
+                  className={`block p-4 border-b last:border-0 hover:bg-[var(--color-bg)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:inset-ring-2 ${!n.isRead ? 'bg-blue-50/30' : ''}`}
                 >
                   <div className="flex gap-3">
                     <div className="flex-shrink-0 mt-0.5">
@@ -112,9 +116,9 @@ export const NotificationPopover = () => {
             <Link 
               href="/notifications" 
               onClick={() => setIsOpen(false)}
-              className="text-sm font-medium text-blue-600 hover:underline"
+              className="text-sm font-medium text-blue-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] rounded px-1"
             >
-              알림 센터 전체보기
+              {t('notification.viewAll')}
             </Link>
           </div>
         </div>

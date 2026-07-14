@@ -1,4 +1,6 @@
 import React from 'react';
+import { useTranslationStore } from '@/store/translationStore';
+import { useTranslation } from '@/lib/localization';
 
 interface ProgressBarProps {
   progress: number;
@@ -14,12 +16,14 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   showLabel = false
 }) => {
   const safeProgress = Math.min(Math.max(Math.round(progress), 0), 100);
+  const { settings } = useTranslationStore();
+  const t = useTranslation(settings.uiLanguage);
   
   return (
     <div className="w-full">
       {showLabel && (
         <div className="flex justify-between text-[10px] mb-1">
-          <span className="text-[var(--color-text-sub)]">진행률</span>
+          <span className="text-[var(--color-text-sub)]">{t('common.progress')}</span>
           <span className="font-medium text-[var(--color-text-main)]">{safeProgress}%</span>
         </div>
       )}

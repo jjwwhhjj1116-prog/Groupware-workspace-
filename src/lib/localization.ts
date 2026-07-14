@@ -51,6 +51,44 @@ export const UI_MESSAGES = {
 
     // Modal Tabs
     overview: '개요',
+
+    // P4-A Added Keys
+    'header.role.superAdmin': '최고관리자',
+    'header.role.systemAdmin': '시스템관리자',
+    'header.role.deptManager': '부서장',
+    'header.role.pm': 'PM',
+    'header.role.worker': '작업자',
+    'header.dept.hq': '본사',
+    'header.dept.none': '소속 없음',
+    'header.loginRequired': '로그인 필요',
+    'header.mode.real': '실사용 모드',
+    'header.mode.validation': '운영 검증',
+    'header.data.prefix': '데이터: ',
+    'header.data.json': 'JSON 운영',
+    'header.data.demo': 'Demo Seed',
+    'header.data.excel': 'Excel 임포트',
+    'header.data.empty': '비어 있음',
+    'header.nav.approvals': '결재함',
+    'header.nav.evaluation': '성과 평가',
+
+    'notification.title': '알림',
+    'notification.readAll': '모두 읽음',
+    'notification.empty': '새로운 알림이 없습니다.',
+    'notification.viewAll': '알림 센터 전체보기',
+
+    'settings.title': '설정 및 내 정보',
+    'settings.loginRequired': '로그인이 필요합니다.',
+    'settings.section.basicInfo': '기본 정보',
+    'settings.field.name': '이름',
+    'settings.field.role': '권한 (Role)',
+    'settings.field.department': '부서',
+    'settings.field.emailMock': '이메일 (Mock)',
+    'settings.section.appSettings': '앱 설정',
+    'settings.theme.dark': '다크 모드',
+    'settings.emailAlerts': '이메일 알림 수신',
+    'settings.note.backend': '* 실제 환경 설정은 백엔드 연동 이후 반영됩니다.',
+
+    'common.progress': '진행률',
   },
   vi: {
     // Header & Sidebar
@@ -102,6 +140,44 @@ export const UI_MESSAGES = {
 
     // Modal Tabs
     overview: 'Tổng quan',
+
+    // P4-A Added Keys
+    'header.role.superAdmin': 'Quản trị viên cấp cao',
+    'header.role.systemAdmin': 'Quản trị hệ thống',
+    'header.role.deptManager': 'Trưởng phòng',
+    'header.role.pm': 'Quản lý dự án',
+    'header.role.worker': 'Nhân viên',
+    'header.dept.hq': 'Trụ sở chính',
+    'header.dept.none': 'Không có trực thuộc',
+    'header.loginRequired': 'Cần đăng nhập',
+    'header.mode.real': 'Chế độ sử dụng thực tế',
+    'header.mode.validation': 'Kiểm chứng vận hành',
+    'header.data.prefix': 'Dữ liệu: ',
+    'header.data.json': 'Vận hành JSON',
+    'header.data.demo': 'Demo Seed',
+    'header.data.excel': 'Nhập Excel',
+    'header.data.empty': 'Trống',
+    'header.nav.approvals': 'Hộp phê duyệt',
+    'header.nav.evaluation': 'Đánh giá hiệu suất',
+
+    'notification.title': 'Thông báo',
+    'notification.readAll': 'Đánh dấu đã đọc tất cả',
+    'notification.empty': 'Không có thông báo mới.',
+    'notification.viewAll': 'Xem tất cả trung tâm thông báo',
+
+    'settings.title': 'Cài đặt và Thông tin của tôi',
+    'settings.loginRequired': 'Cần đăng nhập.',
+    'settings.section.basicInfo': 'Thông tin cơ bản',
+    'settings.field.name': 'Tên',
+    'settings.field.role': 'Quyền (Role)',
+    'settings.field.department': 'Phòng ban',
+    'settings.field.emailMock': 'Email (Mock)',
+    'settings.section.appSettings': 'Cài đặt ứng dụng',
+    'settings.theme.dark': 'Chế độ tối',
+    'settings.emailAlerts': 'Nhận email thông báo',
+    'settings.note.backend': '* Cài đặt môi trường thực tế sẽ được áp dụng sau khi liên kết backend.',
+
+    'common.progress': 'Tiến độ',
   }
 };
 
