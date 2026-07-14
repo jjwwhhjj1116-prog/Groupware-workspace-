@@ -6,6 +6,8 @@ import { useAuthStore } from '@/store/authStore';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useProjectStore } from '@/store/projectStore';
 import { Badge } from '@/components/ui/Badge';
+import { WorkManagementWidget } from './widgets/WorkManagementWidget';
+import { ManagementSupportWidget } from './widgets/ManagementSupportWidget';
 
 export const WorkerDashboard = ({ selectedMonth }: { selectedMonth: string | 'ALL' }) => {
   const { currentUser } = useAuthStore();
@@ -116,6 +118,15 @@ export const WorkerDashboard = ({ selectedMonth }: { selectedMonth: string | 'AL
             </table>
           </div>
         )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+        <div className="h-[350px]">
+          <WorkManagementWidget />
+        </div>
+        <div className="h-[350px]">
+          <ManagementSupportWidget />
+        </div>
       </div>
     </div>
   );

@@ -84,3 +84,7 @@ export const getVisibleTasks = (user: PersonnelCard, tasks: TaskCard[]): TaskCar
 export const getVisibleScheduleItems = (user: PersonnelCard, items: PersonalSchedule[]): PersonalSchedule[] => {
   return items.filter(s => canViewSchedule(user, s));
 };
+
+export const canViewHrDashboard = (user: PersonnelCard): boolean => {
+  return ['SUPER_ADMIN', 'DEPARTMENT_MANAGER', 'SYSTEM_ADMIN'].includes(user.role);
+};

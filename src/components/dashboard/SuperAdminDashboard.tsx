@@ -6,6 +6,8 @@ import { useTaskStore } from '@/store/taskStore';
 import { getDeliveryUrgencyBucket, getProjectOverallProgress } from '@/lib/selectors';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Badge } from '@/components/ui/Badge';
+import { WorkManagementWidget } from './widgets/WorkManagementWidget';
+import { ManagementSupportWidget } from './widgets/ManagementSupportWidget';
 
 export const SuperAdminDashboard = ({ selectedMonth }: { selectedMonth: string | 'ALL' }) => {
   const { projects } = useProjectStore();
@@ -136,6 +138,15 @@ export const SuperAdminDashboard = ({ selectedMonth }: { selectedMonth: string |
             </table>
           </div>
         )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+        <div className="h-[350px]">
+          <WorkManagementWidget />
+        </div>
+        <div className="h-[350px]">
+          <ManagementSupportWidget />
+        </div>
       </div>
     </div>
   );

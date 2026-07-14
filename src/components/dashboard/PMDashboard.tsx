@@ -7,6 +7,8 @@ import { useAuthStore } from '@/store/authStore';
 import { getDeliveryUrgencyBucket, getProjectOverallProgress } from '@/lib/selectors';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Badge } from '@/components/ui/Badge';
+import { WorkManagementWidget } from './widgets/WorkManagementWidget';
+import { ManagementSupportWidget } from './widgets/ManagementSupportWidget';
 
 export const PMDashboard = ({ selectedMonth }: { selectedMonth: string | 'ALL' }) => {
   const { currentUser } = useAuthStore();
@@ -136,6 +138,15 @@ export const PMDashboard = ({ selectedMonth }: { selectedMonth: string | 'ALL' }
             </table>
           </div>
         )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+        <div className="h-[350px]">
+          <WorkManagementWidget />
+        </div>
+        <div className="h-[350px]">
+          <ManagementSupportWidget />
+        </div>
       </div>
     </div>
   );
