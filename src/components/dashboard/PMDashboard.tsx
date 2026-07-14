@@ -9,12 +9,16 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Badge } from '@/components/ui/Badge';
 import { WorkManagementWidget } from './widgets/WorkManagementWidget';
 import { ManagementSupportWidget } from './widgets/ManagementSupportWidget';
+import { useTranslationStore } from '@/store/translationStore';
+import { useTranslation } from '@/lib/localization';
 
 export const PMDashboard = ({ selectedMonth }: { selectedMonth: string | 'ALL' }) => {
   const { currentUser } = useAuthStore();
   const { projects } = useProjectStore();
   const { tasks } = useTaskStore();
-  
+  const { settings } = useTranslationStore();
+  const t = useTranslation(settings.uiLanguage);
+
   const [projectTypeFilter, setProjectTypeFilter] = React.useState<'INTERNAL_DEVELOPMENT' | 'CLIENT_ORDER'>('INTERNAL_DEVELOPMENT');
 
   const pmProjects = projects.filter(p => {
@@ -29,7 +33,7 @@ export const PMDashboard = ({ selectedMonth }: { selectedMonth: string | 'ALL' }
 
   const urgentProjectsCount = pmProjects.filter(p => getDeliveryUrgencyBucket(p) === 'WITHIN_1_WEEK').length;
   const pendingApprovalsCount = pmTasks.filter(t => t.approvalStatus === 'PENDING').length;
-  
+
   const delayedTasksCount = pmTasks.filter(t => {
     if (t.status === 'DONE') return false;
     if (!t.dueDate) return false;
@@ -39,54 +43,54 @@ export const PMDashboard = ({ selectedMonth }: { selectedMonth: string | 'ALL' }
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        <SummaryCard 
-          title="담당 프로젝트" 
-          value={pmProjects.length.toString()} 
-          subtitle="PM으로 배정된 프로젝트"
-          icon={Briefcase} 
-          colorClass="bg-blue-500" 
+        <SummaryCard
+          title={t('dashboard.pm.myProject')}
+          value={pmProjects.length.toString()}
+          subtitle={t('dashboard.pm.myProjectDesc')}
+          icon={Briefcase}
+          colorClass="bg-blue-500"
         />
-        <SummaryCard 
-          title="납품 경과 프로젝트" 
-          value={urgentProjectsCount.toString()} 
-          subtitle="납품일 1주일 이내 및 경과"
-          icon={AlertTriangle} 
-          colorClass="bg-red-500" 
+        <SummaryCard
+          title={t('dashboard.metric.overdueProject')}
+          value={urgentProjectsCount.toString()}
+          subtitle={t('dashboard.metric.overdueDesc')}
+          icon={AlertTriangle}
+          colorClass="bg-red-500"
         />
-        <SummaryCard 
-          title="검토 대기 업무" 
-          value={pendingApprovalsCount.toString()} 
-          subtitle="팀원 작업물 검토 대기 건"
-          icon={CheckCircle} 
-          colorClass="bg-green-500" 
+        <SummaryCard
+          title={t('dashboard.pm.pendingReview')}
+          value={pendingApprovalsCount.toString()}
+          subtitle={t('dashboard.pm.pendingReviewDesc')}
+          icon={CheckCircle}
+          colorClass="bg-green-500"
         />
-        <SummaryCard 
-          title="지연/충돌 업무" 
-          value={delayedTasksCount.toString()} 
-          subtitle="마감일 경과 또는 미처리 건"
-          icon={Clock} 
-          colorClass="bg-orange-500" 
+        <SummaryCard
+          title={t('dashboard.sa.delayedTask')}
+          value={delayedTasksCount.toString()}
+          subtitle={t('dashboard.sa.delayedTaskDesc')}
+          icon={Clock}
+          colorClass="bg-orange-500"
         />
       </div>
 
       <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-card)] overflow-hidden shadow-sm">
         <div className="px-5 py-4 border-b border-[var(--color-border)] flex items-center justify-between">
-          <h2 className="text-[15px] font-bold text-[var(--color-text-main)]">월별 프로젝트 요약</h2>
+          <h2 className="text-[15px] font-bold text-[var(--color-text-main)]">{t('dashboard.sa.projectSummary')}</h2>
           <select
-            className="border border-[var(--color-border)] rounded-md px-3 py-1.5 bg-[var(--color-surface)] text-sm font-medium text-[var(--color-text-main)] outline-none focus:border-[var(--color-primary)] transition-colors"
+            className="border border-[var(--color-border)] rounded-md px-3 py-1.5 bg-[var(--color-surface)] text-sm font-medium text-[var(--color-text-main)] outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] transition-colors"
             value={projectTypeFilter}
             onChange={(e) => setProjectTypeFilter(e.target.value as 'INTERNAL_DEVELOPMENT' | 'CLIENT_ORDER')}
           >
-            <option value="INTERNAL_DEVELOPMENT">개발팀 업무</option>
-            <option value="CLIENT_ORDER">수주 프로젝트</option>
+            <option value="INTERNAL_DEVELOPMENT">{t('dashboard.projectType.internal')}</option>
+            <option value="CLIENT_ORDER">{t('dashboard.projectType.order')}</option>
           </select>
         </div>
-        
+
         {pmProjects.length === 0 ? (
           <div className="p-6">
-            <EmptyState 
-              title="담당 중인 프로젝트가 없습니다."
-              description="PM으로 배정된 프로젝트 내역이 이곳에 표시됩니다."
+            <EmptyState
+              title={t('dashboard.pm.emptyProject')}
+              description={t('dashboard.pm.emptyProjectDesc')}
             />
           </div>
         ) : (
@@ -94,11 +98,11 @@ export const PMDashboard = ({ selectedMonth }: { selectedMonth: string | 'ALL' }
             <table className="w-full text-left text-[13px] whitespace-nowrap">
               <thead className="bg-[var(--color-bg)]/50 border-b border-[var(--color-border)]">
                 <tr>
-                  <th className="px-5 py-3 font-semibold text-[var(--color-text-sub)]">프로젝트명</th>
-                  <th className="px-5 py-3 font-semibold text-[var(--color-text-sub)]">구분</th>
-                  <th className="px-5 py-3 font-semibold text-[var(--color-text-sub)]">상태</th>
-                  <th className="px-5 py-3 font-semibold text-[var(--color-text-sub)]">공정률</th>
-                  <th className="px-5 py-3 font-semibold text-[var(--color-text-sub)]">{projectTypeFilter === 'CLIENT_ORDER' ? '납품 예정일' : '목표 예정일'}</th>
+                  <th className="px-5 py-3 font-semibold text-[var(--color-text-sub)]">{t('dashboard.table.projectName')}</th>
+                  <th className="px-5 py-3 font-semibold text-[var(--color-text-sub)]">{t('dashboard.table.category')}</th>
+                  <th className="px-5 py-3 font-semibold text-[var(--color-text-sub)]">{t('dashboard.table.status')}</th>
+                  <th className="px-5 py-3 font-semibold text-[var(--color-text-sub)]">{t('dashboard.table.progress')}</th>
+                  <th className="px-5 py-3 font-semibold text-[var(--color-text-sub)]">{projectTypeFilter === 'CLIENT_ORDER' ? t('dashboard.table.deliveryExpected') : t('dashboard.table.targetExpected')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--color-border)]">
@@ -110,7 +114,7 @@ export const PMDashboard = ({ selectedMonth }: { selectedMonth: string | 'ALL' }
                       <td className="px-5 py-3 font-semibold text-[var(--color-text-main)]">{p.title}</td>
                       <td className="px-5 py-3">
                         <Badge variant={p.projectSourceType === 'CLIENT_ORDER' ? 'INFO' : 'DEFAULT'}>
-                          {p.projectSourceType === 'CLIENT_ORDER' ? '수주' : '내부개발'}
+                          {p.projectSourceType === 'CLIENT_ORDER' ? t('dashboard.projectType.order') : t('dashboard.projectType.internal')}
                         </Badge>
                       </td>
                       <td className="px-5 py-3">
@@ -128,7 +132,7 @@ export const PMDashboard = ({ selectedMonth }: { selectedMonth: string | 'ALL' }
                       </td>
                       <td className="px-5 py-3">
                         <span className={`font-semibold ${urgency === 'WITHIN_1_WEEK' ? 'text-[var(--color-danger)]' : 'text-[var(--color-text-sub)]'}`}>
-                          {p.deliveryDate || '미정'}
+                          {p.deliveryDate || t('common.unset')}
                         </span>
                       </td>
                     </tr>

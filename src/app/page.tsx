@@ -6,6 +6,8 @@ import { DepartmentManagerDashboard } from '@/components/dashboard/DepartmentMan
 import { PMDashboard } from '@/components/dashboard/PMDashboard';
 import { WorkerDashboard } from '@/components/dashboard/WorkerDashboard';
 import { useProjectStore } from '@/store/projectStore';
+import { useTranslationStore } from '@/store/translationStore';
+import { useTranslation } from '@/lib/localization';
 import { Download, Upload } from 'lucide-react';
 
 export default function Home() {
@@ -13,22 +15,25 @@ export default function Home() {
   const { projects } = useProjectStore();
   const [selectedMonth, setSelectedMonth] = useState<string | 'ALL'>('ALL');
 
+  const { settings } = useTranslationStore();
+  const t = useTranslation(settings.uiLanguage);
+
   const getDeptName = () => {
     if (!currentUser) return '';
     if (currentUser.departmentName) return currentUser.departmentName;
     if (currentUser.teamName) return currentUser.teamName;
-    if (currentUser.companyId === 'CON_COST') return '본사';
+    if (currentUser.companyId === 'CON_COST') return t('header.dept.hq');
     if (currentUser.companyId === 'VIET_QS') return 'Viet_QS';
-    return '소속 없음';
+    return t('header.dept.none');
   };
 
   const getRoleName = (role: string) => {
     const roleMap: Record<string, string> = {
-      SUPER_ADMIN: '최고관리자',
-      SYSTEM_ADMIN: '시스템관리자',
-      DEPARTMENT_MANAGER: '부서장',
-      PM: 'PM',
-      WORKER: '작업자'
+      SUPER_ADMIN: t('header.role.superAdmin'),
+      SYSTEM_ADMIN: t('header.role.systemAdmin'),
+      DEPARTMENT_MANAGER: t('header.role.deptManager'),
+      PM: t('header.role.pm'),
+      WORKER: t('header.role.worker')
     };
     return roleMap[role] || role;
   };
@@ -44,45 +49,45 @@ export default function Home() {
     return Array.from(months).sort().reverse(); // 최신 월 순서로
   }, [projects]);
 
-  if (!currentUser) return <div className="p-6">Loading...</div>;
+  if (!currentUser) return <div className="p-6">{t('dashboard.loading')}</div>;
 
   return (
     <div className="w-full mx-auto space-y-6 md:space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--color-text-main)] tracking-tight">통합 대시보드</h1>
+          <h1 className="text-2xl font-bold text-[var(--color-text-main)] tracking-tight">{t('dashboard.title')}</h1>
           <p className="text-[var(--color-text-sub)] text-sm mt-1 font-medium">
-            {getDeptName()} · {getRoleName(currentUser.role)} 기준 전체 업무 현황
+            {getDeptName()} · {getRoleName(currentUser.role)} {t('dashboard.subtitle')}
           </p>
         </div>
-        
+
         <div className="flex flex-wrap items-center gap-2">
-          <select 
-            className="border border-[var(--color-border)] rounded-md px-3 py-1.5 bg-[var(--color-surface)] text-sm font-medium text-[var(--color-text-main)] shadow-sm outline-none focus:border-[var(--color-primary)] transition-colors"
+          <select
+            className="border border-[var(--color-border)] rounded-md px-3 py-1.5 bg-[var(--color-surface)] text-sm font-medium text-[var(--color-text-main)] shadow-sm outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] transition-colors"
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
           >
-            <option value="ALL">전체 월 조회</option>
+            <option value="ALL">{t('dashboard.filter.allMonths')}</option>
             {availableMonths.map(m => {
               const [year, month] = m.split('-');
               return (
-                <option key={m} value={m}>{year}년 {parseInt(month, 10)}월</option>
+                <option key={m} value={m}>{t('common.yearMonth', { year, month: parseInt(month, 10).toString() })}</option>
               );
             })}
           </select>
 
-          <button className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-md text-sm font-medium text-[var(--color-text-main)] hover:bg-[var(--color-bg)] hover:text-[var(--color-primary)] shadow-sm transition-colors">
+          <button className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-md text-sm font-medium text-[var(--color-text-main)] hover:bg-[var(--color-bg)] hover:text-[var(--color-primary)] shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]">
             <Upload className="w-4 h-4 text-[var(--color-text-sub)]" />
-            <span>JSON 불러오기</span>
+            <span>{t('dashboard.actions.importJson')}</span>
           </button>
-          
-          <button className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-md text-sm font-medium text-[var(--color-text-main)] hover:bg-[var(--color-bg)] hover:text-[var(--color-primary)] shadow-sm transition-colors">
+
+          <button className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-md text-sm font-medium text-[var(--color-text-main)] hover:bg-[var(--color-bg)] hover:text-[var(--color-primary)] shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]">
             <Download className="w-4 h-4 text-[var(--color-text-sub)]" />
-            <span>JSON 내보내기</span>
+            <span>{t('dashboard.actions.exportJson')}</span>
           </button>
         </div>
       </div>
-      
+
       {currentUser.role === 'SUPER_ADMIN' && <SuperAdminDashboard selectedMonth={selectedMonth} />}
       {currentUser.role === 'DEPARTMENT_MANAGER' && <DepartmentManagerDashboard selectedMonth={selectedMonth} />}
       {currentUser.role === 'PM' && <PMDashboard selectedMonth={selectedMonth} />}
