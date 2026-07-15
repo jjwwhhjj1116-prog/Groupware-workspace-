@@ -7,6 +7,8 @@ import { useNotificationStore } from '@/store/notificationStore';
 import { useApprovalStore } from '@/store/approvalStore';
 import { useAuditStore } from '@/store/auditStore';
 import { useScheduleStore } from '@/store/scheduleStore';
+import { useTranslationStore } from '@/store/translationStore';
+import { useTranslation } from '@/lib/localization';
 import { X, Plus, Trash2, AlertCircle, Languages, RefreshCw, AlertTriangle, Info } from 'lucide-react';
 import { detectLanguage } from '@/lib/translation/detector';
 import { executeTranslation } from '@/lib/translation/providers';
@@ -25,6 +27,8 @@ export const PmDispatchModal: React.FC<Props> = ({ project, onClose, onSuccess }
   const { requests, addRequest } = useApprovalStore();
   const { addLog } = useAuditStore();
   const { schedules } = useScheduleStore();
+  const { settings } = useTranslationStore();
+  const t = useTranslation(settings.uiLanguage);
 
   const pmUser = users.find(u => u.id === project.pmId);
   const activeUsers = users.filter(u => u.employmentStatus === 'ACTIVE');
@@ -98,7 +102,7 @@ export const PmDispatchModal: React.FC<Props> = ({ project, onClose, onSuccess }
     
     const detected = detectLanguage(task.title);
     if (detected === 'UNKNOWN') {
-      alert('언어를 감지할 수 없습니다. 한국어 또는 베트남어로 명확히 입력해주세요.');
+      alert(t('board.dispatch.alertNoLang'));
       return;
     }
 
@@ -111,7 +115,7 @@ export const PmDispatchModal: React.FC<Props> = ({ project, onClose, onSuccess }
     }
     
     newTasks[index].titleI18n!.translations![targetLang] = {
-      text: '번역 중...',
+      text: t('board.dispatch.translating'),
       status: 'NEEDS_TRANSLATION'
     };
     setTasks([...newTasks]);
@@ -170,21 +174,21 @@ export const PmDispatchModal: React.FC<Props> = ({ project, onClose, onSuccess }
 
   const validate = () => {
     if (tasks.length === 0) {
-      alert('최소 1개 이상의 업무를 추가해야 합니다.');
+      alert(t('board.dispatch.alertNoTask'));
       return false;
     }
-    for (const t of tasks) {
-      if (!t.title || !t.assigneeId || !t.startDate || !t.dueDate || !t.estimatedHours) {
-        alert('모든 업무의 제목, 담당자, 시작/마감일, 소요시간을 입력해야 합니다.');
+    for (const tTask of tasks) {
+      if (!tTask.title || !tTask.assigneeId || !tTask.startDate || !tTask.dueDate || !tTask.estimatedHours) {
+        alert(t('board.dispatch.alertMissingFields'));
         return false;
       }
-      if (t.startDate > t.dueDate) {
-        alert('시작일은 마감일보다 늦을 수 없습니다.');
+      if (tTask.startDate > tTask.dueDate) {
+        alert(t('board.dispatch.alertInvalidDate'));
         return false;
       }
       const projectLimit = project.targetDate || project.deliveryDate;
-      if (projectLimit && t.dueDate > projectLimit) {
-        if (!window.confirm(`일부 업무의 마감일이 프로젝트의 최종 기한(${projectLimit})을 초과합니다. 계속하시겠습니까?`)) {
+      if (projectLimit && tTask.dueDate > projectLimit) {
+        if (!window.confirm(t('board.dispatch.alertDeadlineExceeded').replace('{projectLimit}', projectLimit))) {
           return false;
         }
       }
@@ -259,8 +263,8 @@ export const PmDispatchModal: React.FC<Props> = ({ project, onClose, onSuccess }
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
       <div className="bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] shadow-xl w-full max-w-[95vw] max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
         <div className="p-4 border-b border-[var(--color-border)] flex justify-between items-center bg-[var(--color-bg)] rounded-t-xl">
-          <h2 className="text-lg font-bold text-[var(--color-text-main)]">PM 업무 하달 (Task Dispatch)</h2>
-          <button onClick={onClose} className="text-[var(--color-text-sub)] hover:text-[var(--color-text-main)]">
+          <h2 className="text-lg font-bold text-[var(--color-text-main)]">{t('board.dispatch.modalTitle')}</h2>
+          <button onClick={onClose} className="text-[var(--color-text-sub)] hover:text-[var(--color-text-main)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] rounded">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -270,8 +274,8 @@ export const PmDispatchModal: React.FC<Props> = ({ project, onClose, onSuccess }
             <div className="bg-red-50 p-4 rounded-lg border border-red-200 flex gap-3">
               <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
               <div>
-                <h4 className="font-bold text-red-800">이전 반려 사유</h4>
-                <p className="text-sm text-red-700 mt-1">{rejectedRequest.reviewComment || '사유 없음'}</p>
+                <h4 className="font-bold text-red-800">{t('board.dispatch.prevRejectReason')}</h4>
+                <p className="text-sm text-red-700 mt-1">{rejectedRequest.reviewComment || t('board.dispatch.noReason')}</p>
               </div>
             </div>
           )}
@@ -279,19 +283,19 @@ export const PmDispatchModal: React.FC<Props> = ({ project, onClose, onSuccess }
           <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100 flex gap-3">
             <Info className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
             <div className="text-sm">
-              <div className="font-bold text-blue-900 mb-1">[{project.projectSourceType === 'CLIENT_ORDER' ? '외부 수주' : '개발팀 작업'}] {project.title}</div>
+              <div className="font-bold text-blue-900 mb-1">[{project.projectSourceType === 'CLIENT_ORDER' ? t('board.dispatch.extOrder') : t('board.dispatch.internalDev')}] {project.title}</div>
               <div className="text-blue-800 flex gap-4 mt-2">
-                <span><span className="opacity-70">담당 PM:</span> {pmUser?.name || '미정'}</span>
-                <span><span className="opacity-70">최종 기한:</span> {project.targetDate || project.deliveryDate || '미정'}</span>
+                <span><span className="opacity-70">{t('board.dispatch.pmInCharge')}</span> {pmUser?.name || t('common.unset')}</span>
+                <span><span className="opacity-70">{t('board.dispatch.finalDeadline')}</span> {project.targetDate || project.deliveryDate || t('common.unset')}</span>
               </div>
             </div>
           </div>
 
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="font-bold text-[var(--color-text-main)]">세부 업무(Task) 생성 목록</h3>
-              <button onClick={handleAddTask} className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-md text-sm font-semibold hover:bg-[var(--color-bg)] transition-colors">
-                <Plus className="w-4 h-4" /> 업무 추가
+              <h3 className="font-bold text-[var(--color-text-main)]">{t('board.dispatch.taskListTitle')}</h3>
+              <button onClick={handleAddTask} className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-md text-sm font-semibold hover:bg-[var(--color-bg)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]">
+                <Plus className="w-4 h-4" /> {t('board.dispatch.addTask')}
               </button>
             </div>
 
@@ -303,39 +307,39 @@ export const PmDispatchModal: React.FC<Props> = ({ project, onClose, onSuccess }
               return (
                 <div key={idx} className={`bg-[var(--color-bg)]/50 p-4 rounded-lg border ${workload.overloaded || workload.offDays ? 'border-orange-300' : 'border-[var(--color-border)]'} relative space-y-4 transition-colors`}>
                   {tasks.length > 1 && (
-                    <button onClick={() => handleRemoveTask(idx)} className="absolute top-4 right-4 text-red-400 hover:text-red-600">
+                    <button onClick={() => handleRemoveTask(idx)} className="absolute top-4 right-4 text-red-400 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] rounded">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   )}
                   
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                     <div className="col-span-2 md:col-span-2">
-                      <label className="block text-xs font-bold text-[var(--color-text-sub)] mb-1">업무명 *</label>
+                      <label className="block text-xs font-bold text-[var(--color-text-sub)] mb-1">{t('board.dispatch.taskName')}</label>
                       <div className="flex gap-2">
                         <input 
                           type="text" 
                           value={task.title} 
                           onChange={(e) => handleUpdateTask(idx, 'title', e.target.value)}
-                          className="w-full border rounded p-2 text-sm"
-                          placeholder="업무명 입력"
+                          className="w-full border rounded p-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                          placeholder={t('board.dispatch.taskNamePlaceholder')}
                         />
                         <button
                           onClick={() => handleTranslate(idx)}
-                          className="px-3 py-1 bg-[var(--color-bg-sub)] border border-[var(--color-border)] rounded hover:bg-gray-100 flex items-center gap-1 text-xs shrink-0"
+                          className="px-3 py-1 bg-[var(--color-bg-sub)] border border-[var(--color-border)] rounded hover:bg-gray-100 flex items-center gap-1 text-xs shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                         >
-                          <Languages className="w-4 h-4" /> 자동번역
+                          <Languages className="w-4 h-4" /> {t('board.dispatch.autoTranslate')}
                         </button>
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-[var(--color-text-sub)] mb-1">담당 작업자 *</label>
+                      <label className="block text-xs font-bold text-[var(--color-text-sub)] mb-1">{t('board.dispatch.assignee')}</label>
                       <select 
                         value={task.assigneeId} 
                         onChange={(e) => handleUpdateTask(idx, 'assigneeId', e.target.value)}
-                        className="w-full border rounded p-2 text-sm"
+                        className="w-full border rounded p-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                       >
-                        <option value="">담당자 선택</option>
+                        <option value="">{t('board.dispatch.assigneeSelect')}</option>
                         {activeUsers.map(u => (
                           <option key={u.id} value={u.id}>{u.name} ({u.departmentId})</option>
                         ))}
@@ -343,47 +347,47 @@ export const PmDispatchModal: React.FC<Props> = ({ project, onClose, onSuccess }
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-[var(--color-text-sub)] mb-1">우선순위</label>
+                      <label className="block text-xs font-bold text-[var(--color-text-sub)] mb-1">{t('board.dispatch.priority')}</label>
                       <select 
                         value={task.priority} 
                         onChange={(e) => handleUpdateTask(idx, 'priority', e.target.value)}
-                        className="w-full border rounded p-2 text-sm"
+                        className="w-full border rounded p-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                       >
-                        <option value="URGENT">긴급</option>
-                        <option value="HIGH">높음</option>
-                        <option value="NORMAL">보통</option>
-                        <option value="LOW">낮음</option>
+                        <option value="URGENT">{t('board.dispatch.priUrgent')}</option>
+                        <option value="HIGH">{t('board.dispatch.priHigh')}</option>
+                        <option value="NORMAL">{t('board.dispatch.priNormal')}</option>
+                        <option value="LOW">{t('board.dispatch.priLow')}</option>
                       </select>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-[var(--color-text-sub)] mb-1">소요 시간(예상) *</label>
+                      <label className="block text-xs font-bold text-[var(--color-text-sub)] mb-1">{t('board.dispatch.estTime')}</label>
                       <input 
                         type="number" 
                         value={task.estimatedHours} 
                         onChange={(e) => handleUpdateTask(idx, 'estimatedHours', Number(e.target.value))}
-                        className="w-full border rounded p-2 text-sm"
+                        className="w-full border rounded p-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                         min="1"
                       />
                     </div>
 
                     <div className="col-span-2 md:col-span-2">
-                      <label className="block text-xs font-bold text-[var(--color-text-sub)] mb-1">시작 예정일 *</label>
+                      <label className="block text-xs font-bold text-[var(--color-text-sub)] mb-1">{t('board.dispatch.startDate')}</label>
                       <input 
                         type="date" 
                         value={task.startDate} 
                         onChange={(e) => handleUpdateTask(idx, 'startDate', e.target.value)}
-                        className="w-full border rounded p-2 text-sm"
+                        className="w-full border rounded p-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                       />
                     </div>
                     
                     <div className="col-span-2 md:col-span-3">
-                      <label className="block text-xs font-bold text-[var(--color-text-sub)] mb-1">마감일 *</label>
+                      <label className="block text-xs font-bold text-[var(--color-text-sub)] mb-1">{t('board.dispatch.endDate')}</label>
                       <input 
                         type="date" 
                         value={task.dueDate} 
                         onChange={(e) => handleUpdateTask(idx, 'dueDate', e.target.value)}
-                        className="w-full border rounded p-2 text-sm"
+                        className="w-full border rounded p-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                       />
                     </div>
                   </div>
@@ -392,8 +396,8 @@ export const PmDispatchModal: React.FC<Props> = ({ project, onClose, onSuccess }
                     <div className="mt-2 text-xs p-2 bg-orange-50 text-orange-800 rounded border border-orange-200 flex items-center gap-2">
                       <AlertTriangle className="w-4 h-4" />
                       <div>
-                        {workload.offDays && <span>해당 기간에 작업자의 휴가(OFF) 일정이 포함되어 있습니다. </span>}
-                        {workload.overloaded && <span>기존 업무 포함 일일 평균 예상 부하가 8시간을 초과합니다 ({workload.avgDaily}h/day).</span>}
+                        {workload.offDays && <span>{t('board.dispatch.warnOffDays')} </span>}
+                        {workload.overloaded && <span>{t('board.dispatch.warnOverload').replace('{avgDaily}', String(workload.avgDaily))}</span>}
                       </div>
                     </div>
                   )}
@@ -401,17 +405,17 @@ export const PmDispatchModal: React.FC<Props> = ({ project, onClose, onSuccess }
                   {task.titleI18n && (
                     <div className="mt-2 text-xs p-2 bg-blue-50/50 rounded border border-blue-100/50">
                       <div className="text-gray-500 mb-1">
-                        입력 언어: {task.titleI18n.originalLanguage === 'ko' ? '한국어 감지됨 · VI 번역 예정' : (task.titleI18n.originalLanguage === 'vi' ? '베트남어 감지됨 · KO 번역 예정' : '감지 불가')}
+                        {t('board.dispatch.inputLanguage')} {task.titleI18n.originalLanguage === 'ko' ? t('board.dispatch.langKoDetected') : (task.titleI18n.originalLanguage === 'vi' ? t('board.dispatch.langViDetected') : t('board.dispatch.langUnknown'))}
                       </div>
                       {Object.entries(task.titleI18n.translations || {}).map(([lang, trans]) => (
                         <div key={lang} className="flex items-center gap-2 mt-1">
                           <span className="font-bold text-blue-800">{lang.toUpperCase()}:</span>
                           <span className={trans.status === 'TRANSLATION_FAILED' || trans.status === 'PROVIDER_LIMIT_EXCEEDED' ? 'text-red-500' : 'text-gray-700'}>
-                            {trans.text || trans.errorMessage || '(번역 실패)'}
+                            {trans.text || trans.errorMessage || t('board.dispatch.transFailed')}
                           </span>
-                          {trans.status === 'PROVIDER_LIMIT_EXCEEDED' && <span className="bg-orange-100 text-orange-700 px-1 py-0.5 rounded text-[10px]">한도 초과</span>}
+                          {trans.status === 'PROVIDER_LIMIT_EXCEEDED' && <span className="bg-orange-100 text-orange-700 px-1 py-0.5 rounded text-[10px]">{t('board.dispatch.limitExceeded')}</span>}
                           {(trans.status === 'TRANSLATION_FAILED' || trans.status === 'PROVIDER_LIMIT_EXCEEDED') && (
-                            <button onClick={() => handleTranslate(idx)} className="text-blue-500 hover:text-blue-700 ml-2">
+                            <button onClick={() => handleTranslate(idx)} className="text-blue-500 hover:text-blue-700 ml-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] rounded">
                               <RefreshCw className="w-3 h-3" />
                             </button>
                           )}
@@ -426,11 +430,11 @@ export const PmDispatchModal: React.FC<Props> = ({ project, onClose, onSuccess }
         </div>
 
         <div className="p-4 border-t border-[var(--color-border)] bg-[var(--color-bg)] rounded-b-xl flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 border rounded-lg font-bold text-sm bg-[var(--color-surface)] hover:bg-gray-50 transition-colors">
-            취소
+          <button onClick={onClose} className="px-4 py-2 border rounded-lg font-bold text-sm bg-[var(--color-surface)] hover:bg-gray-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]">
+            {t('common.cancel')}
           </button>
-          <button onClick={handleSave} className="px-4 py-2 bg-[var(--color-primary)] text-white rounded-lg font-bold text-sm shadow-sm hover:brightness-110 transition-all">
-            {project.status === 'SCHEDULE_REJECTED' ? '업무 일정 재요청' : '업무 하달 및 진행 전환'}
+          <button onClick={handleSave} className="px-4 py-2 bg-[var(--color-primary)] text-white rounded-lg font-bold text-sm shadow-sm hover:brightness-110 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300">
+            {project.status === 'SCHEDULE_REJECTED' ? t('board.dispatch.submitRetry') : t('board.dispatch.submitNew')}
           </button>
         </div>
       </div>

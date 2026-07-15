@@ -8,6 +8,8 @@ import { Column } from './Column';
 import { TaskDetailModal } from './TaskDetailModal';
 import { useProjectStore } from '@/store/projectStore';
 import { getDeliveryUrgencyBucket, getDetailedLineStage } from '@/lib/selectors';
+import { useTranslationStore } from '@/store/translationStore';
+import { useTranslation } from '@/lib/localization';
 
 export type BoardViewType = 'DETAILED' | 'COLLAB' | 'MONTHLY';
 export type GroupByOption = 'STATUS' | 'ASSIGNEE' | 'PRIORITY';
@@ -40,22 +42,43 @@ const COLLAB_COLUMNS = [
 
 export const Board: React.FC<BoardProps> = ({ tasks, onMoveTask, currentUser, viewType = 'DETAILED', groupBy = 'STATUS', users = [] }) => {
   const [selectedTask, setSelectedTask] = React.useState<TaskCard | null>(null);
+  const { settings } = useTranslationStore();
+  const t = useTranslation(settings.uiLanguage);
 
   const getColumns = () => {
     if (groupBy === 'STATUS') {
-      return viewType === 'COLLAB' ? COLLAB_COLUMNS : DETAILED_COLUMNS;
+      const baseCols = viewType === 'COLLAB' ? COLLAB_COLUMNS : DETAILED_COLUMNS;
+      return baseCols.map(col => {
+        if (viewType === 'DETAILED') {
+          switch(col.id) {
+            case 'WAITING': return { ...col, title: t('board.status.waiting') };
+            case 'QC_PM_START': return { ...col, title: t('board.status.qcPmStart') };
+            case 'IN_PROGRESS': return { ...col, title: t('board.status.inProgress') };
+            case 'PM_REVIEW': return { ...col, title: t('board.status.pmReview') };
+            case 'QC_REVIEW': return { ...col, title: t('board.status.qcReview') };
+            case 'DONE': return { ...col, title: t('board.status.done') };
+          }
+        } else {
+          switch(col.id) {
+            case 'TODO': return { ...col, title: t('board.column.todo') };
+            case 'REVIEW': return { ...col, title: t('board.column.review') };
+            case 'DONE': return { ...col, title: t('board.column.done') };
+          }
+        }
+        return col;
+      });
     }
     if (groupBy === 'PRIORITY') {
       return [
-        { id: 'WITHIN_1_WEEK', title: '🔴 납품 1주일 전' },
-        { id: 'WITHIN_2_WEEKS', title: '🟠 납품 2주일 전' },
-        { id: 'WITHIN_1_MONTH', title: '🔵 납품 1달 전' },
-        { id: 'UNSET', title: '⚪ 미정' },
+        { id: 'WITHIN_1_WEEK', title: t('board.deadline.1week') },
+        { id: 'WITHIN_2_WEEKS', title: t('board.deadline.2weeks') },
+        { id: 'WITHIN_1_MONTH', title: t('board.deadline.1month') },
+        { id: 'UNSET', title: t('board.deadline.unset') },
       ];
     }
     if (groupBy === 'ASSIGNEE') {
       const assigneeCols = users.map(u => ({ id: u.id, title: getUserDisplayName(u) }));
-      return [{ id: 'UNASSIGNED', title: '미배정' }, ...assigneeCols];
+      return [{ id: 'UNASSIGNED', title: t('board.assignee.unassigned') }, ...assigneeCols];
     }
     return DETAILED_COLUMNS;
   };
@@ -75,11 +98,11 @@ export const Board: React.FC<BoardProps> = ({ tasks, onMoveTask, currentUser, vi
     // Permissions check
     if (currentUser.role === 'WORKER') {
       if (groupBy === 'ASSIGNEE') {
-        alert('작업자는 타인에게 업무를 배정할 수 없습니다.');
+        alert(t('board.alert.noAssign'));
         return;
       }
       if (task.assigneeId !== currentUser.id) {
-        alert('자신의 업무카드만 이동할 수 있습니다.');
+        alert(t('board.alert.onlyOwn'));
         return;
       }
     }
@@ -100,7 +123,7 @@ export const Board: React.FC<BoardProps> = ({ tasks, onMoveTask, currentUser, vi
       const newIdx = stageOrder[targetId];
 
       if (newIdx !== undefined && currentIdx !== undefined && newIdx > currentIdx + 1) {
-        alert('공정 단계를 건너뛰어 이동할 수 없습니다.');
+        alert(t('board.alert.noSkip'));
         return;
       }
     }

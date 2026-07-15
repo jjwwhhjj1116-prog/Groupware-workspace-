@@ -3,6 +3,8 @@ import { TaskCard, ApprovalRequestType } from '@/types/models';
 import { useAuthStore } from '@/store/authStore';
 import { useApprovalStore } from '@/store/approvalStore';
 import { useNotificationStore } from '@/store/notificationStore';
+import { useTranslationStore } from '@/store/translationStore';
+import { useTranslation } from '@/lib/localization';
 import { X, Calendar, Clock, Users, CalendarClock } from 'lucide-react';
 
 interface Props {
@@ -15,6 +17,8 @@ export const ScheduleRequestModal: React.FC<Props> = ({ task, type, onClose }) =
   const { currentUser } = useAuthStore();
   const { addRequest } = useApprovalStore();
   const { addNotification } = useNotificationStore();
+  const { settings } = useTranslationStore();
+  const t = useTranslation(settings.uiLanguage);
 
   const [reason, setReason] = useState('');
   const [requestedStartDate, setRequestedStartDate] = useState(task.startDate || '');
@@ -22,11 +26,11 @@ export const ScheduleRequestModal: React.FC<Props> = ({ task, type, onClose }) =
 
   const getTitle = () => {
     switch (type) {
-      case 'DEADLINE_EXTENSION': return '일정 연장 신청';
-      case 'OVERTIME_REQUEST': return '추가 작업시간(야근) 신청';
-      case 'MANPOWER_SUPPORT': return '인력 지원 요청';
-      case 'SCHEDULE_REPLAN': return '세부 작업일정 조정 요청';
-      default: return '신청';
+      case 'DEADLINE_EXTENSION': return t('board.schedReq.extTitle');
+      case 'OVERTIME_REQUEST': return t('board.schedReq.overtimeTitle');
+      case 'MANPOWER_SUPPORT': return t('board.schedReq.supportTitle');
+      case 'SCHEDULE_REPLAN': return t('board.schedReq.replanTitle');
+      default: return t('board.schedReq.defaultTitle');
     }
   };
 
@@ -42,14 +46,14 @@ export const ScheduleRequestModal: React.FC<Props> = ({ task, type, onClose }) =
 
   const handleSave = () => {
     if (!reason.trim()) {
-      alert('신청 사유를 입력해주세요.');
+      alert(t('board.schedReq.alertReqReason'));
       return;
     }
     if (!currentUser) return;
 
     if (type === 'SCHEDULE_REPLAN' || type === 'DEADLINE_EXTENSION') {
       if (requestedStartDate > requestedDueDate) {
-        alert('시작일은 마감일보다 늦을 수 없습니다.');
+        alert(t('board.dispatch.alertInvalidDate'));
         return;
       }
     }
@@ -82,7 +86,7 @@ export const ScheduleRequestModal: React.FC<Props> = ({ task, type, onClose }) =
 
     console.log(`[AuditLog] User ${currentUser.id} created request ${type} for task ${task.id}`);
 
-    alert('신청이 완료되었습니다.');
+    alert(t('board.schedReq.alertSubmitted'));
     onClose();
   };
 
@@ -94,7 +98,7 @@ export const ScheduleRequestModal: React.FC<Props> = ({ task, type, onClose }) =
             {getIcon()}
             <h2 className="text-lg font-bold text-[var(--color-text-main)]">{getTitle()}</h2>
           </div>
-          <button onClick={onClose} className="text-[var(--color-text-sub)] hover:text-[var(--color-text-main)]">
+          <button onClick={onClose} className="text-[var(--color-text-sub)] hover:text-[var(--color-text-main)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:outline-none rounded">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -102,11 +106,11 @@ export const ScheduleRequestModal: React.FC<Props> = ({ task, type, onClose }) =
         <div className="p-5 space-y-5">
           <div className="bg-[var(--color-bg)] p-3 rounded-lg border border-[var(--color-border)] text-sm space-y-1">
             <div className="flex justify-between">
-              <span className="text-[var(--color-text-sub)]">대상 업무</span>
+              <span className="text-[var(--color-text-sub)]">{t('board.schedReq.targetTask')}</span>
               <span className="font-bold">{task.title}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-[var(--color-text-sub)]">현재 일정</span>
+              <span className="text-[var(--color-text-sub)]">{t('board.schedReq.currentSched')}</span>
               <span className="font-medium text-[var(--color-text-main)]">{task.startDate} ~ {task.dueDate}</span>
             </div>
           </div>
@@ -115,44 +119,44 @@ export const ScheduleRequestModal: React.FC<Props> = ({ task, type, onClose }) =
             <div className="grid grid-cols-2 gap-4">
               {type === 'SCHEDULE_REPLAN' && (
                 <div>
-                  <label className="block text-xs font-bold text-[var(--color-text-sub)] mb-1">희망 시작일</label>
+                  <label className="block text-xs font-bold text-[var(--color-text-sub)] mb-1">{t('board.schedReq.hopeStart')}</label>
                   <input 
                     type="date" 
                     value={requestedStartDate}
                     onChange={e => setRequestedStartDate(e.target.value)}
-                    className="w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
+                    className="w-full border rounded-lg p-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:outline-none"
                   />
                 </div>
               )}
               <div className={type === 'DEADLINE_EXTENSION' ? 'col-span-2' : ''}>
-                <label className="block text-xs font-bold text-[var(--color-text-sub)] mb-1">희망 마감일</label>
+                <label className="block text-xs font-bold text-[var(--color-text-sub)] mb-1">{t('board.schedReq.hopeEnd')}</label>
                 <input 
                   type="date" 
                   value={requestedDueDate}
                   onChange={e => setRequestedDueDate(e.target.value)}
-                  className="w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
+                  className="w-full border rounded-lg p-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:outline-none"
                 />
               </div>
             </div>
           )}
 
           <div>
-            <label className="block text-xs font-bold text-[var(--color-text-sub)] mb-1">신청 사유 *</label>
+            <label className="block text-xs font-bold text-[var(--color-text-sub)] mb-1">{t('board.schedReq.reasonLabel')}</label>
             <textarea 
               value={reason}
               onChange={e => setReason(e.target.value)}
-              className="w-full border border-[var(--color-border)] rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-100 outline-none min-h-[100px]"
-              placeholder="구체적인 사유를 입력해주세요."
+              className="w-full border border-[var(--color-border)] rounded-lg p-3 text-sm outline-none min-h-[100px] focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:outline-none"
+              placeholder={t('board.schedReq.reasonPlaceholder')}
             />
           </div>
         </div>
 
         <div className="p-4 border-t border-[var(--color-border)] bg-[var(--color-bg)]/50 flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg font-bold text-sm hover:bg-gray-100 transition-colors">
-            취소
+          <button onClick={onClose} className="px-4 py-2 rounded-lg font-bold text-sm hover:bg-gray-100 transition-colors focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:outline-none">
+            {t('common.cancel')}
           </button>
-          <button onClick={handleSave} className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm shadow-sm hover:bg-blue-700 transition-colors">
-            제출하기
+          <button onClick={handleSave} className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm shadow-sm hover:bg-blue-700 transition-colors focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:outline-none">
+            {t('board.schedReq.submit')}
           </button>
         </div>
       </div>

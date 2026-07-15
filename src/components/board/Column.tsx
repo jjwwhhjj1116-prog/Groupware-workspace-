@@ -4,6 +4,8 @@ import { TaskCard } from '@/types/models';
 import { TaskCardItem } from './TaskCardItem';
 import { TaskStatus } from '@/types/models';
 import { getColumnSummary } from '@/lib/selectors';
+import { useTranslationStore } from '@/store/translationStore';
+import { useTranslation } from '@/lib/localization';
 
 interface ColumnProps {
   id: string;
@@ -14,6 +16,8 @@ interface ColumnProps {
 
 export const Column: React.FC<ColumnProps> = ({ id, title, tasks, onTaskClick }) => {
   const { setNodeRef } = useDroppable({ id });
+  const { settings } = useTranslationStore();
+  const t = useTranslation(settings.uiLanguage);
   
   const { avgProgress, delayedCount, urgentCount, pendingCount } = getColumnSummary(tasks);
 
@@ -29,10 +33,10 @@ export const Column: React.FC<ColumnProps> = ({ id, title, tasks, onTaskClick })
         
         {tasks.length > 0 && (
           <div className="flex flex-wrap gap-1.5 text-[10px] text-[var(--color-text-sub)] font-medium bg-[var(--color-surface)]/60 p-2 rounded-lg border border-[var(--color-border)]">
-            <span>평균 <span className="text-[var(--color-text-main)]">{avgProgress}%</span></span>
-            {delayedCount > 0 && <span>· <span className="text-red-500">지연 {delayedCount}</span></span>}
-            {urgentCount > 0 && <span>· <span className="text-orange-500">긴급 {urgentCount}</span></span>}
-            {pendingCount > 0 && <span>· <span className="text-purple-500">대기 {pendingCount}</span></span>}
+            <span>{t('board.column.avg')} <span className="text-[var(--color-text-main)]">{avgProgress}%</span></span>
+            {delayedCount > 0 && <span>· <span className="text-red-500">{t('board.column.delayed')} {delayedCount}</span></span>}
+            {urgentCount > 0 && <span>· <span className="text-orange-500">{t('board.column.urgent')} {urgentCount}</span></span>}
+            {pendingCount > 0 && <span>· <span className="text-purple-500">{t('board.column.pending')} {pendingCount}</span></span>}
           </div>
         )}
       </div>

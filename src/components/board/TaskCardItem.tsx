@@ -7,7 +7,7 @@ import { useProjectStore } from '@/store/projectStore';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { calculateTaskProgress, calculateTaskHealthScore } from '@/lib/selectors';
 import { useTaskStore } from '@/store/taskStore';
-import { getUserDisplayName } from '@/lib/localization';
+import { getUserDisplayName, useTranslation } from '@/lib/localization';
 import { useTranslationStore } from '@/store/translationStore';
 
 interface TaskCardItemProps {
@@ -30,6 +30,7 @@ export const TaskCardItem: React.FC<TaskCardItemProps> = ({ task, onClick }) => 
   const project = projects.find(p => p.id === task.projectId);
   const { settings } = useTranslationStore();
   const uiLang = settings.uiLanguage;
+  const t = useTranslation(uiLang);
 
   let primaryTitle = task.title;
   let secondaryTitle = '';
@@ -41,18 +42,18 @@ export const TaskCardItem: React.FC<TaskCardItemProps> = ({ task, onClick }) => 
       primaryTitle = task.titleI18n.originalText;
       const trans = task.titleI18n.translations?.[targetLang];
       if (trans) {
-        secondaryTitle = `[${targetLang.toUpperCase()} 자동번역] ${trans.text}`;
+        secondaryTitle = t('board.card.autoTransLabel').replace('{lang}', targetLang.toUpperCase()).replace('{text}', trans.text);
         transStatus = trans.status;
       }
     } else {
       const trans = task.titleI18n.translations?.[uiLang];
       if (trans && trans.status !== 'TRANSLATION_FAILED') {
         primaryTitle = trans.text;
-        secondaryTitle = `[${task.titleI18n.originalLanguage.toUpperCase()} 원문] ${task.titleI18n.originalText}`;
+        secondaryTitle = t('board.card.orgTextLabel').replace('{lang}', task.titleI18n.originalLanguage.toUpperCase()).replace('{text}', task.titleI18n.originalText);
         transStatus = trans.status;
       } else {
         primaryTitle = task.titleI18n.originalText;
-        secondaryTitle = `(${uiLang.toUpperCase()} 번역 불가)`;
+        secondaryTitle = t('board.card.noTransLabel').replace('{lang}', uiLang.toUpperCase());
       }
     }
   }
@@ -94,17 +95,17 @@ export const TaskCardItem: React.FC<TaskCardItemProps> = ({ task, onClick }) => 
           )}
           {task.isAdditionalTask && (
             <span className="text-[10px] font-bold bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded shadow-sm border border-purple-100">
-              추가업무
+              {t('board.card.postWork')}
             </span>
           )}
           {isDelayed && (
             <span className="text-[10px] px-1.5 py-0.5 rounded border font-bold bg-red-50 text-red-600 border-red-200 flex items-center">
-              <AlertCircle className="w-3 h-3 mr-0.5" /> 지연
+              <AlertCircle className="w-3 h-3 mr-0.5" /> {t('board.card.delayed')}
             </span>
           )}
           {isPendingApproval && (
             <span className="text-[10px] px-1.5 py-0.5 rounded border font-bold bg-purple-50 text-purple-600 border-purple-200">
-              승인 대기
+              {t('board.card.pendingApprove')}
             </span>
           )}
           {transStatus === 'AUTO_TRANSLATED' && (
@@ -114,17 +115,17 @@ export const TaskCardItem: React.FC<TaskCardItemProps> = ({ task, onClick }) => 
           )}
           {transStatus === 'HUMAN_REVIEW_REQUIRED' && (
             <span className="text-[10px] px-1.5 py-0.5 rounded border font-bold bg-yellow-50 text-yellow-600 border-yellow-200">
-              검토필요
+              {t('board.card.needReview')}
             </span>
           )}
           {transStatus === 'HUMAN_APPROVED' && (
             <span className="text-[10px] px-1.5 py-0.5 rounded border font-bold bg-green-50 text-green-600 border-green-200">
-              승인번역
+              {t('board.card.approvedTrans')}
             </span>
           )}
           {task.isOutsourced && (
             <span className="text-[10px] px-1.5 py-0.5 rounded border font-bold bg-teal-50 text-teal-700 border-teal-200">
-              외주 {task.billingAmount ? `(₩${task.billingAmount.toLocaleString()})` : ''}
+              {task.billingAmount ? t('board.card.billingLabel').replace('{amount}', task.billingAmount.toLocaleString()) : t('board.card.outsourced')}
             </span>
           )}
         </div>
@@ -160,9 +161,9 @@ export const TaskCardItem: React.FC<TaskCardItemProps> = ({ task, onClick }) => 
 
       <div className="flex items-center justify-between text-[11px] text-[var(--color-text-sub)] mt-2 border-t pt-2 border-gray-50">
         <div className="flex items-center gap-2">
-          <div className="flex items-center" title="담당자">
+          <div className="flex items-center" title={t('board.card.tooltipAssignee')}>
             <User className="w-3 h-3 mr-1" />
-            <span className="truncate max-w-[65px]">{assignee ? getUserDisplayName(assignee) : '미배정'}</span>
+            <span className="truncate max-w-[65px]">{assignee ? getUserDisplayName(assignee) : t('board.assignee.unassigned')}</span>
           </div>
           {pm && (
             <div className="flex items-center text-indigo-600 font-medium" title={`PM: ${pm.name}`}>
@@ -170,7 +171,7 @@ export const TaskCardItem: React.FC<TaskCardItemProps> = ({ task, onClick }) => 
             </div>
           )}
         </div>
-        <div className="flex items-center bg-[var(--color-bg)] px-1.5 py-0.5 rounded" title="마감일">
+        <div className="flex items-center bg-[var(--color-bg)] px-1.5 py-0.5 rounded" title={t('board.card.tooltipDeadline')}>
           <Clock className={`w-3 h-3 mr-1 ${isDelayed ? 'text-red-500' : ''}`} />
           <span className={isDelayed ? 'text-red-600 font-medium' : ''}>
             {task.dueDate ? task.dueDate.substring(5) : '-'}
