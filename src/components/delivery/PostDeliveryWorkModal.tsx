@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useProjectStore } from '@/store/projectStore';
 import { useAuthStore } from '@/store/authStore';
+import { useTranslationStore } from '@/store/translationStore';
+import { useTranslation } from '@/lib/localization';
 import { X } from 'lucide-react';
 
 interface Props {
@@ -11,6 +13,8 @@ interface Props {
 export const PostDeliveryWorkModal: React.FC<Props> = ({ projectId, onClose }) => {
   const { currentUser } = useAuthStore();
   const { addPostDeliveryWorkRequest } = useProjectStore();
+  const { settings } = useTranslationStore();
+  const t = useTranslation(settings.uiLanguage);
   
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -24,7 +28,7 @@ export const PostDeliveryWorkModal: React.FC<Props> = ({ projectId, onClose }) =
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !reason) {
-      alert('제목과 사유를 입력해주세요.');
+      alert(t('alert.requireTitleReason'));
       return;
     }
     
@@ -39,16 +43,16 @@ export const PostDeliveryWorkModal: React.FC<Props> = ({ projectId, onClose }) =
       newSuggestedDeliveryDate: impactDeliveryDate ? newSuggestedDeliveryDate : undefined,
     });
     
-    alert('사후 추가업무 요청이 제출되었습니다. PM 승인을 대기합니다.');
+    alert(t('alert.postWorkSubmitted'));
     onClose();
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[150] p-4">
-      <div className="bg-[var(--color-surface)] rounded-[20px] shadow-xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="bg-[var(--color-surface)] rounded-[20px] shadow-xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" role="dialog" aria-modal="true" aria-labelledby="modal-title">
         <div className="flex justify-between items-center px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-bg)]/50">
-          <h2 className="font-bold text-[var(--color-text-main)]">사후 추가업무 요청</h2>
-          <button onClick={onClose} className="p-1.5 text-[var(--color-text-sub)] hover:text-[var(--color-text-sub)] rounded-full hover:bg-gray-200 transition-colors">
+          <h2 id="modal-title" className="font-bold text-[var(--color-text-main)]">{t('delivery.postWork.title')}</h2>
+          <button onClick={onClose} aria-label={t('common.close')} className="p-1.5 text-[var(--color-text-sub)] hover:text-[var(--color-text-sub)] rounded-full hover:bg-gray-200 transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -56,55 +60,59 @@ export const PostDeliveryWorkModal: React.FC<Props> = ({ projectId, onClose }) =
         <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar">
           <form id="post-delivery-form" onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-[var(--color-text-main)] mb-1">제목 <span className="text-red-500">*</span></label>
+              <label htmlFor="post-work-title" className="block text-sm font-medium text-[var(--color-text-main)] mb-1">{t('delivery.postWork.titleLabel')} <span className="text-red-500">*</span></label>
               <input 
+                id="post-work-title"
                 type="text" 
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="w-full border border-[var(--color-border-strong)] rounded p-2 text-sm outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400"
-                placeholder="추가 업무 제목"
+                placeholder={t('delivery.postWork.titlePlaceholder')}
                 required
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-[var(--color-text-main)] mb-1">사유 <span className="text-red-500">*</span></label>
+              <label htmlFor="post-work-reason" className="block text-sm font-medium text-[var(--color-text-main)] mb-1">{t('delivery.postWork.reasonLabel')} <span className="text-red-500">*</span></label>
               <select 
+                id="post-work-reason"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 className="w-full border border-[var(--color-border-strong)] rounded p-2 text-sm outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400"
                 required
               >
-                <option value="">사유 선택</option>
-                <option value="CLIENT_REQUEST">고객사 추가 요청</option>
-                <option value="DEFECT_FIX">납품 후 결함 수정</option>
-                <option value="SCOPE_CHANGE">요구사항 변경 반영</option>
-                <option value="ETC">기타</option>
+                <option value="">{t('delivery.postWork.reasonSelect')}</option>
+                <option value="CLIENT_REQUEST">{t('delivery.postWork.reasonClient')}</option>
+                <option value="DEFECT_FIX">{t('delivery.postWork.reasonDefect')}</option>
+                <option value="SCOPE_CHANGE">{t('delivery.postWork.reasonScope')}</option>
+                <option value="ETC">{t('delivery.postWork.reasonEtc')}</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[var(--color-text-main)] mb-1">상세 내용</label>
+              <label htmlFor="post-work-desc" className="block text-sm font-medium text-[var(--color-text-main)] mb-1">{t('delivery.postWork.detailLabel')}</label>
               <textarea 
+                id="post-work-desc"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className="w-full border border-[var(--color-border-strong)] rounded p-2 text-sm h-24 outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400"
-                placeholder="상세 내용을 입력하세요"
+                placeholder={t('delivery.postWork.detailPlaceholder')}
               />
             </div>
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-[var(--color-text-main)] mb-1">예상 소요 시간</label>
+                <label htmlFor="post-work-time" className="block text-sm font-medium text-[var(--color-text-main)] mb-1">{t('delivery.postWork.timeLabel')}</label>
                 <div className="flex items-center gap-2">
                   <input 
+                    id="post-work-time"
                     type="number" 
                     min="0"
                     value={estimatedHours}
                     onChange={(e) => setEstimatedHours(Number(e.target.value))}
                     className="w-full border border-[var(--color-border-strong)] rounded p-2 text-sm outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400"
                   />
-                  <span className="text-sm text-[var(--color-text-sub)]">시간</span>
+                  <span className="text-sm text-[var(--color-text-sub)]">{t('delivery.postWork.timeUnit')}</span>
                 </div>
               </div>
             </div>
@@ -117,13 +125,14 @@ export const PostDeliveryWorkModal: React.FC<Props> = ({ projectId, onClose }) =
                   onChange={(e) => setImpactDeliveryDate(e.target.checked)}
                   className="rounded border-[var(--color-border-strong)] text-indigo-600 focus:ring-indigo-500"
                 />
-                납품일 변경이 필요한가요?
+                {t('delivery.postWork.changeDate')}
               </label>
               
               {impactDeliveryDate && (
                 <div>
-                  <label className="block text-sm font-medium text-[var(--color-text-main)] mb-1">새로운 제안 납품일</label>
+                  <label htmlFor="post-work-new-date" className="block text-sm font-medium text-[var(--color-text-main)] mb-1">{t('delivery.postWork.newDate')}</label>
                   <input 
+                    id="post-work-new-date"
                     type="date" 
                     value={newSuggestedDeliveryDate}
                     onChange={(e) => setNewSuggestedDeliveryDate(e.target.value)}
@@ -138,10 +147,10 @@ export const PostDeliveryWorkModal: React.FC<Props> = ({ projectId, onClose }) =
           
         <div className="px-6 py-4 bg-[var(--color-bg)] border-t border-[var(--color-border)] flex justify-end gap-2">
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-[var(--color-text-sub)] bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
-            취소
+            {t('common.cancel')}
           </button>
           <button type="submit" form="post-delivery-form" className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors shadow-sm">
-            요청 제출
+            {t('delivery.postWork.submit')}
           </button>
         </div>
       </div>

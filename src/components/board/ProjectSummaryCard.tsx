@@ -5,7 +5,8 @@ import { AlertCircle, Clock, CheckCircle, User } from 'lucide-react';
 import { useProjectStore } from '@/store/projectStore';
 import { useAuthStore } from '@/store/authStore';
 import { Badge } from '@/components/ui/Badge';
-import { getUserDisplayName } from '@/lib/localization';
+import { getUserDisplayName, useTranslation } from '@/lib/localization';
+import { useTranslationStore } from '@/store/translationStore';
 
 interface Props {
   project: Project;
@@ -18,6 +19,8 @@ interface Props {
 export const ProjectSummaryCard: React.FC<Props> = ({ project, tasks, onClick, draggable, onDragStart }) => {
   const { users, currentUser } = useAuthStore();
   const { postDeliveryWorkRequests, revisionRequests } = useProjectStore();
+  const { settings } = useTranslationStore();
+  const t = useTranslation(settings.uiLanguage);
 
   const progress = getProjectOverallProgress(project, tasks);
   const lifecycle = getProjectDeliveryLifecycle(project);
@@ -54,7 +57,7 @@ export const ProjectSummaryCard: React.FC<Props> = ({ project, tasks, onClick, d
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center gap-2">
           <Badge variant={project.projectSourceType === 'CLIENT_ORDER' ? 'INFO' : 'DEFAULT'}>
-            {project.projectSourceType === 'CLIENT_ORDER' ? '수주' : '내부개발'}
+            {project.projectSourceType === 'CLIENT_ORDER' ? t('board.summary.sourceOrder') : t('board.summary.sourceInternal')}
           </Badge>
           <Badge variant={getLifecycleBadgeVariant()}>{badgeText}</Badge>
         </div>
@@ -63,20 +66,20 @@ export const ProjectSummaryCard: React.FC<Props> = ({ project, tasks, onClick, d
 
       <div className="flex items-center justify-between text-[11px] text-[var(--color-text-sub)]">
         <div className="flex items-center gap-1.5">
-          <div className="w-5 h-5 bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800/50 rounded-full flex items-center justify-center border">
+          <div className="w-5 h-5 bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800/50 rounded-full flex items-center justify-center border" aria-hidden="true">
             <User className="w-3 h-3" />
           </div>
-          <span className="font-medium">{pmUser ? getUserDisplayName(pmUser) : '담당자 미정'}</span>
+          <span className="font-medium">{pmUser ? getUserDisplayName(pmUser) : t('board.summary.pmUnset')}</span>
         </div>
         <div className="flex items-center gap-1 font-semibold">
-          <Clock className="w-3 h-3" />
-          <span>{project.projectSourceType === 'INTERNAL_DEVELOPMENT' ? (project.targetDate ? `${project.targetDate} 목표` : '미정') : (project.deliveryDate ? `${project.deliveryDate} 납품` : '미정')}</span>
+          <Clock className="w-3 h-3" aria-hidden="true" />
+          <span>{project.projectSourceType === 'INTERNAL_DEVELOPMENT' ? (project.targetDate ? t('board.summary.targetTarget', { date: project.targetDate }) : t('unset')) : (project.deliveryDate ? t('board.summary.targetDelivery', { date: project.deliveryDate }) : t('unset'))}</span>
         </div>
       </div>
 
       <div className="space-y-1.5 pt-1 border-t border-[var(--color-border)]">
         <div className="flex justify-between text-[11px] font-bold text-[var(--color-text-main)]">
-          <span>진행률</span>
+          <span>{t('board.summary.progress')}</span>
           <span>{progress}%</span>
         </div>
         <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
@@ -89,19 +92,19 @@ export const ProjectSummaryCard: React.FC<Props> = ({ project, tasks, onClick, d
 
       <div className="flex gap-3 text-[11px] font-semibold text-[var(--color-text-sub)]">
         <div className="flex items-center gap-1">
-          <CheckCircle className="w-3.5 h-3.5" />
-          <span>잔여 {pendingTasks}건</span>
+          <CheckCircle className="w-3.5 h-3.5" aria-hidden="true" />
+          <span>{t('board.summary.pendingTasks', { count: pendingTasks.toString() })}</span>
         </div>
         {pendingRequestsCount > 0 && (
           <div className="flex items-center gap-1 text-orange-600 dark:text-orange-400">
-            <AlertCircle className="w-3.5 h-3.5" />
-            <span>추가업무 {pendingRequestsCount}건</span>
+            <AlertCircle className="w-3.5 h-3.5" aria-hidden="true" />
+            <span>{t('board.summary.addRequests', { count: pendingRequestsCount.toString() })}</span>
           </div>
         )}
         {activeRevisionsCount > 0 && (
           <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
-            <AlertCircle className="w-3.5 h-3.5" />
-            <span>수정요청 {activeRevisionsCount}건</span>
+            <AlertCircle className="w-3.5 h-3.5" aria-hidden="true" />
+            <span>{t('board.summary.revisions', { count: activeRevisionsCount.toString() })}</span>
           </div>
         )}
       </div>
@@ -115,7 +118,7 @@ export const ProjectSummaryCard: React.FC<Props> = ({ project, tasks, onClick, d
               useProjectStore.getState().updateProjectStatus(project.id, 'COMPLETED'); 
             }}
           >
-            최종 완료 승인
+            {t('board.summary.finalApprove')}
           </button>
         </div>
       )}

@@ -3,6 +3,8 @@ import { TaskCard } from '@/types/models';
 import { useProcessTemplateStore } from '@/store/processTemplateStore';
 import { useApprovalStore } from '@/store/approvalStore';
 import { useAuthStore } from '@/store/authStore';
+import { useTranslationStore } from '@/store/translationStore';
+import { useTranslation } from '@/lib/localization';
 import { mockUsers } from '@/data/mockData';
 import { CalendarClock, Plus, Send, AlertCircle, RefreshCw } from 'lucide-react';
 
@@ -15,6 +17,8 @@ export const ProcessTemplateTab: React.FC<ProcessTemplateTabProps> = ({ task, is
   const { currentUser } = useAuthStore();
   const { templates, stages, tasks, assignments, schedules, addAssignment, addSchedule, updateSchedule } = useProcessTemplateStore();
   const { addRequest, requests } = useApprovalStore();
+  const { settings } = useTranslationStore();
+  const t = useTranslation(settings.uiLanguage);
 
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [selectedManagerId, setSelectedManagerId] = useState<string>('');
@@ -29,7 +33,7 @@ export const ProcessTemplateTab: React.FC<ProcessTemplateTabProps> = ({ task, is
   const rejectionRequest = requests
     .filter(r => r.taskId === task.id && r.status === 'REJECTED' && r.type === 'PROCESS_SCHEDULE_APPROVAL')
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-  const rejectionComment = rejectionRequest?.reviewComment || '사유가 기재되지 않았습니다.';
+  const rejectionComment = rejectionRequest?.reviewComment || t('board.process.noReason');
 
   const handleApplyTemplate = () => {
     if (!selectedTemplateId || !currentUser) return;
@@ -62,7 +66,7 @@ export const ProcessTemplateTab: React.FC<ProcessTemplateTabProps> = ({ task, is
   const handleRequestApproval = () => {
     if (!activeAssignment || !currentUser) return;
     if (!selectedManagerId) {
-      alert('승인권자(매니저)를 선택해주세요.');
+      alert(t('board.process.alertSelectManager'));
       return;
     }
 
@@ -77,7 +81,7 @@ export const ProcessTemplateTab: React.FC<ProcessTemplateTabProps> = ({ task, is
       reason: '작성된 세부 공정 일정표의 승인을 요청합니다.'
     });
 
-    alert('중간관리자에게 승인을 요청했습니다.');
+    alert(t('board.process.alertRequested'));
   };
 
   const handleReDraft = () => {
@@ -89,10 +93,10 @@ export const ProcessTemplateTab: React.FC<ProcessTemplateTabProps> = ({ task, is
     return (
       <div className="space-y-4">
         <div className="bg-[var(--color-surface)] p-6 rounded-xl border border-[var(--color-border)] shadow-sm text-center">
-          <CalendarClock className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-bold text-[var(--color-text-main)] mb-2">공정 템플릿 미적용</h3>
+          <CalendarClock className="w-12 h-12 text-gray-300 mx-auto mb-4" aria-hidden="true" />
+          <h3 className="text-lg font-bold text-[var(--color-text-main)] mb-2">{t('board.process.noTemplateTitle')}</h3>
           <p className="text-sm text-[var(--color-text-sub)] mb-6">
-            이 업무에 적용된 공정 템플릿이 없습니다. 템플릿을 적용하여 세부 일정을 계획하세요.
+            {t('board.process.noTemplateDesc')}
           </p>
           
           <div className="flex justify-center items-center gap-2 max-w-sm mx-auto">
@@ -102,7 +106,7 @@ export const ProcessTemplateTab: React.FC<ProcessTemplateTabProps> = ({ task, is
               disabled={!isEditable}
               className="flex-1 border border-[var(--color-border)] bg-[var(--color-bg)] rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none disabled:opacity-50"
             >
-              <option value="">템플릿 선택...</option>
+              <option value="">{t('board.process.selectTemplate')}</option>
               {templates.map(t => (
                 <option key={t.id} value={t.id}>{t.name}</option>
               ))}
@@ -114,7 +118,7 @@ export const ProcessTemplateTab: React.FC<ProcessTemplateTabProps> = ({ task, is
                 isEditable && selectedTemplateId ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
             >
-              <Plus className="w-4 h-4" /> 적용
+              <Plus className="w-4 h-4" aria-hidden="true" /> {t('board.process.apply')}
             </button>
           </div>
         </div>
@@ -134,7 +138,7 @@ export const ProcessTemplateTab: React.FC<ProcessTemplateTabProps> = ({ task, is
       {activeAssignment.status === 'REJECTED' && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
           <h4 className="text-red-800 font-bold flex items-center gap-2 mb-2">
-            <AlertCircle className="w-4 h-4" /> 승인 반려됨
+            <AlertCircle className="w-4 h-4" aria-hidden="true" /> {t('board.process.rejected')}
           </h4>
           <p className="text-sm text-red-700 mb-4 whitespace-pre-wrap">{rejectionComment}</p>
           {isEditable && (
@@ -142,7 +146,7 @@ export const ProcessTemplateTab: React.FC<ProcessTemplateTabProps> = ({ task, is
               onClick={handleReDraft}
               className="px-4 py-2 bg-white border border-red-300 text-red-600 rounded-lg text-sm font-bold hover:bg-red-50 transition flex items-center gap-1"
             >
-              <RefreshCw className="w-4 h-4" /> 일정을 다시 수정하기 (Draft)
+              <RefreshCw className="w-4 h-4" aria-hidden="true" /> {t('board.process.rewrite')}
             </button>
           )}
         </div>
@@ -151,9 +155,9 @@ export const ProcessTemplateTab: React.FC<ProcessTemplateTabProps> = ({ task, is
       <div className="flex justify-between items-center bg-[var(--color-surface)] p-4 rounded-xl border border-[var(--color-border)] shadow-sm">
         <div>
           <h3 className="text-sm font-bold text-[var(--color-text-main)] flex items-center gap-2">
-            <CalendarClock className="w-4 h-4 text-blue-600" /> 공정 일정표 (진행 중)
+            <CalendarClock className="w-4 h-4 text-blue-600" aria-hidden="true" /> {t('board.process.scheduleChart')}
           </h3>
-          <p className="text-xs text-[var(--color-text-sub)] mt-1">상태: <span className="font-bold">{activeAssignment.status}</span></p>
+          <p className="text-xs text-[var(--color-text-sub)] mt-1">{t('board.process.status')} <span className="font-bold">{activeAssignment.status}</span></p>
         </div>
         {(activeAssignment.status === 'DRAFT' || activeAssignment.status === 'REJECTED') && isEditable && (
           <div className="flex items-center gap-2">
@@ -162,7 +166,7 @@ export const ProcessTemplateTab: React.FC<ProcessTemplateTabProps> = ({ task, is
               onChange={e => setSelectedManagerId(e.target.value)}
               className="border border-[var(--color-border)] bg-[var(--color-bg)] rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
             >
-              <option value="">승인권자 선택...</option>
+              <option value="">{t('board.process.selectApprover')}</option>
               {managers.map(m => <option key={m.id} value={m.id}>{m.name} ({m.departmentId})</option>)}
             </select>
             <button 
@@ -172,7 +176,7 @@ export const ProcessTemplateTab: React.FC<ProcessTemplateTabProps> = ({ task, is
                 selectedManagerId ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
             >
-              <Send className="w-4 h-4" /> 승인 요청
+              <Send className="w-4 h-4" aria-hidden="true" /> {t('board.process.reqApproval')}
             </button>
           </div>
         )}
@@ -199,25 +203,25 @@ export const ProcessTemplateTab: React.FC<ProcessTemplateTabProps> = ({ task, is
                           <span className="font-medium text-sm text-[var(--color-text-main)]">{taskObj?.name}</span>
                           {taskObj?.defaultAssigneeRole && (
                             <span className="ml-2 text-[10px] bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full">
-                              기본 할당: {taskObj.defaultAssigneeRole}
+                              {t('board.process.defaultAssign')} {taskObj.defaultAssigneeRole}
                             </span>
                           )}
                         </div>
                         <div className="flex items-center gap-2 flex-wrap">
                           <div className="flex flex-col">
-                            <label className="text-[10px] text-[var(--color-text-sub)] mb-0.5">담당자</label>
+                            <label className="text-[10px] text-[var(--color-text-sub)] mb-0.5">{t('board.process.assigneeLabel')}</label>
                             <select
                               value={schedule.assigneeId || ''}
                               onChange={e => updateSchedule(schedule.id, { assigneeId: e.target.value })}
                               disabled={isReadOnly}
                               className="border border-[var(--color-border)] bg-[var(--color-surface)] rounded p-1.5 text-xs focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
                             >
-                              <option value="">선택...</option>
+                              <option value="">{t('board.process.select')}</option>
                               {workers.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                             </select>
                           </div>
                           <div className="flex flex-col">
-                            <label className="text-[10px] text-[var(--color-text-sub)] mb-0.5">시작일</label>
+                            <label className="text-[10px] text-[var(--color-text-sub)] mb-0.5">{t('board.process.startLabel')}</label>
                             <input 
                               type="date" 
                               value={schedule.startDate || ''} 
@@ -228,7 +232,7 @@ export const ProcessTemplateTab: React.FC<ProcessTemplateTabProps> = ({ task, is
                           </div>
                           <span className="text-gray-400 self-end mb-1.5">~</span>
                           <div className="flex flex-col">
-                            <label className="text-[10px] text-[var(--color-text-sub)] mb-0.5">종료일</label>
+                            <label className="text-[10px] text-[var(--color-text-sub)] mb-0.5">{t('board.process.endLabel')}</label>
                             <input 
                               type="date" 
                               value={schedule.endDate || ''} 
@@ -238,7 +242,7 @@ export const ProcessTemplateTab: React.FC<ProcessTemplateTabProps> = ({ task, is
                             />
                           </div>
                           <div className="flex flex-col w-16">
-                            <label className="text-[10px] text-[var(--color-text-sub)] mb-0.5">예상(h)</label>
+                            <label className="text-[10px] text-[var(--color-text-sub)] mb-0.5">{t('board.process.estLabel')}</label>
                             <input 
                               type="number" min="0" step="0.5"
                               value={schedule.estimatedHours || ''} 
@@ -252,7 +256,7 @@ export const ProcessTemplateTab: React.FC<ProcessTemplateTabProps> = ({ task, is
                       <div className="w-full">
                         <input 
                           type="text" 
-                          placeholder="세부 지시사항..." 
+                          placeholder={t('board.process.detailPlaceholder')}
                           value={schedule.description || ''} 
                           onChange={e => updateSchedule(schedule.id, { description: e.target.value })}
                           disabled={isReadOnly}

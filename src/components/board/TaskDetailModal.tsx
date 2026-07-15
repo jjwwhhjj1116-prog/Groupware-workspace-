@@ -60,7 +60,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
     const diff = Math.abs(newProgress - currentProgress);
     
     if (diff >= 20 && memo.trim().length < 5) {
-      setError('진행률이 크게 변경되었습니다. 진행 내용에 상세한 메모를 남겨주세요 (5자 이상).');
+      setError(t('board.detail.alertProgressNote'));
       return;
     }
 
@@ -102,7 +102,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
     updateTaskProgress(task.id, newProgress, currentUser.id, memo, undefined, memoI18n);
     setMemo('');
     setError('');
-    alert('진행 내용이 기록되었습니다.');
+    alert(t('board.detail.alertNoteSaved'));
   };
 
   const handleAddBlocker = () => {
@@ -126,11 +126,11 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
     const sEnd = new Date(newSegmentEnd).setHours(23,59,59,999);
     
     if (tStart > 0 && sStart < tStart) {
-      alert('세부 작업 시작일은 카드의 시작일보다 빠를 수 없습니다.');
+      alert(t('board.detail.alertStartInvalid'));
       return;
     }
     if (tEnd !== Infinity && sEnd > tEnd) {
-      alert('세부 작업 종료일은 카드의 마감일보다 늦을 수 없습니다.');
+      alert(t('board.detail.alertEndInvalid'));
       return;
     }
     
@@ -178,12 +178,12 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
   const handleFiles = (files: File[]) => {
     for (const file of files) {
       if (file.size > 10 * 1024 * 1024) {
-        alert(`'${file.name}'의 용량이 10MB를 초과합니다.`);
+        alert(t('board.detail.alertFileLarge', { name: file.name }));
         continue;
       }
       const allowedExtensions = /\.(pdf|jpe?g|png|xlsx|docx)$/i;
       if (!allowedExtensions.test(file.name)) {
-        alert(`'${file.name}'은 지원하지 않는 파일 형식입니다. (PDF, JPG, PNG, XLSX, DOCX 허용)`);
+        alert(t('board.detail.alertFileInvalid', { name: file.name }));
         continue;
       }
       
@@ -200,7 +200,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
 
   const handleAppeal = (issueId: string) => {
     if (!currentUser) return;
-    const reason = window.prompt("해당 QC 결과(가중치 등)에 대한 이의신청 사유를 구체적으로 작성해주세요.");
+    const reason = window.prompt(t('board.detail.promptAppeal'));
     if (!reason) return;
     
     addAppeal({
@@ -211,20 +211,20 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
       reason,
       requestedBy: currentUser.id,
     });
-    alert('이의신청이 접수되었습니다. 관리자가 검토 후 재조정 여부를 결정합니다.');
+    alert(t('board.detail.alertAppealSubmitted'));
   };
 
   const tabs = [
-    { id: 'OVERVIEW', label: t('overview') || '개요', icon: <FileText className="w-4 h-4" /> },
-    { id: 'PROCESS_TEMPLATE', label: '공정 템플릿', icon: <ListTodo className="w-4 h-4 text-blue-600" /> },
-    { id: 'WORK_SEGMENTS', label: '세부 작업내역', icon: <ListTodo className="w-4 h-4" /> },
-    { id: 'PROGRESS', label: '진행 내용', icon: <Clock className="w-4 h-4" /> },
-    { id: 'CHECKLIST', label: '체크리스트', icon: <CheckSquare className="w-4 h-4" /> },
-    { id: 'APPROVALS', label: '승인/신청', icon: <CalendarClock className="w-4 h-4" /> },
-    { id: 'ARTIFACTS', label: '산출물', icon: <FileText className="w-4 h-4" /> },
-    { id: 'EVALUATION', label: 'QC/평가', icon: <ShieldAlert className="w-4 h-4" /> },
-    { id: 'BILLING', label: '정산', icon: <DollarSign className="w-4 h-4" /> },
-    { id: 'HISTORY', label: '이력', icon: <History className="w-4 h-4" /> },
+    { id: 'OVERVIEW', label: t('board.detail.tabOverview'), icon: <FileText className="w-4 h-4" aria-hidden="true" /> },
+    { id: 'PROCESS_TEMPLATE', label: t('board.detail.tabProcess'), icon: <ListTodo className="w-4 h-4 text-blue-600" aria-hidden="true" /> },
+    { id: 'WORK_SEGMENTS', label: t('board.detail.tabSegments'), icon: <ListTodo className="w-4 h-4" aria-hidden="true" /> },
+    { id: 'PROGRESS', label: t('board.detail.tabProgress'), icon: <Clock className="w-4 h-4" aria-hidden="true" /> },
+    { id: 'CHECKLIST', label: t('board.detail.tabChecklist'), icon: <CheckSquare className="w-4 h-4" aria-hidden="true" /> },
+    { id: 'APPROVALS', label: t('board.detail.tabApprovals'), icon: <CalendarClock className="w-4 h-4" aria-hidden="true" /> },
+    { id: 'ARTIFACTS', label: t('board.detail.tabArtifacts'), icon: <FileText className="w-4 h-4" aria-hidden="true" /> },
+    { id: 'EVALUATION', label: t('board.detail.tabEval'), icon: <ShieldAlert className="w-4 h-4" aria-hidden="true" /> },
+    { id: 'BILLING', label: t('board.detail.tabBilling'), icon: <DollarSign className="w-4 h-4" aria-hidden="true" /> },
+    { id: 'HISTORY', label: t('board.detail.tabHistory'), icon: <History className="w-4 h-4" aria-hidden="true" /> },
   ];
 
   const uiLang = settings.uiLanguage;
@@ -272,7 +272,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
                 {assignee ? assignee.name.charAt(0) : '?'}
               </div>
               <span className="font-medium text-[var(--color-text-main)]">
-                {assignee ? assignee.name : '담당자 미배정'}
+                {assignee ? assignee.name : t('board.assignee.unassigned')}
               </span>
             </div>
             <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-[var(--color-text-sub)]">
@@ -305,17 +305,17 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
           {activeTab === 'OVERVIEW' && (
             <div className="space-y-6">
               <div className="bg-[var(--color-surface)] p-5 rounded-xl border border-[var(--color-border)] shadow-sm">
-                <h3 className="text-sm font-semibold text-[var(--color-text-main)] mb-3">설명</h3>
-                <p className="text-sm text-[var(--color-text-sub)] whitespace-pre-wrap">{task.description || '설명이 없습니다.'}</p>
+                <h3 className="text-sm font-semibold text-[var(--color-text-main)] mb-3">{t('board.detail.descTitle')}</h3>
+                <p className="text-sm text-[var(--color-text-sub)] whitespace-pre-wrap">{task.description || t('board.detail.noDesc')}</p>
               </div>
               
               <div className="bg-[var(--color-surface)] p-5 rounded-xl border border-[var(--color-border)] shadow-sm flex gap-12">
                 <div>
-                  <div className="text-xs text-[var(--color-text-sub)] mb-1">마감일</div>
+                  <div className="text-xs text-[var(--color-text-sub)] mb-1">{t('board.detail.deadlineLabel')}</div>
                   <div className="font-medium text-sm text-red-600">{task.dueDate || '-'}</div>
                 </div>
                 <div className="flex-1">
-                  <div className="text-xs text-[var(--color-text-sub)] mb-2">진행률</div>
+                  <div className="text-xs text-[var(--color-text-sub)] mb-2">{t('board.detail.progressLabel')}</div>
                   <ProgressBar progress={task.progress || 0} showLabel colorClass="bg-blue-500" />
                 </div>
               </div>
@@ -326,11 +326,11 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
             <div className="space-y-6 max-w-2xl mx-auto">
               {/* Update Form */}
               <div className="bg-[var(--color-surface)] p-5 rounded-xl border border-[var(--color-border)] shadow-sm">
-                <h3 className="text-sm font-bold text-[var(--color-text-main)] mb-4">진행 상황 업데이트</h3>
+                <h3 className="text-sm font-bold text-[var(--color-text-main)] mb-4">{t('board.detail.updateTitle')}</h3>
                 
                 <div className="mb-4">
                   <div className="flex justify-between text-sm mb-2">
-                    <span className="text-[var(--color-text-sub)] font-medium">새 진행률</span>
+                    <span className="text-[var(--color-text-sub)] font-medium">{t('board.detail.newProgress')}</span>
                     <span className="font-bold text-blue-600">{newProgress}%</span>
                   </div>
                   <input 
@@ -344,14 +344,14 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
                 </div>
 
                 <div className="mb-4">
-                  <label className="block text-sm text-[var(--color-text-sub)] font-medium mb-2">진행 메모 (작업 내용, 특이사항)</label>
+                  <label className="block text-sm text-[var(--color-text-sub)] font-medium mb-2">{t('board.detail.memoLabel')}</label>
                   <textarea 
                     value={memo}
                     onChange={(e) => setMemo(e.target.value)}
                     disabled={!isEditable}
                     className={`w-full p-3 text-sm border rounded-lg focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none transition-colors ${error ? 'border-red-400' : 'border-[var(--color-border)]'} ${!isEditable ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                     rows={3}
-                    placeholder={isEditable ? "오늘 진행한 작업 내용이나 막힌 부분을 작성해주세요." : "수정 권한이 없습니다."}
+                    placeholder={isEditable ? t('board.detail.memoPlaceholder') : t('board.detail.noAuth')}
                   />
                   {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
                 </div>
@@ -362,7 +362,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
                     disabled={!isEditable}
                     className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${isEditable ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
                   >
-                    기록 저장
+                    {t('board.detail.saveRecord')}
                   </button>
                 </div>
               </div>
@@ -370,8 +370,8 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
               {/* Blockers */}
               <div className="bg-[var(--color-surface)] p-5 rounded-xl border border-red-100 shadow-sm">
                 <h3 className="text-sm font-bold text-red-700 mb-4 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4" /> 
-                  장애 요소 (Blockers)
+                  <AlertCircle className="w-4 h-4" aria-hidden="true" />
+                  {t('board.detail.blockersTitle')}
                 </h3>
                 
                 <div className="flex gap-2 mb-4">
@@ -380,7 +380,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
                     value={newBlocker}
                     onChange={(e) => setNewBlocker(e.target.value)}
                     disabled={!isEditable}
-                    placeholder={isEditable ? "작업 진행을 막고 있는 장애물을 입력하세요" : "수정 권한이 없습니다."}
+                    placeholder={isEditable ? t('board.detail.blockersPlaceholder') : t('board.detail.noAuth')}
                     className={`flex-1 p-2 text-sm border border-[var(--color-border)] rounded-lg focus:ring-2 focus:ring-red-100 focus:border-red-400 outline-none ${!isEditable ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                   />
                   <button 
@@ -388,13 +388,13 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
                     disabled={!isEditable}
                     className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${isEditable ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
                   >
-                    추가
+                    {t('common.add')}
                   </button>
                 </div>
 
                 <div className="space-y-2">
                   {taskBlockers.length === 0 ? (
-                    <p className="text-sm text-[var(--color-text-sub)] text-center py-2">등록된 장애 요소가 없습니다.</p>
+                    <p className="text-sm text-[var(--color-text-sub)] text-center py-2">{t('board.detail.noBlockers')}</p>
                   ) : (
                     taskBlockers.map(blocker => (
                       <div key={blocker.id} className={`p-3 border rounded-lg flex justify-between items-start ${blocker.status === 'OPEN' ? 'border-red-200 bg-red-50/50' : 'border-green-200 bg-green-50/50 opacity-60'}`}>
@@ -411,12 +411,12 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
                             onClick={() => currentUser && resolveBlocker(blocker.id, currentUser.id)}
                             className="text-xs bg-[var(--color-surface)] text-green-600 px-2 py-1 border border-green-200 rounded font-medium hover:bg-green-50"
                           >
-                            해결 완료
+                            {t('board.detail.resolvedBtn')}
                           </button>
                         )}
                         {blocker.status === 'RESOLVED' && (
                           <span className="text-xs text-green-600 flex items-center gap-1 font-medium">
-                            <CheckCircle2 className="w-3 h-3" /> 해결됨
+                            <CheckCircle2 className="w-3 h-3" aria-hidden="true" /> {t('board.detail.resolvedLabel')}
                           </span>
                         )}
                       </div>
@@ -427,9 +427,9 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
 
               {/* History Timeline */}
               <div className="space-y-4">
-                <h3 className="text-sm font-bold text-[var(--color-text-main)] border-b pb-2">진행 이력 ({taskUpdates.length})</h3>
+                <h3 className="text-sm font-bold text-[var(--color-text-main)] border-b pb-2">{t('board.detail.historyTitle', { count: taskUpdates.length.toString() })}</h3>
                 {taskUpdates.length === 0 ? (
-                  <p className="text-sm text-[var(--color-text-sub)] text-center py-4">기록된 진행 내용이 없습니다.</p>
+                  <p className="text-sm text-[var(--color-text-sub)] text-center py-4">{t('board.detail.noHistory')}</p>
                 ) : (
                   <div className="space-y-4">
                     {taskUpdates.map(update => (
@@ -443,7 +443,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
                             {update.progressBefore}% → <span className="text-blue-600">{update.progressAfter}%</span>
                           </div>
                         </div>
-                        <p className="text-sm text-[var(--color-text-main)] whitespace-pre-wrap mt-2">{update.workSummary || '내용 없음'}</p>
+                        <p className="text-sm text-[var(--color-text-main)] whitespace-pre-wrap mt-2">{update.workSummary || t('board.detail.noContent')}</p>
                       </div>
                     ))}
                   </div>
@@ -459,7 +459,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
           {activeTab === 'WORK_SEGMENTS' && (
             <div className="space-y-4">
               <div className="bg-[var(--color-surface)] p-5 rounded-xl border border-[var(--color-border)] shadow-sm">
-                <h3 className="text-sm font-bold text-[var(--color-text-main)] mb-4">세부 작업 등록</h3>
+                <h3 className="text-sm font-bold text-[var(--color-text-main)] mb-4">{t('board.detail.subTaskTitle')}</h3>
                 <div className="flex gap-2 mb-2">
                   <input 
                     type="date" 
@@ -481,7 +481,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
                     value={newSegmentDesc} 
                     onChange={e => setNewSegmentDesc(e.target.value)} 
                     disabled={!isEditable}
-                    placeholder={isEditable ? "세부 작업 내용" : "권한 없음"} 
+                    placeholder={isEditable ? t('board.detail.subTaskPlaceholder') : t('board.detail.noAuth')}
                     className="flex-1 border rounded p-2 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed" 
                   />
                   <button 
@@ -489,13 +489,13 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
                     disabled={!isEditable}
                     className={`px-4 py-2 rounded text-sm font-bold ${isEditable ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
                   >
-                    추가
+                    {t('common.add')}
                   </button>
                 </div>
               </div>
               <div className="space-y-2">
                 {taskSegments.length === 0 ? (
-                  <p className="text-sm text-[var(--color-text-sub)] text-center py-4">등록된 세부 작업이 없습니다.</p>
+                  <p className="text-sm text-[var(--color-text-sub)] text-center py-4">{t('board.detail.noSubTasks')}</p>
                 ) : (
                   taskSegments.map(seg => (
                     <div key={seg.id} className="bg-[var(--color-surface)] p-3 rounded-lg border border-[var(--color-border)] flex justify-between items-center shadow-sm">
@@ -505,7 +505,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
                       </div>
                       {isEditable && (
                         <button onClick={() => deleteWorkSegment(seg.id)} className="text-red-500 text-xs hover:underline">
-                          삭제
+                          {t('common.delete')}
                         </button>
                       )}
                     </div>
@@ -517,9 +517,9 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
 
           {activeTab === 'CHECKLIST' && (
             <div className="bg-[var(--color-surface)] p-5 rounded-xl border border-[var(--color-border)] shadow-sm">
-              <h3 className="text-sm font-semibold text-[var(--color-text-main)] mb-4">체크리스트</h3>
+              <h3 className="text-sm font-semibold text-[var(--color-text-main)] mb-4">{t('board.detail.tabChecklist')}</h3>
               {taskChecklists.length === 0 ? (
-                <p className="text-sm text-[var(--color-text-sub)]">등록된 항목이 없습니다.</p>
+                <p className="text-sm text-[var(--color-text-sub)]">{t('board.detail.noChecklist')}</p>
               ) : (
                 <div className="space-y-2">
                   {taskChecklists.map(item => (
@@ -542,38 +542,38 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
                   onClick={() => handleRequest('OVERTIME_REQUEST')}
                   className="p-4 bg-orange-50 border border-orange-200 rounded-xl hover:bg-orange-100 transition flex flex-col items-center text-orange-700"
                 >
-                  <Clock className="w-8 h-8 mb-2" />
-                  <span className="font-bold text-center">추가 작업시간(야근)<br/>신청</span>
+                  <Clock className="w-8 h-8 mb-2" aria-hidden="true" />
+                  <span className="font-bold text-center" dangerouslySetInnerHTML={{ __html: t('board.detail.reqOvertime') || '' }} />
                 </button>
                 
                 <button 
                   onClick={() => handleRequest('DEADLINE_EXTENSION')}
                   className="p-4 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100 transition flex flex-col items-center text-red-700"
                 >
-                  <CalendarDays className="w-8 h-8 mb-2" />
-                  <span className="font-bold text-center">마감일 연장<br/>신청</span>
+                  <CalendarDays className="w-8 h-8 mb-2" aria-hidden="true" />
+                  <span className="font-bold text-center" dangerouslySetInnerHTML={{ __html: t('board.detail.reqExt') || '' }} />
                 </button>
                 
                 <button 
                   onClick={() => handleRequest('SCHEDULE_REPLAN')}
                   className="p-4 bg-blue-50 border border-blue-200 rounded-xl hover:bg-blue-100 transition flex flex-col items-center text-blue-700"
                 >
-                  <CalendarClock className="w-8 h-8 mb-2" />
-                  <span className="font-bold text-center">세부 작업일정<br/>조정 요청</span>
+                  <CalendarClock className="w-8 h-8 mb-2" aria-hidden="true" />
+                  <span className="font-bold text-center" dangerouslySetInnerHTML={{ __html: t('board.detail.reqReplan') || '' }} />
                 </button>
 
                 <button 
                   onClick={() => handleRequest('MANPOWER_SUPPORT')}
                   className="p-4 bg-purple-50 border border-purple-200 rounded-xl hover:bg-purple-100 transition flex flex-col items-center text-purple-700"
                 >
-                  <Zap className="w-8 h-8 mb-2" />
-                  <span className="font-bold text-center">인력 지원<br/>요청</span>
+                  <Zap className="w-8 h-8 mb-2" aria-hidden="true" />
+                  <span className="font-bold text-center" dangerouslySetInnerHTML={{ __html: t('board.detail.reqSupport') || '' }} />
                 </button>
               </div>
               
               <div className="bg-[var(--color-surface)] p-5 rounded-xl border border-[var(--color-border)] shadow-sm mt-4">
-                <h3 className="text-sm font-bold text-[var(--color-text-main)] mb-2">신청 내역</h3>
-                <p className="text-sm text-[var(--color-text-sub)]">결재 관리 페이지에서 확인하실 수 있습니다.</p>
+                <h3 className="text-sm font-bold text-[var(--color-text-main)] mb-2">{t('board.detail.reqHistoryTitle')}</h3>
+                <p className="text-sm text-[var(--color-text-sub)]">{t('board.detail.reqHistoryDesc')}</p>
               </div>
             </div>
           )}
@@ -587,20 +587,20 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
                 onDrop={handleDrop}
               >
                 <div className="flex justify-center mb-3 text-[var(--color-text-sub)]">
-                  <FileText className="w-10 h-10" />
+                  <FileText className="w-10 h-10" aria-hidden="true" />
                 </div>
-                <h4 className="text-sm font-bold text-[var(--color-text-main)] mb-1">여기로 파일을 드래그하여 첨부하세요</h4>
-                <p className="text-xs text-[var(--color-text-sub)] mb-4">최대 10MB, PDF/JPG/PNG/XLSX/DOCX 지원</p>
+                <h4 className="text-sm font-bold text-[var(--color-text-main)] mb-1">{t('board.detail.fileDragLabel')}</h4>
+                <p className="text-xs text-[var(--color-text-sub)] mb-4">{t('board.detail.fileDragDesc')}</p>
                 <label className="bg-blue-50 text-blue-700 px-4 py-2 rounded font-semibold text-sm cursor-pointer hover:bg-blue-100 transition">
-                  파일 선택
+                  {t('board.detail.fileSelectBtn')}
                   <input type="file" multiple className="hidden" onChange={handleFileInput} accept=".pdf,.jpg,.jpeg,.png,.xlsx,.docx" />
                 </label>
               </div>
 
               <div className="bg-[var(--color-surface)] p-5 rounded-xl border border-[var(--color-border)] shadow-sm">
-                <h3 className="text-sm font-semibold text-[var(--color-text-main)] mb-4">산출물 목록</h3>
+                <h3 className="text-sm font-semibold text-[var(--color-text-main)] mb-4">{t('board.detail.artifactTitle')}</h3>
               {taskArtifacts.length === 0 ? (
-                <p className="text-sm text-[var(--color-text-sub)]">등록된 산출물이 없습니다.</p>
+                <p className="text-sm text-[var(--color-text-sub)]">{t('board.detail.noArtifacts')}</p>
               ) : (
                 <div className="space-y-2">
                   {taskArtifacts.map(art => (
@@ -624,19 +624,19 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
             <div className="space-y-6">
               <div className="bg-[var(--color-surface)] p-5 rounded-xl border border-red-100 shadow-sm">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-sm font-bold text-red-800 flex items-center gap-2">
-                    <ShieldAlert className="w-5 h-5" /> QC 오류 목록
-                  </h3>
+                  <h4 className="text-sm font-bold text-red-800 flex items-center gap-2">
+                    <ShieldAlert className="w-5 h-5" aria-hidden="true" /> {t('board.detail.qcTitle')}
+                  </h4>
                   <button 
                     onClick={() => setShowQcModal(true)}
                     className="flex items-center gap-1 bg-red-50 text-red-700 px-3 py-1.5 rounded-lg text-sm font-semibold hover:bg-red-100 transition-colors border border-red-200"
                   >
-                    <Plus className="w-4 h-4" /> 오류 등록
+                    <Plus className="w-4 h-4" aria-hidden="true" /> {t('board.detail.qcAdd')}
                   </button>
                 </div>
                 
                 {taskQcIssues.length === 0 ? (
-                  <p className="text-sm text-[var(--color-text-sub)] py-6 text-center">등록된 QC 오류가 없습니다.</p>
+                  <p className="text-sm text-[var(--color-text-sub)] py-6 text-center">{t('board.detail.noQc')}</p>
                 ) : (
                   <div className="space-y-3">
                     {taskQcIssues.map(issue => (
@@ -645,7 +645,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
                           <div className="flex gap-2 items-center">
                             <span className="text-xs font-bold px-2 py-0.5 rounded bg-red-100 text-red-800">{issue.issueStage}</span>
                             <span className="text-xs font-bold px-2 py-0.5 rounded bg-gray-200 text-[var(--color-text-main)]">{issue.severity}</span>
-                            <span className="text-xs font-bold px-2 py-0.5 rounded bg-yellow-100 text-yellow-800">가중치 {issue.weightPercent}%</span>
+                            <span className="text-xs font-bold px-2 py-0.5 rounded bg-yellow-100 text-yellow-800">{t('board.detail.qcWeight', { weight: issue.weightPercent.toString() })}</span>
                           </div>
                           <span className={`text-xs font-bold px-2 py-1 rounded-full ${issue.status === 'CONFIRMED' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-[var(--color-text-sub)]'}`}>
                             {issue.status}
@@ -655,19 +655,19 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
                         <p className="text-sm text-[var(--color-text-sub)] mt-1 whitespace-pre-wrap">{issue.description}</p>
                         
                         <div className="flex justify-between items-center mt-3 pt-3 border-t border-[var(--color-border)]">
-                          <span className="text-xs text-[var(--color-text-sub)]">보고자: {issue.reportedBy}</span>
+                          <span className="text-xs text-[var(--color-text-sub)]">{t('board.detail.qcReporter', { name: issue.reportedBy })}</span>
                           <div className="flex gap-2 items-center">
                             {appeals.filter(a => a.targetIssueId === issue.id).map(appeal => (
                               <span key={appeal.id} className={`text-xs px-2 py-0.5 rounded font-bold ${
                                 appeal.status === 'PENDING' ? 'bg-orange-100 text-orange-700' :
                                 appeal.status === 'ACCEPTED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                               }`}>
-                                이의신청: {appeal.status}
+                                {t('board.detail.qcAppealStat', { status: appeal.status })}
                               </span>
                             ))}
                             {issue.assigneeId === currentUser?.id && !appeals.some(a => a.targetIssueId === issue.id && a.status === 'PENDING') && (
                               <button onClick={() => handleAppeal(issue.id)} className="text-xs text-indigo-600 font-bold hover:underline">
-                                이의신청
+                                {t('board.detail.qcAppealBtn')}
                               </button>
                             )}
                             <span className="text-xs text-[var(--color-text-sub)] font-mono ml-2">{new Date(issue.createdAt).toLocaleString()}</span>
@@ -683,7 +683,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
 
           {activeTab === 'HISTORY' && (
             <div className="text-center py-10 text-sm text-[var(--color-text-sub)]">
-              AuditLog 통합 이력 뷰 준비 중
+              {t('board.detail.auditPrep')}
             </div>
           )}
 
@@ -692,7 +692,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
               <div className="bg-[var(--color-surface)] p-5 rounded-xl border border-[var(--color-border)] shadow-sm">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-sm font-bold text-[var(--color-text-main)] flex items-center gap-2">
-                    <DollarSign className="w-5 h-5 text-teal-600" /> 외주 정산 (Billing)
+                    <DollarSign className="w-5 h-5 text-teal-600" aria-hidden="true" /> {t('board.detail.billingTitle')}
                   </h3>
                 </div>
                 
@@ -706,35 +706,35 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
                       disabled={!isEditable}
                       className="w-4 h-4 accent-teal-600 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
-                    <label htmlFor="isOutsourced" className="text-sm font-bold text-[var(--color-text-main)] cursor-pointer">
-                      외주 진행 업무 (체크 시 비용 정산 대상)
+                    <label htmlFor="isOutsourced" className="text-sm font-bold text-[var(--color-text-main)] cursor-pointer select-none">
+                      {t('board.detail.billingTarget')}
                     </label>
                   </div>
                   
                   {task.isOutsourced && (
                     <div className="grid grid-cols-2 gap-4 mt-4 p-4 bg-teal-50/50 rounded-lg border border-teal-100">
                       <div>
-                        <label className="block text-xs font-bold text-[var(--color-text-sub)] mb-1">정산 금액 (₩)</label>
+                        <label className="block text-xs font-bold text-[var(--color-text-sub)] mb-1">{t('board.detail.billingAmount')}</label>
                         <input 
                           type="number" 
                           value={task.billingAmount || 0}
                           onChange={(e) => updateTaskBilling(task.id, Number(e.target.value), task.billingStatus || 'PENDING', task.isOutsourced || false)}
                           disabled={!isEditable}
                           className="w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-teal-100 outline-none disabled:bg-teal-100/50 disabled:cursor-not-allowed"
-                          placeholder="금액 입력"
+                          placeholder={t('board.detail.billingAmountPh')}
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-[var(--color-text-sub)] mb-1">정산 상태</label>
+                        <label className="block text-xs font-bold text-[var(--color-text-sub)] mb-1">{t('board.detail.billingStat')}</label>
                         <select
                           value={task.billingStatus || 'PENDING'}
                           onChange={(e) => updateTaskBilling(task.id, task.billingAmount || 0, e.target.value as 'PENDING' | 'INVOICED' | 'PAID', task.isOutsourced || false)}
                           disabled={!isEditable}
                           className="w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-teal-100 outline-none disabled:bg-teal-100/50 disabled:cursor-not-allowed"
                         >
-                          <option value="PENDING">대기중</option>
-                          <option value="INVOICED">청구됨 (인보이스 발행)</option>
-                          <option value="PAID">지급 완료</option>
+                          <option value="PENDING">{t('board.detail.billingPending')}</option>
+                          <option value="INVOICED">{t('board.detail.billingInvoiced')}</option>
+                          <option value="PAID">{t('board.detail.billingPaid')}</option>
                         </select>
                       </div>
                     </div>

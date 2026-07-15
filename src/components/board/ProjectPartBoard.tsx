@@ -9,6 +9,8 @@ import { useApprovalStore } from '@/store/approvalStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import { useAuditStore } from '@/store/auditStore';
 import { useScheduleStore } from '@/store/scheduleStore';
+import { useTranslationStore } from '@/store/translationStore';
+import { useTranslation } from '@/lib/localization';
 import { CheckCircle, XCircle, AlertCircle, AlertTriangle, Info, Calendar } from 'lucide-react';
 
 interface ProjectPartBoardProps {
@@ -29,6 +31,8 @@ export const ProjectPartBoard: React.FC<ProjectPartBoardProps> = ({ projectId, t
   const { addNotification } = useNotificationStore();
   const { addLog } = useAuditStore();
   const { schedules } = useScheduleStore();
+  const { settings } = useTranslationStore();
+  const t = useTranslation(settings.uiLanguage);
   
   const parts = getProjectWorkParts(projectId, tasks, users);
   
@@ -37,13 +41,13 @@ export const ProjectPartBoard: React.FC<ProjectPartBoardProps> = ({ projectId, t
 
     return (
       <div className="flex flex-col items-center justify-center h-64 text-[var(--color-text-sub)] bg-[var(--color-surface)] rounded-lg border border-dashed gap-4">
-        <p>배정된 업무 파트가 없습니다.</p>
+        <p>{t('board.part.noPart')}</p>
         {isAuthorized && onDispatchClick && (
           <button 
             onClick={onDispatchClick}
             className="px-4 py-2 bg-[var(--color-primary)] text-white font-bold rounded-md hover:bg-opacity-90 transition-colors shadow-sm"
           >
-            세부 업무 및 파트 배정하기
+            {t('board.part.dispatchBtn')}
           </button>
         )}
       </div>
@@ -55,7 +59,7 @@ export const ProjectPartBoard: React.FC<ProjectPartBoardProps> = ({ projectId, t
   const isManager = currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'DEPARTMENT_MANAGER' || (project?.managerId && currentUser?.id === project.managerId);
 
   const handleApproveSchedule = () => {
-    if (!window.confirm('작성된 일정 계획을 승인하고 공식 일정으로 반영하시겠습니까?')) return;
+    if (!window.confirm(t('board.part.confirmApprove'))) return;
     
     updateProjectStatus(projectId, 'IN_PROGRESS');
     
@@ -89,7 +93,7 @@ export const ProjectPartBoard: React.FC<ProjectPartBoardProps> = ({ projectId, t
   };
 
   const handleRejectSchedule = () => {
-    const reason = window.prompt('반려 사유를 입력해주세요:');
+    const reason = window.prompt(t('board.part.promptReject'));
     if (reason === null) return;
     
     updateProjectStatus(projectId, 'SCHEDULE_REJECTED');
@@ -161,7 +165,7 @@ export const ProjectPartBoard: React.FC<ProjectPartBoardProps> = ({ projectId, t
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-bold rounded-md hover:bg-blue-700 transition-colors shadow-sm animate-pulse"
           >
             <CheckCircle className="w-4 h-4" />
-            부서장(MANAGER) 검수 요청
+            {t('board.part.reqManagerReview')}
           </button>
         </div>
       )}
@@ -171,7 +175,7 @@ export const ProjectPartBoard: React.FC<ProjectPartBoardProps> = ({ projectId, t
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2 text-blue-800 font-bold">
               <AlertCircle className="w-5 h-5" />
-              PM이 작성한 세부 소요일정 승인 대기 중입니다.
+              {t('board.part.waitApprovalDesc')}
             </div>
             <div className="flex gap-2">
               <button
@@ -179,14 +183,14 @@ export const ProjectPartBoard: React.FC<ProjectPartBoardProps> = ({ projectId, t
                 className="flex items-center gap-2 px-4 py-2 bg-white text-red-600 font-bold rounded-md hover:bg-red-50 border border-red-200 transition-colors shadow-sm"
               >
                 <XCircle className="w-4 h-4" />
-                일정 반려
+                {t('board.part.rejectSchedule')}
               </button>
               <button
                 onClick={handleApproveSchedule}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-bold rounded-md hover:bg-blue-700 transition-colors shadow-sm animate-pulse"
               >
                 <CheckCircle className="w-4 h-4" />
-                일정 승인 및 반영
+                {t('board.part.approveSchedule')}
               </button>
             </div>
           </div>
@@ -194,13 +198,13 @@ export const ProjectPartBoard: React.FC<ProjectPartBoardProps> = ({ projectId, t
           <div className="bg-white rounded-md p-4 border border-blue-100 shadow-sm">
             <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
               <Calendar className="w-4 h-4 text-blue-600"/>
-              승인 대기 일정 Preview & 직원별 부하 분석
+              {t('board.part.previewTitle')}
             </h4>
             
             {conflictCount > 0 && (
               <div className="mb-4 text-sm bg-orange-50 text-orange-800 p-2 rounded border border-orange-200 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" />
-                <span className="font-bold">{conflictCount}건</span>의 업무에서 일정 겹침(휴가 또는 과부하)이 발견되었습니다. 주의하여 승인해주세요.
+                <span>{t('board.part.conflictCountAlert', { conflictCount: conflictCount.toString() })}</span>
               </div>
             )}
 
@@ -208,11 +212,11 @@ export const ProjectPartBoard: React.FC<ProjectPartBoardProps> = ({ projectId, t
               <table className="w-full text-sm text-left text-gray-700">
                 <thead className="bg-gray-50 text-gray-900 border-b">
                   <tr>
-                    <th className="px-3 py-2">업무명</th>
-                    <th className="px-3 py-2">담당자</th>
-                    <th className="px-3 py-2">기간</th>
-                    <th className="px-3 py-2 text-right">예상 소요</th>
-                    <th className="px-3 py-2">충돌 분석</th>
+                    <th className="px-3 py-2">{t('board.part.thTask')}</th>
+                    <th className="px-3 py-2">{t('board.part.thAssignee')}</th>
+                    <th className="px-3 py-2">{t('board.part.thPeriod')}</th>
+                    <th className="px-3 py-2 text-right">{t('board.part.thEst')}</th>
+                    <th className="px-3 py-2">{t('board.part.thConflict')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -222,17 +226,17 @@ export const ProjectPartBoard: React.FC<ProjectPartBoardProps> = ({ projectId, t
                     return (
                       <tr key={task.id} className="border-b last:border-b-0 hover:bg-gray-50">
                         <td className="px-3 py-2 font-medium">{task.title}</td>
-                        <td className="px-3 py-2">{assignee?.name || '미배정'}</td>
+                        <td className="px-3 py-2">{assignee?.name || t('board.assignee.unassigned')}</td>
                         <td className="px-3 py-2">{task.startDate} ~ {task.dueDate}</td>
                         <td className="px-3 py-2 text-right">{task.estimatedHours}h</td>
                         <td className="px-3 py-2">
                           {conflict ? (
                             <div className="flex flex-col gap-1 text-xs">
-                              {conflict.offDays && <span className="text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-100 inline-block w-fit">휴가 겹침</span>}
-                              {Number(conflict.avgDaily) > 8 && <span className="text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded border border-orange-100 inline-block w-fit">과부하 ({conflict.avgDaily}h/d)</span>}
+                              {conflict.offDays && <span className="text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-100 inline-block w-fit">{t('board.part.conflictOff')}</span>}
+                              {Number(conflict.avgDaily) > 8 && <span className="text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded border border-orange-100 inline-block w-fit">{t('board.part.conflictOverload', { avgDaily: conflict.avgDaily })}</span>}
                             </div>
                           ) : (
-                            <span className="text-green-600 text-xs">정상</span>
+                            <span className="text-green-600 text-xs">{t('board.part.conflictOk')}</span>
                           )}
                         </td>
                       </tr>
@@ -249,13 +253,13 @@ export const ProjectPartBoard: React.FC<ProjectPartBoardProps> = ({ projectId, t
         <div className="mb-4 flex justify-between items-center bg-red-50 p-4 rounded-lg border border-red-100">
           <div className="flex items-center gap-2 text-red-800 font-bold">
             <AlertCircle className="w-5 h-5" />
-            작성하신 일정이 관리자에 의해 반려되었습니다. 수정 후 재요청이 필요합니다.
+            {t('board.part.rejectedAlert')}
           </div>
           <button
             onClick={onDispatchClick}
             className="px-4 py-2 bg-red-600 text-white font-bold rounded-md hover:bg-red-700 transition-colors shadow-sm"
           >
-            일정 수정 및 재요청
+            {t('board.part.rewriteRetry')}
           </button>
         </div>
       )}
@@ -272,15 +276,15 @@ export const ProjectPartBoard: React.FC<ProjectPartBoardProps> = ({ projectId, t
                 <div className="flex items-center gap-4">
                   <h3 className="font-bold text-[var(--color-text-main)] text-base">{part.partName}</h3>
                   <span className="text-xs font-semibold text-[var(--color-text-sub)] bg-gray-100 px-2 py-0.5 rounded-full border">
-                    {partTasks.length}건
+                    {t('board.part.taskCount', { count: partTasks.length.toString() })}
                   </span>
                 </div>
                 
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2 text-sm text-[var(--color-text-sub)]">
-                    <span className="font-medium">참여 {partEmployees.length}명</span>
+                    <span className="font-medium">{t('board.part.participantCount', { count: partEmployees.length.toString() })}</span>
                     <span className="text-gray-300">|</span>
-                    <span className="font-medium text-blue-600">진행률 {avgProgress}%</span>
+                    <span className="font-medium text-blue-600">{t('board.part.progressPercent', { percent: avgProgress.toString() })}</span>
                   </div>
                   
                   <div className="w-32 bg-gray-200 rounded-full h-2 overflow-hidden">
@@ -317,8 +321,11 @@ export const ProjectPartBoard: React.FC<ProjectPartBoardProps> = ({ projectId, t
                             task.status === 'REJECTED' || task.approvalStatus === 'REJECTED' ? 'bg-red-100 text-red-700' :
                             'bg-gray-100 text-[var(--color-text-sub)]'
                           }`}>
-                            {task.approvalStatus === 'PENDING' ? '승인대기' : 
-                             task.approvalStatus === 'REJECTED' ? '반려됨' : 
+                            {task.approvalStatus === 'PENDING' ? t('board.part.statusPending') :
+                             task.approvalStatus === 'REJECTED' ? t('board.part.statusRejected') :
+                             task.status === 'IN_PROGRESS' ? t('board.status.inProgress') :
+                             task.status === 'REVIEW' ? t('board.status.pmReview') :
+                             task.status === 'DONE' ? t('board.status.done') :
                              task.status}
                           </span>
                         </div>
@@ -328,10 +335,10 @@ export const ProjectPartBoard: React.FC<ProjectPartBoardProps> = ({ projectId, t
                       
                       <div className="flex items-center justify-between text-xs text-[var(--color-text-sub)] mt-auto">
                         <div className="flex items-center gap-1.5">
-                          <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-bold text-[var(--color-text-sub)]">
+                          <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-bold text-[var(--color-text-sub)]" aria-hidden="true">
                             {assignee ? (assignee.displayName?.[0] || assignee.name[0]) : '?'}
                           </div>
-                          <span className="truncate max-w-[120px]">{assignee ? (assignee.displayName || assignee.name) : '미배정'}</span>
+                          <span className="truncate max-w-[120px]">{assignee ? (assignee.displayName || assignee.name) : t('board.assignee.unassigned')}</span>
                         </div>
                         
                         <div className="flex items-center gap-1 font-medium">
@@ -340,7 +347,7 @@ export const ProjectPartBoard: React.FC<ProjectPartBoardProps> = ({ projectId, t
                               onClick={(e) => { e.stopPropagation(); updateTaskStatus(task.id, 'DONE'); }}
                               className="text-[10px] px-2 py-1 bg-green-100 text-green-700 border border-green-200 rounded hover:bg-green-200 transition-colors font-bold shadow-sm"
                             >
-                              작업 완료
+                              {t('board.part.taskDone')}
                             </button>
                           ) : (
                             <span>{progress}%</span>
@@ -352,7 +359,7 @@ export const ProjectPartBoard: React.FC<ProjectPartBoardProps> = ({ projectId, t
                 })}
                 {partTasks.length === 0 && (
                   <div className="flex items-center justify-center w-full py-8 text-sm text-[var(--color-text-sub)]">
-                    등록된 업무 카드가 없습니다.
+                    {t('board.part.noTasks')}
                   </div>
                 )}
               </div>

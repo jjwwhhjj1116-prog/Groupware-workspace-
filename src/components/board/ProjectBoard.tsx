@@ -79,6 +79,8 @@ export const ProjectBoard: React.FC<Props> = ({ projects, tasks, revisionRequest
             className="bg-[var(--color-bg)]/50 rounded-[var(--radius-card)] flex flex-col max-h-[calc(100vh-200px)] border border-[var(--color-border)] shadow-sm overflow-hidden"
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, col.id)}
+            role="region"
+            aria-label={col.title}
           >
             <div className="p-4 border-b border-[var(--color-border)] flex justify-between items-center bg-[var(--color-surface)]">
               <h2 className="font-bold text-[15px] text-[var(--color-text-main)] tracking-tight">{col.title}</h2>
@@ -102,7 +104,7 @@ export const ProjectBoard: React.FC<Props> = ({ projects, tasks, revisionRequest
               ))}
               {colProjects.length === 0 && (
                 <div className="p-4 text-center text-sm text-[var(--color-text-sub)] border-2 border-dashed border-[var(--color-border)] rounded-lg">
-                  프로젝트가 없습니다
+                  {t('board.project.noProject')}
                 </div>
               )}
             </div>
