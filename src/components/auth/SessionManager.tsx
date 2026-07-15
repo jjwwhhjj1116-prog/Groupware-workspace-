@@ -2,10 +2,14 @@
 import { useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { useSettingStore } from '@/store/settingStore';
+import { useTranslationStore } from '@/store/translationStore';
+import { useTranslation } from '@/lib/localization';
 
 export const SessionManager = () => {
   const { currentUser, updateLastActivity, logout } = useAuthStore();
   const { settings } = useSettingStore();
+  const { settings: translationSettings } = useTranslationStore();
+  const t = useTranslation(translationSettings.uiLanguage);
   const sessionTimeoutSetting = settings.find(s => s.key === 'SESSION_TIMEOUT_MINUTES');
   const sessionTimeoutMs = (sessionTimeoutSetting ? Number(sessionTimeoutSetting.value) : 30) * 60 * 1000;
 
@@ -31,7 +35,7 @@ export const SessionManager = () => {
       const state = useAuthStore.getState();
       if (state.currentUser && Date.now() - state.lastActivity > sessionTimeoutMs) {
         logout();
-        alert('장기간 활동이 없어 안전을 위해 자동 로그아웃 되었습니다.');
+        alert(t('auth.sessionTimeout'));
       }
     }, 10000); // Check every 10 seconds
 
@@ -42,7 +46,7 @@ export const SessionManager = () => {
       if (timeoutId) clearTimeout(timeoutId);
       clearInterval(interval);
     };
-  }, [currentUser, sessionTimeoutMs, updateLastActivity, logout]);
+  }, [currentUser, sessionTimeoutMs, updateLastActivity, logout, t]);
 
   return null;
 };

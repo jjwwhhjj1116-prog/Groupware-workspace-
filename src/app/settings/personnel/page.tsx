@@ -2,11 +2,16 @@
 
 import { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
+import { useTranslationStore } from '@/store/translationStore';
+import { useTranslation } from '@/lib/localization';
 import { Users, Save, Download, Plus, Edit2, Trash2 } from 'lucide-react';
 import { PersonnelCard } from '@/types/models';
 
 
 export default function PersonnelManagementPage() {
+  const { settings: translationSettings } = useTranslationStore();
+  const t = useTranslation(translationSettings?.uiLanguage || 'ko');
+
   const { currentUser, users, addUser, updateUser, deactivateUser } = useAuthStore();
   const personnel = users;
   
@@ -25,9 +30,9 @@ export default function PersonnelManagementPage() {
     });
   };
   
-  if (!currentUser) return <div className="py-10 text-center text-[var(--color-text-sub)]">로그인이 필요합니다.</div>;
+  if (!currentUser) return <div className="py-10 text-center text-[var(--color-text-sub)]">{t('settings.personnel.authRequired')}</div>;
   if (!['SUPER_ADMIN', 'SYSTEM_ADMIN', 'DEPARTMENT_MANAGER'].includes(currentUser.role)) {
-    return <div className="py-10 text-center text-[var(--color-danger)] font-bold">접근 권한이 없습니다.</div>;
+    return <div className="py-10 text-center text-[var(--color-danger)] font-bold">{t('settings.personnel.permissionDenied')}</div>;
   }
 
 
@@ -58,18 +63,18 @@ export default function PersonnelManagementPage() {
             <Users className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-[var(--color-text-main)]">인사카드 관리</h1>
-            <p className="text-sm text-[var(--color-text-sub)] mt-1">조직의 임직원 상세 정보를 관리합니다.</p>
+            <h1 className="text-xl font-bold text-[var(--color-text-main)]">{t('settings.personnel.title')}</h1>
+            <p className="text-sm text-[var(--color-text-sub)] mt-1">{t('settings.personnel.subtitle')}</p>
           </div>
         </div>
         <div className="flex gap-2">
-          <button onClick={handleAddUser} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700">
+          <button onClick={handleAddUser} className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700">
             <Plus className="w-4 h-4" />
-            사원 추가
+            {t('settings.personnel.btnAdd')}
           </button>
-          <button onClick={handleExport} className="flex items-center gap-2 px-4 py-2 border border-[var(--color-border-strong)] rounded text-sm hover:bg-[var(--color-bg)]">
+          <button onClick={handleExport} className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] flex items-center gap-2 px-4 py-2 border border-[var(--color-border-strong)] rounded text-sm hover:bg-[var(--color-bg)]">
             <Download className="w-4 h-4" />
-            JSON 내보내기
+            {t('settings.personnel.btnExport')}
           </button>
         </div>
       </div>
@@ -78,14 +83,14 @@ export default function PersonnelManagementPage() {
         <table className="w-full text-sm text-left">
           <thead className="bg-[var(--color-bg)] text-[var(--color-text-sub)]">
             <tr>
-              <th className="p-3">사번</th>
-              <th className="p-3">이름 (표시명)</th>
-              <th className="p-3">소속 (회사/부서)</th>
-              <th className="p-3">조직 직급</th>
-              <th className="p-3">시스템 권한</th>
-              <th className="p-3">대리 결재자</th>
-              <th className="p-3">상태</th>
-              <th className="p-3">작업</th>
+              <th className="p-3">{t('settings.personnel.thEmpNo')}</th>
+              <th className="p-3">{t('settings.personnel.thName')}</th>
+              <th className="p-3">{t('settings.personnel.thAffiliation')}</th>
+              <th className="p-3">{t('settings.personnel.thRank')}</th>
+              <th className="p-3">{t('settings.personnel.thSysRole')}</th>
+              <th className="p-3">{t('settings.personnel.thDeputy')}</th>
+              <th className="p-3">{t('settings.personnel.thStatus')}</th>
+              <th className="p-3">{t('settings.personnel.thAction')}</th>
             </tr>
           </thead>
           <tbody>
@@ -109,9 +114,9 @@ export default function PersonnelManagementPage() {
                   <select
                     value={user.deputyApproverId || ''}
                     onChange={(e) => updateUser(user.id, { deputyApproverId: e.target.value })}
-                    className="border rounded p-1 text-xs outline-none"
+                    className="border rounded p-1 text-xs outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                   >
-                    <option value="">지정 안함</option>
+                    <option value="">{t('settings.personnel.optNoDeputy')}</option>
                     {users.filter(u => u.id !== user.id).map(u => (
                       <option key={u.id} value={u.id}>{u.displayName || u.name}</option>
                     ))}
@@ -123,10 +128,10 @@ export default function PersonnelManagementPage() {
                   </span>
                 </td>
                 <td className="p-3 text-right">
-                  <button onClick={() => handleEdit(user)} className="p-1 text-gray-500 hover:text-indigo-600" title="수정">
+                  <button onClick={() => handleEdit(user)} className="p-1 text-gray-500 hover:text-indigo-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]" title={t('settings.personnel.ttEdit')}>
                     <Edit2 className="w-4 h-4" />
                   </button>
-                  <button onClick={() => deactivateUser(user.id)} className="p-1 text-gray-500 hover:text-red-600 ml-2" title="비활성화">
+                  <button onClick={() => deactivateUser(user.id)} className="p-1 text-gray-500 hover:text-red-600 ml-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]" title={t('settings.personnel.ttDeactivate')}>
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </td>
@@ -140,98 +145,98 @@ export default function PersonnelManagementPage() {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[150] p-4">
           <div className="bg-[var(--color-surface)] rounded-[20px] shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-bg)]/50">
-              <h2 className="text-lg font-bold">{editingUser.id ? "인사카드 수정" : "사원 추가"}</h2>
+              <h2 className="text-lg font-bold">{editingUser.id ? t('settings.personnel.modalEditTitle') : t('settings.personnel.modalAddTitle')}</h2>
             </div>
             <div className="px-6 py-6 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
               <div>
-                <label className="block text-xs font-bold text-[var(--color-text-main)] mb-1">이름(표시명)</label>
+                <label className="block text-xs font-bold text-[var(--color-text-main)] mb-1">{t('settings.personnel.lblName')}</label>
                 <input 
                   type="text" 
                   value={editingUser.displayName || editingUser.name || ''} 
                   onChange={e => setEditingUser({...editingUser, displayName: e.target.value})}
-                  className="w-full border border-[var(--color-border-strong)] rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400"
+                  className="w-full border border-[var(--color-border-strong)] rounded-lg p-2.5 text-sm outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-[var(--color-text-main)] mb-1">회사</label>
+                <label className="block text-xs font-bold text-[var(--color-text-main)] mb-1">{t('settings.personnel.lblCompany')}</label>
                 <select 
                   value={editingUser.companyId || ''} 
                   onChange={e => setEditingUser({...editingUser, companyId: e.target.value as PersonnelCard['companyId']})}
-                  className="w-full border border-[var(--color-border-strong)] rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400"
+                  className="w-full border border-[var(--color-border-strong)] rounded-lg p-2.5 text-sm outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                 >
-                  <option value="">선택 안함</option>
-                  <option value="CON_COST">CON-COST (한국)</option>
-                  <option value="VIET_QS">Viet_QS (베트남)</option>
+                  <option value="">{t('settings.personnel.optNone')}</option>
+                  <option value="CON_COST">{t('settings.personnel.optConCost')}</option>
+                  <option value="VIET_QS">{t('settings.personnel.optVietQs')}</option>
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold text-[var(--color-text-main)] mb-1">공통 부서</label>
+                <label className="block text-xs font-bold text-[var(--color-text-main)] mb-1">{t('settings.personnel.lblDept')}</label>
                 <select 
                   value={editingUser.departmentId || ''} 
                   onChange={e => setEditingUser({...editingUser, departmentId: e.target.value})}
-                  className="w-full border border-[var(--color-border-strong)] rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400"
+                  className="w-full border border-[var(--color-border-strong)] rounded-lg p-2.5 text-sm outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                 >
-                  <option value="">선택 안함</option>
-                  <option value="FINISH">마감 (Finishing)</option>
-                  <option value="STRUCTURE">구조 (Structure)</option>
-                  <option value="CIVIL">토목 (Civil)</option>
-                  <option value="DEVELOP">개발 (Develop)</option>
+                  <option value="">{t('settings.personnel.optNone')}</option>
+                  <option value="FINISH">{t('settings.personnel.optFinishing')}</option>
+                  <option value="STRUCTURE">{t('settings.personnel.optStructure')}</option>
+                  <option value="CIVIL">{t('settings.personnel.optCivil')}</option>
+                  <option value="DEVELOP">{t('settings.personnel.optDevelop')}</option>
                 </select>
               </div>
               {editingUser.companyId === 'VIET_QS' && (
                 <div>
-                  <label className="block text-xs font-bold text-[var(--color-text-main)] mb-1">세부 부서 (Viet_QS)</label>
+                  <label className="block text-xs font-bold text-[var(--color-text-main)] mb-1">{t('settings.personnel.lblSubDept')}</label>
                   <select 
                     value={editingUser.subDepartmentId || ''} 
                     onChange={e => setEditingUser({...editingUser, subDepartmentId: e.target.value})}
-                    className="w-full border border-[var(--color-border-strong)] rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400"
+                    className="w-full border border-[var(--color-border-strong)] rounded-lg p-2.5 text-sm outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                   >
-                    <option value="">선택 안함</option>
-                    <optgroup label="마감">
+                    <option value="">{t('settings.personnel.optNone')}</option>
+                    <optgroup label={t('settings.personnel.grpFinishing')}>
                       <option value="INTERNAL_1">Internal1</option>
                       <option value="INTERNAL_2">Internal2</option>
                       <option value="INTERNAL_3">Internal3</option>
                       <option value="EXTERNAL">External</option>
                       <option value="PARTITION_OPENING">Partition & Opening</option>
                     </optgroup>
-                    <optgroup label="구조">
+                    <optgroup label={t('settings.personnel.grpStructure')}>
                       <option value="VERTICAL">Vertical</option>
                       <option value="HORIZONTAL_FOUNDATION">Horizontal & Foundation</option>
                     </optgroup>
-                    <optgroup label="토목">
+                    <optgroup label={t('settings.personnel.grpCivil')}>
                       <option value="CIVIL_SUB">Civil</option>
                     </optgroup>
-                    <optgroup label="개발">
+                    <optgroup label={t('settings.personnel.grpDevelop')}>
                       <option value="DEVELOP_SUB">Develop</option>
                     </optgroup>
                   </select>
                 </div>
               )}
               <div>
-                <label className="block text-xs font-bold text-[var(--color-text-main)] mb-1">조직 직급</label>
+                <label className="block text-xs font-bold text-[var(--color-text-main)] mb-1">{t('settings.personnel.thRank')}</label>
                 <select 
                   value={editingUser.organizationRank || ''} 
                   onChange={e => setEditingUser({...editingUser, organizationRank: e.target.value as PersonnelCard['organizationRank']})}
-                  className="w-full border border-[var(--color-border-strong)] rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400"
+                  className="w-full border border-[var(--color-border-strong)] rounded-lg p-2.5 text-sm outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                 >
-                  <option value="">선택 안함</option>
+                  <option value="">{t('settings.personnel.optNone')}</option>
                   <option value="CEO">CEO</option>
                   <option value="COO">COO</option>
                   <option value="VICE_PRESIDENT">Vice President</option>
-                  <option value="MANAGER">Manager (부서장)</option>
-                  <option value="PM">PM (Project Manager)</option>
-                  <option value="TEAM_LEADER">팀장</option>
-                  <option value="DEPUTY_TEAM_LEADER">부팀장</option>
-                  <option value="STAFF">사원 (Staff)</option>
-                  <option value="TRAINEE">수습 (Trainee)</option>
+                  <option value="MANAGER">{t('settings.personnel.optManager')}</option>
+                  <option value="PM">{t('settings.personnel.optPm')}</option>
+                  <option value="TEAM_LEADER">{t('settings.personnel.optTeamLeader')}</option>
+                  <option value="DEPUTY_TEAM_LEADER">{t('settings.personnel.optDeputyLeader')}</option>
+                  <option value="STAFF">{t('settings.personnel.optStaff')}</option>
+                  <option value="TRAINEE">{t('settings.personnel.optTrainee')}</option>
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold text-[var(--color-text-main)] mb-1">시스템 권한</label>
+                <label className="block text-xs font-bold text-[var(--color-text-main)] mb-1">{t('settings.personnel.thSysRole')}</label>
                 <select 
                   value={editingUser.systemRole || editingUser.role} 
                   onChange={e => setEditingUser({...editingUser, systemRole: e.target.value as PersonnelCard['systemRole'], role: e.target.value as PersonnelCard['role']})}
-                  className="w-full border border-[var(--color-border-strong)] rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400"
+                  className="w-full border border-[var(--color-border-strong)] rounded-lg p-2.5 text-sm outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                 >
                   <option value="SUPER_ADMIN">SUPER_ADMIN</option>
                   <option value="SYSTEM_ADMIN">SYSTEM_ADMIN</option>
@@ -242,30 +247,30 @@ export default function PersonnelManagementPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold text-[var(--color-text-main)] mb-1">상태</label>
+                <label className="block text-xs font-bold text-[var(--color-text-main)] mb-1">{t('settings.personnel.thStatus')}</label>
                 <select 
                   value={editingUser.employmentStatus || (editingUser.isActive ? 'ACTIVE' : 'INACTIVE')} 
                   onChange={e => setEditingUser({...editingUser, employmentStatus: e.target.value})}
-                  className="w-full border border-[var(--color-border-strong)] rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400"
+                  className="w-full border border-[var(--color-border-strong)] rounded-lg p-2.5 text-sm outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                 >
-                  <option value="ACTIVE">재직 중 (ACTIVE)</option>
-                  <option value="ON_LEAVE">휴직 (ON_LEAVE)</option>
-                  <option value="RESIGNED">퇴사 (RESIGNED)</option>
-                  <option value="INACTIVE">비활성 (INACTIVE)</option>
+                  <option value="ACTIVE">{t('settings.personnel.optActive')}</option>
+                  <option value="ON_LEAVE">{t('settings.personnel.optLeave')}</option>
+                  <option value="RESIGNED">{t('settings.personnel.optResigned')}</option>
+                  <option value="INACTIVE">{t('settings.personnel.optInactive')}</option>
                 </select>
               </div>
             </div>
             <div className="px-6 py-4 bg-[var(--color-bg)] border-t border-[var(--color-border)] flex justify-end gap-2">
               <button 
                 onClick={() => setEditingUser(null)} 
-                className="px-4 py-2 border border-[var(--color-border-strong)] bg-[var(--color-surface)] text-[var(--color-text-main)] rounded-lg text-sm font-medium hover:bg-[var(--color-bg)] transition-colors"
+                className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] px-4 py-2 border border-[var(--color-border-strong)] bg-[var(--color-surface)] text-[var(--color-text-main)] rounded-lg text-sm font-medium hover:bg-[var(--color-bg)] transition-colors"
               >
-                취소
+                {t('settings.personnel.btnCancel')}
               </button>
               <button 
                 onClick={() => {
                   if (!editingUser.departmentId) {
-                    alert("공통 부서를 선택해주세요.");
+                    alert(t('settings.personnel.alertDeptRequired'));
                     return;
                   }
                   const updatedUser = { ...editingUser };
@@ -276,7 +281,7 @@ export default function PersonnelManagementPage() {
                     (updatedUser.systemRole === 'SUPER_ADMIN' || updatedUser.role === 'SUPER_ADMIN') && 
                     currentUser.role !== 'SUPER_ADMIN'
                   ) {
-                    alert("SUPER_ADMIN 권한은 SUPER_ADMIN 만이 부여할 수 있습니다.");
+                    alert(t('settings.personnel.alertSuperAdmin'));
                     return;
                   }
                   if (updatedUser.id) {
@@ -286,9 +291,9 @@ export default function PersonnelManagementPage() {
                   }
                   setEditingUser(null);
                 }} 
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 flex items-center gap-1 shadow-sm transition-colors"
+                className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 flex items-center gap-1 shadow-sm transition-colors"
               >
-                <Save className="w-4 h-4" /> 저장
+                <Save className="w-4 h-4" /> {t('settings.personnel.btnSave')}
               </button>
             </div>
           </div>

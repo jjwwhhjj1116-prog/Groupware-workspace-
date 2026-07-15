@@ -3,26 +3,30 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { useBulkEditStore } from '@/store/bulkEditStore';
+import { useTranslationStore } from '@/store/translationStore';
+import { useTranslation } from '@/lib/localization';
 import { Database, Edit, History, AlertTriangle } from 'lucide-react';
 
 export default function BulkEditPage() {
   const { currentUser } = useAuthStore();
   const { sessions, createSession, updateSessionStatus } = useBulkEditStore();
+  const { settings } = useTranslationStore();
+  const t = useTranslation(settings?.uiLanguage || 'ko');
   
   const [targetEntity, setTargetEntity] = useState<string>('PROJECT');
   const [targetField, setTargetField] = useState<string>('PM_ASSIGNMENT');
   const [newValue, setNewValue] = useState<string>('');
   
-  if (!currentUser) return <div className="py-10 text-center text-[var(--color-text-sub)]">로그인이 필요합니다.</div>;
+  if (!currentUser) return <div className="py-10 text-center text-[var(--color-text-sub)]">{t('settings.personnel.authRequired')}</div>;
   if (!['SUPER_ADMIN', 'SYSTEM_ADMIN'].includes(currentUser.role)) {
-    return <div className="py-10 text-center text-[var(--color-danger)] font-bold">운영 설정을 볼 권한이 없습니다. (관리자 전용)</div>;
+    return <div className="py-10 text-center text-[var(--color-danger)] font-bold">{t('settings.bulkEdit.permissionDenied')}</div>;
   }
 
   const activePreview = sessions.find(s => s.status === 'PREVIEW');
 
   const handleGeneratePreview = () => {
     if (!newValue) {
-      alert('변경할 값을 입력하세요.');
+      alert(t('settings.bulkEdit.alertEmptyValue'));
       return;
     }
     
@@ -37,10 +41,10 @@ export default function BulkEditPage() {
 
   const handleApply = () => {
     if (!activePreview) return;
-    const confirm = window.confirm('대량 수정을 실제 데이터에 반영하시겠습니까?\n평가 Lock이 걸린 데이터는 자동으로 제외됩니다.');
+    const confirm = window.confirm(t('settings.bulkEdit.confirmApply'));
     if (confirm) {
       updateSessionStatus(activePreview.id, 'APPLIED', new Date().toISOString());
-      alert('성공적으로 일괄 변경되었습니다. (AuditLog 기능은 콘솔에서만 확인 가능합니다)');
+      alert(t('settings.bulkEdit.alertSuccess'));
       setNewValue('');
     }
   };
@@ -57,8 +61,8 @@ export default function BulkEditPage() {
           <Database className="w-6 h-6" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-[var(--color-text-main)]">대량 수정 (Bulk Edit)</h1>
-          <p className="text-sm text-[var(--color-text-sub)] mt-1">Excel import 이후 파편화된 데이터(PM, 부서, 납품일, Scope 등)를 일괄 수정합니다.</p>
+          <h1 className="text-xl font-bold text-[var(--color-text-main)]">{t('settings.bulkEdit.title')}</h1>
+          <p className="text-sm text-[var(--color-text-sub)] mt-1">{t('settings.bulkEdit.subtitle')}</p>
         </div>
       </div>
 
@@ -66,58 +70,58 @@ export default function BulkEditPage() {
         <div className="col-span-2 space-y-6">
           <div className="bg-[var(--color-surface)] p-6 rounded-xl border shadow-sm space-y-4">
             <h3 className="font-bold text-[var(--color-text-main)] border-b pb-2 flex items-center gap-2">
-              <Edit className="w-4 h-4" /> 수정 대상 선택
+              <Edit className="w-4 h-4" /> {t('settings.bulkEdit.targetTitle')}
             </h3>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-[var(--color-text-main)] mb-1">대상 엔티티</label>
+                <label className="block text-sm font-semibold text-[var(--color-text-main)] mb-1">{t('settings.bulkEdit.lblEntity')}</label>
                 <select 
                   value={targetEntity} onChange={e => setTargetEntity(e.target.value)}
-                  className="w-full border rounded-lg p-2.5 text-sm"
+                  className="w-full border rounded-lg p-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                   disabled={!!activePreview}
                 >
-                  <option value="PROJECT">프로젝트 (Project)</option>
-                  <option value="PERSONNEL">직원 (PersonnelCard)</option>
-                  <option value="SCHEDULE">일정 (ScheduleAssignment)</option>
+                  <option value="PROJECT">{t('settings.bulkEdit.optProject')}</option>
+                  <option value="PERSONNEL">{t('settings.bulkEdit.optPersonnel')}</option>
+                  <option value="SCHEDULE">{t('settings.bulkEdit.optSchedule')}</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-[var(--color-text-main)] mb-1">변경할 속성(필드)</label>
+                <label className="block text-sm font-semibold text-[var(--color-text-main)] mb-1">{t('settings.bulkEdit.lblField')}</label>
                 <select 
                   value={targetField} onChange={e => setTargetField(e.target.value)}
-                  className="w-full border rounded-lg p-2.5 text-sm"
+                  className="w-full border rounded-lg p-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                   disabled={!!activePreview}
                 >
                   {targetEntity === 'PROJECT' && (
                     <>
-                      <option value="PM_ASSIGNMENT">PM 일괄 변경</option>
-                      <option value="DEPARTMENT">담당 부서 일괄 변경</option>
-                      <option value="DUE_DATE">납품일 일괄 지정</option>
+                      <option value="PM_ASSIGNMENT">{t('settings.bulkEdit.optPm')}</option>
+                      <option value="DEPARTMENT">{t('settings.bulkEdit.optDept')}</option>
+                      <option value="DUE_DATE">{t('settings.bulkEdit.optDueDate')}</option>
                     </>
                   )}
                   {targetEntity === 'PERSONNEL' && (
                     <>
-                      <option value="DEPARTMENT">부서 이동</option>
-                      <option value="ROLE">권한(Role) 변경</option>
+                      <option value="DEPARTMENT">{t('settings.bulkEdit.optMoveDept')}</option>
+                      <option value="ROLE">{t('settings.bulkEdit.optRole')}</option>
                     </>
                   )}
                   {targetEntity === 'SCHEDULE' && (
                     <>
-                      <option value="SCOPE_NORMALIZATION">Scope 정규화명 일괄 변경</option>
+                      <option value="SCOPE_NORMALIZATION">{t('settings.bulkEdit.optScope')}</option>
                     </>
                   )}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-[var(--color-text-main)] mb-1">변경될 새 값</label>
+                <label className="block text-sm font-semibold text-[var(--color-text-main)] mb-1">{t('settings.bulkEdit.lblNewValue')}</label>
                 <input 
                   type="text" 
                   value={newValue} onChange={e => setNewValue(e.target.value)}
-                  placeholder="새로운 값 입력..."
-                  className="w-full border rounded-lg p-2.5 text-sm"
+                  placeholder={t('settings.bulkEdit.phNewValue')}
+                  className="w-full border rounded-lg p-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                   disabled={!!activePreview}
                 />
               </div>
@@ -126,23 +130,23 @@ export default function BulkEditPage() {
             {!activePreview ? (
               <button 
                 onClick={handleGeneratePreview}
-                className="w-full py-2.5 mt-2 bg-gray-800 hover:bg-black text-white rounded-lg font-bold shadow-sm transition-colors"
+                className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] w-full py-2.5 mt-2 bg-gray-800 hover:bg-black text-white rounded-lg font-bold shadow-sm transition-colors"
               >
-                미리보기 생성
+                {t('settings.bulkEdit.btnPreview')}
               </button>
             ) : (
               <div className="flex gap-2 mt-2">
                 <button 
                   onClick={handleApply}
-                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold shadow-sm transition-colors"
+                  className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold shadow-sm transition-colors"
                 >
-                  실제 반영
+                  {t('settings.bulkEdit.btnApply')}
                 </button>
                 <button 
                   onClick={handleCancel}
-                  className="flex-1 py-2.5 bg-gray-200 hover:bg-gray-300 text-[var(--color-text-main)] rounded-lg font-bold transition-colors"
+                  className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] flex-1 py-2.5 bg-gray-200 hover:bg-gray-300 text-[var(--color-text-main)] rounded-lg font-bold transition-colors"
                 >
-                  취소
+                  {t('settings.personnel.btnCancel')}
                 </button>
               </div>
             )}
@@ -152,35 +156,35 @@ export default function BulkEditPage() {
         <div className="col-span-3">
           {activePreview ? (
             <div className="bg-[var(--color-surface)] p-6 rounded-xl border shadow-sm space-y-4">
-              <h3 className="font-bold text-[var(--color-text-main)] border-b pb-2">변경 미리보기 (Preview)</h3>
+              <h3 className="font-bold text-[var(--color-text-main)] border-b pb-2">{t('settings.bulkEdit.previewTitle')}</h3>
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-[var(--color-bg)] p-4 rounded-lg border text-center">
-                  <div className="text-sm text-[var(--color-text-sub)] font-bold">전체 대상 항목</div>
+                  <div className="text-sm text-[var(--color-text-sub)] font-bold">{t('settings.bulkEdit.totalItems')}</div>
                   <div className="text-3xl font-extrabold text-[var(--color-text-main)] mt-1">{activePreview.totalItems}</div>
                 </div>
                 <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-100 text-center">
-                  <div className="text-sm text-emerald-600 font-bold">실제 변경될 항목</div>
+                  <div className="text-sm text-emerald-600 font-bold">{t('settings.bulkEdit.changedItems')}</div>
                   <div className="text-3xl font-extrabold text-emerald-700 mt-1">{activePreview.changedItems}</div>
                 </div>
               </div>
 
               <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200 text-yellow-800 text-sm">
                 <div className="flex items-center gap-2 font-bold mb-1">
-                  <AlertTriangle className="w-4 h-4" /> 주의사항
+                  <AlertTriangle className="w-4 h-4" /> {t('settings.bulkEdit.warningTitle')}
                 </div>
-                이미 성과 평가가 종료되어 <strong>Lock이 걸린 데이터</strong>는 대량 수정 대상에서 자동으로 제외되었습니다.
-                하단의 반영 버튼을 누르기 전에 수치가 의도와 맞는지 확인하세요.
+                {t('settings.bulkEdit.warningText1')}<strong>{t('settings.bulkEdit.warningText2')}</strong>{t('settings.bulkEdit.warningText3')}
+                {t('settings.bulkEdit.warningText4')}
               </div>
 
               <div className="mt-4 p-4 border rounded-lg bg-[var(--color-bg)] text-sm text-[var(--color-text-sub)] text-center">
-                변경 전/후 상세 데이터 표 (Mock)
+                {t('settings.bulkEdit.mockTable')}
               </div>
             </div>
           ) : (
             <div className="bg-[var(--color-surface)] p-6 rounded-xl border shadow-sm space-y-4">
               <h3 className="font-bold text-[var(--color-text-main)] border-b pb-2 flex items-center gap-2">
-                <History className="w-4 h-4" /> 최근 대량 수정 이력
+                <History className="w-4 h-4" /> {t('settings.bulkEdit.historyTitle')}
               </h3>
               <div className="space-y-2 max-h-[400px] overflow-y-auto">
                 {sessions.filter(s => s.status !== 'PREVIEW').map(session => (
@@ -190,15 +194,15 @@ export default function BulkEditPage() {
                         <span className={`text-xs font-bold px-2 py-0.5 rounded ${session.status === 'APPLIED' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-[var(--color-text-main)]'}`}>
                           {session.status}
                         </span>
-                        <span className="text-sm font-bold text-[var(--color-text-main)]">엔티티: {session.targetEntityType}</span>
+                        <span className="text-sm font-bold text-[var(--color-text-main)]">{t('settings.bulkEdit.lblEntity')}: {session.targetEntityType}</span>
                       </div>
                       <div className="text-xs text-[var(--color-text-sub)]">
-                        총 {session.totalItems}건 중 {session.changedItems}건 변경
+                        {t('settings.bulkEdit.lblTotalPrefix')} {session.totalItems}{t('settings.bulkEdit.lblTotalSuffix')} {session.changedItems}{t('settings.bulkEdit.lblChangedSuffix')}
                       </div>
                     </div>
                     <div className="text-xs text-right text-[var(--color-text-sub)]">
                       {new Date(session.createdAt).toLocaleString()} <br/>
-                      By: {session.createdBy}
+                      {t('settings.bulkEdit.lblBy')} {session.createdBy}
                     </div>
                   </div>
                 ))}

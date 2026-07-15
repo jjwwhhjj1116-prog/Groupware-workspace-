@@ -1,4 +1,6 @@
 'use client';
+import { useTranslationStore } from '@/store/translationStore';
+import { useTranslation } from '@/lib/localization';
 
 import React, { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
@@ -6,6 +8,9 @@ import { useDataQualityStore } from '@/store/dataQualityStore';
 import { ShieldAlert, AlertTriangle, AlertCircle, RefreshCw, CheckCircle2 } from 'lucide-react';
 
 export default function DataQualityPage() {
+  const { settings: translationSettings } = useTranslationStore();
+  const t = useTranslation(translationSettings?.uiLanguage || 'ko');
+
   const { currentUser } = useAuthStore();
   const { checks, lastCheckTime, runChecks, resolveCheck, ignoreCheck } = useDataQualityStore();
   
@@ -13,9 +18,9 @@ export default function DataQualityPage() {
   const [filterSeverity, setFilterSeverity] = useState<string>('ALL');
   const [filterStatus, setFilterStatus] = useState<string>('OPEN');
 
-  if (!currentUser) return <div className="py-10 text-center text-[var(--color-text-sub)]">로그인이 필요합니다.</div>;
+  if (!currentUser) return <div className="py-10 text-center text-[var(--color-text-sub)]">{t('settings.personnel.authRequired')}</div>;
   if (!['SUPER_ADMIN', 'SYSTEM_ADMIN'].includes(currentUser.role)) {
-    return <div className="py-10 text-center text-[var(--color-danger)] font-bold">접근 권한이 없습니다. (관리자 전용)</div>;
+    return <div className="py-10 text-center text-[var(--color-danger)] font-bold">{t('settings.permissions.permissionDenied')}</div>;
   }
 
   const filteredChecks = checks.filter(c => {
@@ -38,26 +43,26 @@ export default function DataQualityPage() {
             <ShieldAlert className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-[var(--color-text-main)]">데이터 품질 검사</h1>
+            <h1 className="text-xl font-bold text-[var(--color-text-main)]">{t('settings.dataQuality.title')}</h1>
             <p className="text-xs text-[var(--color-text-sub)]">
-              마지막 검사: {lastCheckTime ? new Date(lastCheckTime).toLocaleString() : '기록 없음'}
+              {t('settings.dataQuality.lastCheckPrefix')}{lastCheckTime ? new Date(lastCheckTime).toLocaleString() : t('settings.dataQuality.noRecord')}
             </p>
           </div>
         </div>
         
         <button 
           onClick={runChecks}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-sm font-bold text-white shadow-sm transition-colors"
+          className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-sm font-bold text-white shadow-sm transition-colors"
         >
           <RefreshCw className="w-4 h-4" />
-          전체 데이터 재검사
+          {t('settings.dataQuality.btnRunChecks')}
         </button>
       </div>
 
       <div className="grid grid-cols-4 gap-4">
         <div className="bg-[var(--color-surface)] p-4 rounded-xl border shadow-sm flex flex-col justify-between">
           <div className="text-[var(--color-text-sub)] text-xs font-bold mb-1 flex items-center gap-1">
-            <ShieldAlert className="w-3 h-3" /> 전체 검사 항목
+            <ShieldAlert className="w-3 h-3" /> {t('settings.dataQuality.totalChecks')}
           </div>
           <div className="text-2xl font-extrabold text-[var(--color-text-main)]">{checks.length}</div>
         </div>
@@ -70,7 +75,7 @@ export default function DataQualityPage() {
           <div className="text-2xl font-extrabold text-orange-600">{errorCount + warningCount}</div>
         </div>
         <div className="bg-green-50 p-4 rounded-xl border border-green-100 shadow-sm flex flex-col justify-between">
-          <div className="text-green-600 text-xs font-bold mb-1">해결 완료</div>
+          <div className="text-green-600 text-xs font-bold mb-1">{t('settings.dataQuality.resolved')}</div>
           <div className="text-2xl font-extrabold text-green-700">{resolvedCount}</div>
         </div>
       </div>
@@ -79,19 +84,19 @@ export default function DataQualityPage() {
         <div className="p-4 border-b bg-[var(--color-bg)] flex gap-4">
           <select 
             value={filterCategory} onChange={e => setFilterCategory(e.target.value)}
-            className="border rounded-lg px-3 py-1.5 text-sm font-medium text-[var(--color-text-main)] bg-[var(--color-surface)]"
+            className="border rounded-lg px-3 py-1.5 text-sm font-medium text-[var(--color-text-main)] bg-[var(--color-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
           >
-            <option value="ALL">모든 카테고리</option>
-            <option value="PERSONNEL">인사/직원 (PERSONNEL)</option>
-            <option value="PROJECT">프로젝트 (PROJECT)</option>
-            <option value="SCHEDULE">일정 (SCHEDULE)</option>
+            <option value="ALL">{t('settings.dataQuality.filterAllCategories')}</option>
+            <option value="PERSONNEL">{t('settings.dataQuality.filterCategoryPersonnel')}</option>
+            <option value="PROJECT">{t('settings.dataQuality.filterCategoryProject')}</option>
+            <option value="SCHEDULE">{t('settings.dataQuality.filterCategorySchedule')}</option>
           </select>
 
           <select 
             value={filterSeverity} onChange={e => setFilterSeverity(e.target.value)}
-            className="border rounded-lg px-3 py-1.5 text-sm font-medium text-[var(--color-text-main)] bg-[var(--color-surface)]"
+            className="border rounded-lg px-3 py-1.5 text-sm font-medium text-[var(--color-text-main)] bg-[var(--color-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
           >
-            <option value="ALL">모든 심각도</option>
+            <option value="ALL">{t('settings.dataQuality.filterAllSeverities')}</option>
             <option value="BLOCKER">BLOCKER</option>
             <option value="ERROR">ERROR</option>
             <option value="WARNING">WARNING</option>
@@ -99,12 +104,12 @@ export default function DataQualityPage() {
 
           <select 
             value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-            className="border rounded-lg px-3 py-1.5 text-sm font-medium text-[var(--color-text-main)] bg-[var(--color-surface)]"
+            className="border rounded-lg px-3 py-1.5 text-sm font-medium text-[var(--color-text-main)] bg-[var(--color-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
           >
-            <option value="ALL">모든 상태</option>
-            <option value="OPEN">미해결 (OPEN)</option>
-            <option value="RESOLVED">해결됨 (RESOLVED)</option>
-            <option value="IGNORED">무시됨 (IGNORED)</option>
+            <option value="ALL">{t('settings.dataQuality.filterAllStatuses')}</option>
+            <option value="OPEN">{t('settings.dataQuality.filterStatusOpen')}</option>
+            <option value="RESOLVED">{t('settings.dataQuality.filterStatusResolved')}</option>
+            <option value="IGNORED">{t('settings.dataQuality.filterStatusIgnored')}</option>
           </select>
         </div>
 
@@ -130,9 +135,9 @@ export default function DataQualityPage() {
                     <div className="flex gap-2">
                       {check.status === 'OPEN' && (
                         <>
-                          <button onClick={() => ignoreCheck(check.id)} className="text-xs px-3 py-1.5 rounded border text-[var(--color-text-sub)] hover:bg-gray-100 font-medium">무시 처리</button>
-                          <button onClick={() => resolveCheck(check.id)} className="text-xs px-3 py-1.5 rounded bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 font-bold flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" /> 해결 완료
+                          <button onClick={() => ignoreCheck(check.id)} className="text-xs px-3 py-1.5 rounded border text-[var(--color-text-sub)] hover:bg-gray-100 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]">{t('settings.dataQuality.btnIgnore')}</button>
+                          <button onClick={() => resolveCheck(check.id)} className="text-xs px-3 py-1.5 rounded bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 font-bold flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]">
+                            <CheckCircle2 className="w-3 h-3" /> {t('settings.dataQuality.resolved')}
                           </button>
                         </>
                       )}
@@ -145,15 +150,15 @@ export default function DataQualityPage() {
                   
                   {check.suggestedFix && (
                     <div className="mt-3 text-xs bg-blue-50 text-blue-800 p-2.5 rounded-lg border border-blue-100 flex items-start gap-2">
-                      <span className="font-bold shrink-0">권장 조치:</span>
+                      <span className="font-bold shrink-0">{t('settings.dataQuality.suggestedFix')}</span>
                       <span>{check.suggestedFix}</span>
                     </div>
                   )}
 
                   {check.relatedEntityType && (
                     <div className="mt-3 text-xs flex gap-2">
-                      <button className="text-indigo-600 hover:underline">
-                        관련 {check.relatedEntityType} 상세 보기 ({check.relatedEntityId})
+                      <button className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] text-indigo-600 hover:underline">
+                        {t('settings.dataQuality.viewEntityDetailsPrefix')}{check.relatedEntityType}{t('settings.dataQuality.viewEntityDetailsSuffix')} ({check.relatedEntityId})
                       </button>
                     </div>
                   )}
@@ -164,7 +169,7 @@ export default function DataQualityPage() {
 
           {filteredChecks.length === 0 && (
             <div className="p-12 text-center text-[var(--color-text-sub)] font-medium">
-              조건에 맞는 품질 검사 항목이 없습니다.
+              {t('settings.dataQuality.noResult')}
             </div>
           )}
         </div>

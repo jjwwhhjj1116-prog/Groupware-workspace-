@@ -7,10 +7,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { apiClient } from '@/lib/apiClient';
 import { useAuthStore } from '@/store/authStore';
+import { useTranslationStore } from '@/store/translationStore';
+import { useTranslation } from '@/lib/localization';
 import { Mail, Copy, CheckCircle2 } from 'lucide-react';
 
 export default function AdminUserInvite() {
   const { currentUser } = useAuthStore();
+  const { settings } = useTranslationStore();
+  const t = useTranslation(settings?.uiLanguage || 'ko');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('WORKER');
   const [loading, setLoading] = useState(false);
@@ -35,7 +39,7 @@ export default function AdminUserInvite() {
       
       setGeneratedToken(res.token);
     } catch (err: unknown) {
-      setError((err as any).message || 'Failed to create invite token');
+      setError(err instanceof Error ? err.message : t('workspace.invite.errorFailed'));
     } finally {
       setLoading(false);
     }
@@ -54,31 +58,31 @@ export default function AdminUserInvite() {
       <CardHeader className="bg-slate-50 dark:bg-slate-900 border-b">
         <CardTitle className="text-lg font-semibold flex items-center gap-2 text-slate-800 dark:text-slate-100">
           <Mail className="w-5 h-5 text-blue-500" />
-          Generate User Invite
+          {t('workspace.invite.title')}
         </CardTitle>
       </CardHeader>
       <CardContent className="p-6 space-y-4">
         <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Email Address</label>
-          <Input 
-            type="email" 
-            placeholder="user@company.com" 
+          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('workspace.invite.emailLabel')}</label>
+          <Input
+            type="email"
+            placeholder={t('workspace.invite.emailPlaceholder')}
             value={email}
-            onChange={(e: any) => setEmail(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
           />
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Assign Role</label>
+          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('workspace.invite.roleLabel')}</label>
           <Select value={role} onValueChange={setRole}>
             <SelectTrigger>
-              <SelectValue placeholder="Select a role" />
+              <SelectValue placeholder={t('workspace.invite.rolePlaceholder')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="WORKER">Worker</SelectItem>
-              <SelectItem value="PM">Project Manager</SelectItem>
-              <SelectItem value="DEPARTMENT_MANAGER">Department Manager</SelectItem>
-              <SelectItem value="SYSTEM_ADMIN">System Admin</SelectItem>
+              <SelectItem value="WORKER">{t('workspace.invite.roleWorker')}</SelectItem>
+              <SelectItem value="PM">{t('workspace.invite.rolePM')}</SelectItem>
+              <SelectItem value="DEPARTMENT_MANAGER">{t('workspace.invite.roleDeptManager')}</SelectItem>
+              <SelectItem value="SYSTEM_ADMIN">{t('workspace.invite.roleSysAdmin')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -92,7 +96,7 @@ export default function AdminUserInvite() {
         {generatedToken ? (
           <div className="p-4 bg-green-50 border border-green-200 rounded-md space-y-3">
             <p className="text-sm font-medium text-green-800">
-              Invite token generated successfully!
+              {t('workspace.invite.successMsg')}
             </p>
             <div className="flex items-center gap-2 p-2 bg-white border border-green-100 rounded text-xs font-mono break-all text-slate-600">
               {generatedToken}
@@ -104,13 +108,13 @@ export default function AdminUserInvite() {
               onClick={copyToClipboard}
             >
               {copied ? (
-                <><CheckCircle2 className="w-4 h-4 mr-2" /> Copied</>
+                <><CheckCircle2 className="w-4 h-4 mr-2" /> {t('workspace.invite.copied')}</>
               ) : (
-                <><Copy className="w-4 h-4 mr-2" /> Copy Token</>
+                <><Copy className="w-4 h-4 mr-2" /> {t('workspace.invite.copyToken')}</>
               )}
             </Button>
             <p className="text-xs text-green-600 mt-2 text-center">
-              Send this token to the user for account activation.
+              {t('workspace.invite.copyTokenDesc')}
             </p>
           </div>
         ) : (
@@ -119,7 +123,7 @@ export default function AdminUserInvite() {
             onClick={handleInvite}
             disabled={loading || !email}
           >
-            {loading ? 'Generating...' : 'Generate Invite'}
+            {loading ? t('workspace.invite.btnGenerating') : t('workspace.invite.btnGenerate')}
           </Button>
         )}
       </CardContent>

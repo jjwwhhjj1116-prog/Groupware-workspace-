@@ -7,8 +7,13 @@ import { useProjectStore } from '@/store/projectStore';
 import { useTaskStore } from '@/store/taskStore';
 import { Settings, Save, Edit2 } from 'lucide-react';
 import { exportWorkspaceData, downloadJson, saveDraftToLocalStorage, validateImportData, applyImportData } from '@/lib/jsonHandoff';
+import { useTranslationStore } from '@/store/translationStore';
+import { useTranslation } from '@/lib/localization';
 
 export default function WorkspaceSettingsPage() {
+  const { settings: translationSettings } = useTranslationStore();
+  const t = useTranslation(translationSettings?.uiLanguage || 'ko');
+
   const { currentUser, appMode, setDataSourceMode } = useAuthStore();
   const { settings, updateSetting } = useSettingStore();
   const { batchCloseOverdueProjects, loadDummyProjects } = useProjectStore();
@@ -33,13 +38,13 @@ export default function WorkspaceSettingsPage() {
       updateSetting(key, parsedValue, currentUser!.id);
       setEditingKey(null);
     } catch {
-      alert('입력 형식이 올바르지 않습니다.');
+      alert(t('settings.workspace.errorInvalidFormat'));
     }
   };
 
   const handleSaveDraft = () => {
     saveDraftToLocalStorage();
-    setSuccessMsg('로컬 임시 저장이 완료되었습니다.');
+    setSuccessMsg(t('settings.workspace.msgDraftSaved'));
     setTimeout(() => setSuccessMsg(''), 3000);
   };
 
@@ -57,12 +62,12 @@ export default function WorkspaceSettingsPage() {
         const json = JSON.parse(event.target?.result as string);
         if (validateImportData(json)) {
           applyImportData(json);
-          setSuccessMsg('데이터 구조 확인 및 스토어 반영 완료');
+          setSuccessMsg(t('settings.workspace.msgImportSuccess'));
         } else {
-          alert('잘못된 형태의 JSON 파일입니다.');
+          alert(t('settings.workspace.errorInvalidJson'));
         }
       } catch {
-        alert('JSON 파싱 실패');
+        alert(t('settings.workspace.errorParseFail'));
       }
     };
     reader.readAsText(file);
@@ -72,12 +77,12 @@ export default function WorkspaceSettingsPage() {
   const generateHandoffPackage = () => {
     const data = exportWorkspaceData();
     downloadJson(data, 'workspace-export.json');
-    alert('다운로드된 workspace-export.json을 프로젝트의 /json 폴더에 덮어쓰기 해주세요.');
+    alert(t('settings.workspace.msgHandoffDesc'));
   };
 
-  if (!currentUser) return <div className="py-10 text-center text-[var(--color-text-sub)]">로그인이 필요합니다.</div>;
+  if (!currentUser) return <div className="py-10 text-center text-[var(--color-text-sub)]">{t('settings.workspace.authRequired')}</div>;
   if (!['SUPER_ADMIN', 'SYSTEM_ADMIN', 'DEPARTMENT_MANAGER', 'PM'].includes(currentUser.role)) {
-    return <div className="py-10 text-center text-[var(--color-danger)] font-bold">운영 설정을 볼 권한이 없습니다.</div>;
+    return <div className="py-10 text-center text-[var(--color-danger)] font-bold">{t('settings.workspace.permissionDenied')}</div>;
   }
 
   return (
@@ -88,8 +93,8 @@ export default function WorkspaceSettingsPage() {
           <Settings className="w-6 h-6" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-[var(--color-text-main)]">운영 설정</h1>
-          <p className="text-sm text-[var(--color-text-sub)] mt-1">시스템의 주요 정책 및 기준값을 변경합니다. (AuditLog 준비 중)</p>
+          <h1 className="text-xl font-bold text-[var(--color-text-main)]">{t('settings.workspace.title')}</h1>
+          <p className="text-sm text-[var(--color-text-sub)] mt-1">{t('settings.workspace.desc')}</p>
         </div>
       </div>
 
@@ -109,7 +114,7 @@ export default function WorkspaceSettingsPage() {
                   <p className="text-sm text-[var(--color-text-sub)] mt-1">{setting.description}</p>
                 </div>
                 {canEdit && !isEditing && (
-                  <button onClick={() => handleEditClick(setting.key, setting.value)} className="p-2 text-[var(--color-text-sub)] hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
+                  <button onClick={() => handleEditClick(setting.key, setting.value)} className="p-2 text-[var(--color-text-sub)] hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]">
                     <Edit2 className="w-4 h-4" />
                   </button>
                 )}
@@ -121,20 +126,20 @@ export default function WorkspaceSettingsPage() {
                     {typeof setting.value === 'object' ? (
                       <textarea 
                         value={editValue} onChange={e => setEditValue(e.target.value)}
-                        className="w-full border rounded p-2 text-sm font-mono h-24"
+                        className="w-full border rounded p-2 text-sm font-mono h-24 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                       />
                     ) : (
                       <input 
                         type="text" value={editValue} onChange={e => setEditValue(e.target.value)}
-                        className="w-full border rounded p-2 text-sm font-mono"
+                        className="w-full border rounded p-2 text-sm font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                       />
                     )}
                     <div className="flex flex-col gap-2 shrink-0">
-                      <button onClick={() => handleSave(setting.key, setting.value)} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded shadow-sm hover:bg-indigo-700 flex items-center justify-center gap-1">
-                        <Save className="w-3 h-3" /> 저장
+                      <button onClick={() => handleSave(setting.key, setting.value)} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded shadow-sm hover:bg-indigo-700 flex items-center justify-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]">
+                        <Save className="w-3 h-3" /> {t('settings.workspace.btnSave')}
                       </button>
-                      <button onClick={() => setEditingKey(null)} className="px-3 py-1.5 border text-[var(--color-text-sub)] text-xs font-bold rounded hover:bg-gray-100">
-                        취소
+                      <button onClick={() => setEditingKey(null)} className="px-3 py-1.5 border text-[var(--color-text-sub)] text-xs font-bold rounded hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]">
+                        {t('settings.workspace.btnCancel')}
                       </button>
                     </div>
                   </div>
@@ -144,8 +149,8 @@ export default function WorkspaceSettingsPage() {
                       {typeof setting.value === 'object' ? JSON.stringify(setting.value, null, 2) : String(setting.value)}
                     </pre>
                     <div className="text-[10px] text-[var(--color-text-sub)] font-mono text-right shrink-0" suppressHydrationWarning>
-                      Last Updated: {new Date(setting.updatedAt).toLocaleString()}<br/>
-                      By: {setting.updatedBy}
+                      {t('settings.workspace.lastUpdated')} {new Date(setting.updatedAt).toLocaleString()}<br/>
+                      {t('settings.workspace.updatedBy')} {setting.updatedBy}
                     </div>
                   </div>
                 )}
@@ -156,75 +161,75 @@ export default function WorkspaceSettingsPage() {
       </div>
 
       <div className="bg-[var(--color-surface)] p-6 rounded-xl shadow-sm border border-red-200 mt-8">
-        <h2 className="text-lg font-bold text-red-700 mb-2">위험 작업 (Danger Zone)</h2>
+        <h2 className="text-lg font-bold text-red-700 mb-2">{t('settings.workspace.dangerZoneTitle')}</h2>
         <div className="flex justify-between items-center">
-          <p className="text-sm text-[var(--color-text-sub)]">납품일이 경과한 프로젝트 일괄 완료 처리.</p>
+          <p className="text-sm text-[var(--color-text-sub)]">{t('settings.workspace.dangerZoneDesc')}</p>
           <button 
             onClick={() => {
-              if (confirm('납품일이 지났고 미결 요청이 없는 프로젝트들을 완료 처리하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+              if (confirm(t('settings.workspace.dangerZoneConfirm'))) {
                 batchCloseOverdueProjects(currentUser.id);
-                setSuccessMsg('일괄 마감 처리가 완료되었습니다.');
+                setSuccessMsg(t('settings.workspace.dangerZoneSuccess'));
                 setTimeout(() => setSuccessMsg(''), 3000);
               }
             }}
-            className="px-4 py-2 bg-red-600 text-white rounded text-sm font-bold hover:bg-red-700 transition"
+            className="px-4 py-2 bg-red-600 text-white rounded text-sm font-bold hover:bg-red-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
           >
-            일괄 마감 실행
+            {t('settings.workspace.btnBatchClose')}
           </button>
         </div>
       </div>
 
       <div className="bg-[var(--color-surface)] p-6 rounded-xl shadow-sm border border-indigo-200 mt-8">
-        <h2 className="text-lg font-bold text-indigo-700 mb-2">개발/검증용 테스트 데이터 (Fixture)</h2>
+        <h2 className="text-lg font-bold text-indigo-700 mb-2">{t('settings.workspace.fixtureTitle')}</h2>
         <div className="flex justify-between items-center">
-          <p className="text-sm text-[var(--color-text-sub)]">빈 화면(Empty State)을 채우기 위해, UI 시연을 위한 대량의 더미 프로젝트와 일정 데이터를 임시 주입합니다.</p>
+          <p className="text-sm text-[var(--color-text-sub)]">{t('settings.workspace.fixtureDesc')}</p>
           <button 
             onClick={() => {
               if (appMode !== 'ADMIN_VALIDATION') {
-                alert('운영 검증 모드에서만 더미 데이터를 주입할 수 있습니다.\n상단 헤더에서 [운영 검증 모드]로 전환해주세요.');
+                alert(t('settings.workspace.fixtureOnlyAdmin'));
                 return;
               }
-              if (confirm('현재 편집 중인 데이터가 있을 경우 더미데이터와 혼합될 수 있습니다. 진행하시겠습니까?')) {
+              if (confirm(t('settings.workspace.fixtureConfirm'))) {
                 loadDummyProjects();
                 loadDummyTasks();
                 setDataSourceMode('DEMO_SEED_DATA');
-                setSuccessMsg('테스트 데이터 주입이 완료되었습니다.');
+                setSuccessMsg(t('settings.workspace.fixtureSuccess'));
                 setTimeout(() => setSuccessMsg(''), 3000);
               }
             }}
-            className={`px-4 py-2 rounded text-sm font-bold transition ${appMode === 'ADMIN_VALIDATION' ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-gray-300 text-[var(--color-text-sub)] cursor-not-allowed'}`}
+            className={`px-4 py-2 rounded text-sm font-bold transition ${appMode === 'ADMIN_VALIDATION' ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-gray-300 text-[var(--color-text-sub)] cursor-not-allowed'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]`}
           >
-            더미데이터 주입
+            {t('settings.workspace.btnInject')}
           </button>
         </div>
       </div>
 
       <div className="bg-[var(--color-surface)] rounded-xl shadow-sm border p-6 mt-8">
-        <h2 className="text-lg font-bold text-[var(--color-text-main)] mb-4">데이터 관리 (Handoff)</h2>
+        <h2 className="text-lg font-bold text-[var(--color-text-main)] mb-4">{t('settings.workspace.handoffTitle')}</h2>
         <p className="text-sm text-[var(--color-text-sub)] mb-6">
-          정적 웹 호스팅 환경(GitHub Pages 등)에서는 시스템 데이터를 저장소에 직접 쓸 수 없습니다.<br/>
-          브라우저에서 작업한 데이터(보드, 업무, 일정, 승인/수정/추가업무 요청 등)를 파일로 다운로드(Export)하여 프로젝트 내 <code>/json</code> 폴더에 넣고, 코드로 반영을 요청하세요.
+          {t('settings.workspace.handoffDesc1')}<br/>
+          {t('settings.workspace.handoffDesc2_1')}<code>/json</code>{t('settings.workspace.handoffDesc2_2')}
         </p>
 
         <div className="space-y-4">
           <div className="flex flex-wrap gap-4 border-b pb-6">
-            <button onClick={handleSaveDraft} className="px-4 py-2 border border-[var(--color-border-strong)] rounded text-sm hover:bg-[var(--color-bg)]">
-              브라우저 임시 저장
+            <button onClick={handleSaveDraft} className="px-4 py-2 border border-[var(--color-border-strong)] rounded text-sm hover:bg-[var(--color-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]">
+              {t('settings.workspace.btnSaveDraft')}
             </button>
-            <button onClick={handleExportJson} className="px-4 py-2 border border-blue-500 text-blue-600 rounded text-sm hover:bg-blue-50">
-              전체 JSON 내보내기
+            <button onClick={handleExportJson} className="px-4 py-2 border border-blue-500 text-blue-600 rounded text-sm hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]">
+              {t('settings.workspace.btnExport')}
             </button>
-            <label className="px-4 py-2 border border-[var(--color-border-strong)] rounded text-sm hover:bg-[var(--color-bg)] cursor-pointer">
-              JSON 불러오기
-              <input type="file" accept=".json" className="hidden" onChange={handleImportJson} />
+            <label className="px-4 py-2 border border-[var(--color-border-strong)] rounded text-sm hover:bg-[var(--color-bg)] cursor-pointer focus-within:outline-none focus-within:ring-2 focus-within:ring-[var(--color-primary)]">
+              {t('settings.workspace.btnImport')}
+              <input type="file" accept=".json" className="hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]" onChange={handleImportJson} />
             </label>
-            <button onClick={generateHandoffPackage} className="px-4 py-2 bg-gray-800 text-white rounded text-sm hover:bg-gray-900">
-              Antigravity 반영 패키지 생성
+            <button onClick={generateHandoffPackage} className="px-4 py-2 bg-gray-800 text-white rounded text-sm hover:bg-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]">
+              {t('settings.workspace.btnGeneratePackage')}
             </button>
           </div>
           
           <div className="bg-yellow-50 text-yellow-800 p-4 rounded text-sm border border-yellow-200">
-            <strong>안내:</strong> GitHub Pages 환경에서는 브라우저가 직접 저장소를 수정할 수 없습니다. 파일을 다운로드한 뒤 프로젝트의 <code>/json</code> 폴더에 복사하고 Antigravity에게 반영을 요청하세요.
+            <strong>{t('settings.workspace.noticeLabel')}</strong> {t('settings.workspace.noticeMsg1')}<code>/json</code>{t('settings.workspace.noticeMsg2')}
           </div>
         </div>
       </div>
