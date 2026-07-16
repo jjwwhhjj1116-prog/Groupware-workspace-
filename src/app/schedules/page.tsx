@@ -4,14 +4,18 @@ import { useAuthStore } from '@/store/authStore';
 import { useScheduleStore } from '@/store/scheduleStore';
 import { useProjectStore } from '@/store/projectStore';
 import { useTaskStore } from '@/store/taskStore';
-import { PersonalSchedule, Project, TaskCard } from '@/types/models';
-import { getUserDisplayName } from '@/lib/localization';
+import { Project, TaskCard } from '@/types/models';
+import { PersonalSchedule } from '@/types/models'; // Added explicit import since we split them for multiline replace
+import { getUserDisplayName, useTranslation } from '@/lib/localization';
+import { useTranslationStore } from '@/store/translationStore';
 import { canViewSchedule, canViewEmployeeSchedule } from '@/lib/permissions';
 import { getProjectOverallProgress } from '@/lib/selectors';
 import { LeaveRegistrationModal } from '@/components/schedule/LeaveRegistrationModal';
 
 export default function SchedulesPage() {
   const { currentUser, users } = useAuthStore();
+  const { settings } = useTranslationStore();
+  const t = useTranslation(settings.uiLanguage);
   const { schedules } = useScheduleStore();
   const { projects } = useProjectStore();
   const { tasks } = useTaskStore();
@@ -22,7 +26,7 @@ export default function SchedulesPage() {
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [showAllUsers, setShowAllUsers] = useState(false);
 
-  if (!currentUser) return <div className="py-10 text-center text-[var(--color-text-sub)]">로그인이 필요합니다.</div>;
+  if (!currentUser) return <div className="py-10 text-center text-[var(--color-text-sub)]">{t('header.loginRequired')}</div>;
 
   const visibleUsers = users.filter(u => {
     if (!(u.employmentStatus === 'ACTIVE' || u.isActive)) return false;
@@ -151,33 +155,33 @@ export default function SchedulesPage() {
   return (
     <div className="w-full px-6 space-y-6 md:space-y-8 animate-in fade-in duration-500">
       <div className="flex justify-between items-center bg-[var(--color-surface)] p-4 rounded-xl shadow-sm border">
-        <h1 className="text-xl font-bold text-[var(--color-text-main)]">통합 일정표</h1>
+        <h1 className="text-xl font-bold text-[var(--color-text-main)]">{t('schedules.title')}</h1>
         
         <div className="flex gap-2">
           <button 
-            className={`px-4 py-2 rounded-lg text-sm font-bold ${activeTab === 'MONTHLY_MATRIX' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-[var(--color-text-sub)] hover:bg-gray-200'}`}
+            className={`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] px-4 py-2 rounded-lg text-sm font-bold ${activeTab === 'MONTHLY_MATRIX' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-[var(--color-text-sub)] hover:bg-gray-200'}`}
             onClick={() => setActiveTab('MONTHLY_MATRIX')}
           >
-            직원 월간 그리드
+            {t('schedules.viewCalendar')}
           </button>
           <button 
-            className={`px-4 py-2 rounded-lg text-sm font-bold ${activeTab === 'PROJECT_SCHEDULE' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-[var(--color-text-sub)] hover:bg-gray-200'}`}
+            className={`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] px-4 py-2 rounded-lg text-sm font-bold ${activeTab === 'PROJECT_SCHEDULE' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-[var(--color-text-sub)] hover:bg-gray-200'}`}
             onClick={() => setActiveTab('PROJECT_SCHEDULE')}
           >
-            프로젝트 타임라인
+            {t('schedules.viewTimeline')}
           </button>
           <button 
-            className={`px-4 py-2 rounded-lg text-sm font-bold ${activeTab === 'USER_DETAIL' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-[var(--color-text-sub)] hover:bg-gray-200'}`}
+            className={`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] px-4 py-2 rounded-lg text-sm font-bold ${activeTab === 'USER_DETAIL' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-[var(--color-text-sub)] hover:bg-gray-200'}`}
             onClick={() => setActiveTab('USER_DETAIL')}
           >
-            직원별 상세
+            {t('schedules.viewWorkload')}
           </button>
           
           <button 
-            className="px-4 py-2 rounded-lg text-sm font-bold bg-green-600 text-white hover:bg-green-700 ml-4 shadow-sm"
+            className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] px-4 py-2 rounded-lg text-sm font-bold bg-green-600 text-white hover:bg-green-700 ml-4 shadow-sm"
             onClick={() => setShowLeaveModal(true)}
           >
-            + 휴가/일정 등록
+            {t('schedules.btnLeave')}
           </button>
         </div>
       </div>
@@ -185,17 +189,18 @@ export default function SchedulesPage() {
       <div className="bg-[var(--color-surface)] rounded-xl shadow-sm border p-4 space-y-4">
         <div className="flex justify-between items-center">
           <div className="flex gap-2">
-            <button onClick={prevMonth} className="p-2 bg-gray-100 rounded hover:bg-gray-200 text-sm font-medium transition-colors">&lt; 이전 달</button>
+            <button onClick={prevMonth} aria-label={t('schedules.prevMonth')} className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] p-2 bg-gray-100 rounded hover:bg-gray-200 text-sm font-medium transition-colors">&lt;</button>
             <select
-              className="border rounded-lg p-2 bg-[var(--color-surface)] text-sm font-bold border-[var(--color-border-strong)] focus:ring-2 focus:ring-indigo-500"
+              aria-label={t('schedules.selectMonth')}
+              className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] border rounded-lg p-2 bg-[var(--color-surface)] text-sm font-bold border-[var(--color-border-strong)] focus:ring-2 focus:ring-indigo-500"
               value={month}
               onChange={(e) => setCurrentDate(new Date(year, Number(e.target.value), 1))}
             >
               {[0, 1, 2, 3, 4, 5, 6].map(m => (
-                <option key={m} value={m}>2026년 {m + 1}월</option>
+                <option key={m} value={m}>{t('schedules.lblYearMonth', { year: year.toString(), month: (m + 1).toString() })}</option>
               ))}
             </select>
-            <button onClick={nextMonth} className="p-2 bg-gray-100 rounded hover:bg-gray-200 text-sm font-medium transition-colors">다음 달 &gt;</button>
+            <button onClick={nextMonth} aria-label={t('schedules.nextMonth')} className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] p-2 bg-gray-100 rounded hover:bg-gray-200 text-sm font-medium transition-colors">&gt;</button>
           </div>
           <div className="flex items-center gap-4">
             <label className="flex items-center gap-2 text-sm text-[var(--color-text-sub)] font-medium cursor-pointer bg-gray-50 px-3 py-1.5 rounded-md border">
@@ -203,11 +208,11 @@ export default function SchedulesPage() {
                 type="checkbox" 
                 checked={showAllUsers} 
                 onChange={(e) => setShowAllUsers(e.target.checked)} 
-                className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer"
+                className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer"
               />
-              일정 없는 직원 및 임원 포함하여 보기
+              {t('schedules.workload.includeEmpty')}
             </label>
-            <h2 className="text-xl font-extrabold text-[var(--color-text-main)]">{year}년 {month + 1}월</h2>
+            <div className="text-xl font-bold text-[var(--color-text-main)]">{t('schedules.lblYearMonth', { year: year.toString(), month: (month + 1).toString() })}</div>
           </div>
         </div>
 
@@ -217,14 +222,14 @@ export default function SchedulesPage() {
               <thead className="sticky top-0 z-20">
                 <tr>
                   <th className="sticky left-0 bg-[var(--color-surface)] border-b-2 border-r-2 border-[var(--color-border)] p-3 text-sm font-bold text-[var(--color-text-main)] min-w-[140px] z-30 shadow-[1px_0_0_0_#e5e7eb]">
-                    직원명
+                    {t('schedules.workload.empName')}
                   </th>
                   {daysArray.map(d => (
                     <th key={d} className={`border-b-2 border-r p-2 text-xs text-center min-w-[48px] ${getDayHeaderClass(d)}`}>
                       <div className="flex flex-col items-center gap-0.5">
                         <span>{d}</span>
                         <span className="text-[9px] opacity-70">
-                          {['일', '월', '화', '수', '목', '금', '토'][new Date(year, month, d).getDay()]}
+                          {[t('schedules.calendar.sun'), t('schedules.calendar.mon'), t('schedules.calendar.tue'), t('schedules.calendar.wed'), t('schedules.calendar.thu'), t('schedules.calendar.fri'), t('schedules.calendar.sat')][new Date(year, month, d).getDay()]}
                         </span>
                       </div>
                     </th>
@@ -250,7 +255,7 @@ export default function SchedulesPage() {
                           <td key={d} className={`border-b border-r p-1 align-top h-[60px] ${getDayCellClass(d)} transition-colors hover:bg-gray-100/50`}>
                             {daySchedules.map(ds => (
                               <div key={ds.id} className={`text-[10px] p-1 font-bold rounded border mb-1 truncate shadow-sm cursor-help ${getScheduleColor(ds.scheduleType)}`} title={`[${ds.scheduleType}] ${ds.title}\n${ds.startDateTime.substring(0,10)} ~ ${ds.endDateTime.substring(0,10)}\n${ds.description || ''}`}>
-                                {ds.scheduleType === 'OFF' ? '휴가' : (ds.scheduleType === 'MEETING' ? '미팅' : ds.title.substring(0, 4))}
+                                {ds.scheduleType === 'OFF' ? t('schedules.calendar.vacation') : (ds.scheduleType === 'MEETING' ? t('schedules.calendar.meeting') : ds.title.substring(0, 4))}
                               </div>
                             ))}
                             {dayTasks.map(dt => {
@@ -259,7 +264,7 @@ export default function SchedulesPage() {
                                 <div 
                                   key={dt.id} 
                                   className={getTaskBarClass(dt, d)} 
-                                  title={`[${dt.status}] ${dt.title}\n기간: ${dt.startDate} ~ ${dt.dueDate}\n진행률: ${dt.progress || 0}%`}
+                                  title={t('schedules.calendar.tooltip', { status: dt.status, title: dt.title, start: dt.startDate || '', end: dt.dueDate || '', progress: dt.progress?.toString() || '0' })}
                                 >
                                   <div className="truncate px-1">
                                     {isStart ? dt.title : '\u00A0'}
@@ -283,7 +288,7 @@ export default function SchedulesPage() {
             <table className="w-full border-collapse min-w-[1000px]">
               <thead className="sticky top-0 z-20">
                 <tr>
-                  <th className="sticky left-0 bg-[var(--color-surface)] border-b-2 border-r-2 p-3 text-sm font-bold text-[var(--color-text-main)] min-w-[240px] z-30 shadow-[1px_0_0_0_#e5e7eb]">프로젝트명 / 담당PM</th>
+                  <th className="sticky left-0 bg-[var(--color-surface)] border-b-2 border-r-2 p-3 text-sm font-bold text-[var(--color-text-main)] min-w-[240px] z-30 shadow-[1px_0_0_0_#e5e7eb]">{t('schedules.timeline.colProject')}</th>
                   {daysArray.map(d => (
                     <th key={d} className={`border-b-2 border-r p-2 text-xs font-medium text-center min-w-[48px] ${getDayHeaderClass(d)}`}>
                       {d}
@@ -331,7 +336,7 @@ export default function SchedulesPage() {
                         return (
                           <td key={d} className={`border-b border-r p-1 align-middle h-[50px] ${getDayCellClass(d)} transition-colors hover:bg-gray-100/50`}>
                             {isActive && (
-                              <div className={barClass} title={`${project.title}\n상태: ${project.status}\n진행률: ${progress}%`}>
+                              <div className={barClass} title={t('schedules.timeline.tooltip', { title: project.title, status: project.status, progress: progress.toString() })}>
                                 {targetDate === start && (
                                   <div className="absolute left-2 text-[10px] font-bold text-white whitespace-nowrap drop-shadow-md">
                                     {progress}% 
@@ -371,8 +376,8 @@ export default function SchedulesPage() {
                   <div className="space-y-4 flex-1">
                     <div>
                       <h4 className="text-xs font-bold text-[var(--color-text-sub)] mb-2 flex justify-between">
-                        <span>진행 중인 업무</span>
-                        <span className="bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full">{userTasks.length}건</span>
+                        <span>{t('schedules.myInfo.inProgress')}</span>
+                        <span className="bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full">{t('schedules.myInfo.taskUnit', { count: userTasks.length.toString() })}</span>
                       </h4>
                       {userTasks.length > 0 ? (
                         <ul className="space-y-2">
@@ -387,17 +392,17 @@ export default function SchedulesPage() {
                           ))}
                           {userTasks.length > 3 && (
                             <li className="text-xs text-center text-[var(--color-text-sub)] font-medium pt-1">
-                              +{userTasks.length - 3}개의 다른 업무
+                              {t('schedules.myInfo.moreTasks', { count: (userTasks.length - 3).toString() })}
                             </li>
                           )}
                         </ul>
                       ) : (
-                        <div className="text-xs text-[var(--color-text-sub)] bg-[var(--color-surface)] p-2 rounded text-center border border-dashed border-[var(--color-border)]">배정된 업무 없음</div>
+                        <div className="text-xs text-[var(--color-text-sub)] bg-[var(--color-surface)] p-2 rounded text-center border border-dashed border-[var(--color-border)]">{t('schedules.myInfo.noTasks')}</div>
                       )}
                     </div>
                     
                     <div>
-                      <h4 className="text-xs font-bold text-[var(--color-text-sub)] mb-2">예정된 개인 스케줄</h4>
+                      <h4 className="text-xs font-bold text-[var(--color-text-sub)] mb-2">{t('schedules.myInfo.upcomingSched')}</h4>
                       {userSchedules.length > 0 ? (
                         <ul className="space-y-2">
                           {userSchedules.slice(0, 3).map(s => (
@@ -409,12 +414,12 @@ export default function SchedulesPage() {
                           ))}
                           {userSchedules.length > 3 && (
                             <li className="text-xs text-center text-[var(--color-text-sub)] font-medium pt-1">
-                              +{userSchedules.length - 3}개의 스케줄
+                              {t('schedules.myInfo.moreSched', { count: (userSchedules.length - 3).toString() })}
                             </li>
                           )}
                         </ul>
                       ) : (
-                        <div className="text-xs text-[var(--color-text-sub)] bg-[var(--color-surface)] p-2 rounded text-center border border-dashed border-[var(--color-border)]">스케줄 없음</div>
+                        <div className="text-xs text-[var(--color-text-sub)] bg-[var(--color-surface)] p-2 rounded text-center border border-dashed border-[var(--color-border)]">{t('schedules.myInfo.noSched')}</div>
                       )}
                     </div>
                   </div>
