@@ -108,6 +108,30 @@
       "organizationRank": "MANAGER",
       "id": "user-1783597582250",
       "deputyApproverId": "user-1783597561693"
+    },
+    {
+      "id": "user-pm-structure-vn",
+      "name": "[TEST] Structure PM",
+      "displayName": "[TEST] Structure PM",
+      "companyId": "VIET_QS",
+      "departmentId": "dept-structure-vn",
+      "role": "PM",
+      "systemRole": "PM",
+      "employmentStatus": "ACTIVE",
+      "isActive": true,
+      "organizationRank": "TEAM_LEADER"
+    },
+    {
+      "id": "user-ly-thanh-phong",
+      "name": "Ly Thanh Phong",
+      "displayName": "[TEST] Ly Thanh Phong",
+      "companyId": "VIET_QS",
+      "departmentId": "dept-structure-vn",
+      "role": "WORKER",
+      "systemRole": "WORKER",
+      "employmentStatus": "ACTIVE",
+      "isActive": true,
+      "organizationRank": "STAFF"
     }
   ]
 }
