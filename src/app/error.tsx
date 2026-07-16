@@ -2,6 +2,8 @@
 
 import { useEffect } from 'react';
 import { AlertCircle, RefreshCw } from 'lucide-react';
+import { useTranslationStore } from '@/store/translationStore';
+import { useTranslation } from '@/lib/localization';
 
 export default function Error({
   error,
@@ -10,6 +12,9 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const { settings } = useTranslationStore();
+  const t = useTranslation(settings?.uiLanguage || 'ko');
+
   useEffect(() => {
     console.error('Unhandled runtime error:', error);
   }, [error]);
@@ -19,23 +24,25 @@ export default function Error({
       <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-6">
         <AlertCircle className="w-8 h-8 text-red-600" />
       </div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">시스템 오류가 발생했습니다</h2>
+      <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('error.title')}</h2>
       <p className="text-gray-500 max-w-md mb-8">
-        요청하신 작업을 처리하는 중 예상치 못한 문제가 발생했습니다. 문제가 지속되면 관리자에게 문의해주세요.
+        {t('error.desc')}
       </p>
       
       <div className="flex gap-4">
         <button
+          type="button"
           onClick={() => window.location.href = '/'}
-          className="px-6 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors"
+          className="px-6 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-primary)]"
         >
-          홈으로 이동
+          {t('error.btnHome')}
         </button>
         <button
+          type="button"
           onClick={() => reset()}
-          className="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2"
+          className="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-primary)]"
         >
-          <RefreshCw className="w-4 h-4" /> 다시 시도
+          <RefreshCw className="w-4 h-4" /> {t('error.btnRetry')}
         </button>
       </div>
       

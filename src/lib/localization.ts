@@ -908,6 +908,15 @@ export const UI_MESSAGES = {
     'conflicts.colStatus': '해결 상태',
     'conflicts.emptyHistory': '해결된 내역이 없습니다.',
 
+    'error.title': '시스템 오류가 발생했습니다',
+    'error.desc': '요청하신 작업을 처리하는 중 예상치 못한 문제가 발생했습니다. 문제가 지속되면 관리자에게 문의해주세요.',
+    'error.btnHome': '홈으로 이동',
+    'error.btnRetry': '다시 시도',
+    'notFound.title': '페이지를 찾을 수 없습니다',
+    'notFound.desc1': '요청하신 페이지가 삭제되었거나, 잘못된 경로입니다.',
+    'notFound.desc2': '아래 버튼을 눌러 메인 화면으로 돌아가주세요.',
+    'notFound.btnHome': '메인으로 돌아가기',
+
     'projects.noAuthAlert': '진행 중으로 전환할 권한이 없습니다. (담당 PM, 부서장, 최고 관리자만 가능)',
     'projects.pmRequiredAlert': 'PM이 먼저 배정되어야 업무를 하달할 수 있습니다.',
     'projects.noEditAuthAlert': '프로젝트 상태를 변경할 권한이 없습니다.',
@@ -1985,6 +1994,15 @@ export const UI_MESSAGES = {
     'conflicts.colTargetPeriod': 'Đối tượng / Thời gian',
     'conflicts.colStatus': 'Trạng thái giải quyết',
     'conflicts.emptyHistory': 'Không có lịch sử giải quyết.',
+
+    'error.title': 'Đã xảy ra lỗi hệ thống',
+    'error.desc': 'Đã xảy ra sự cố không mong muốn trong khi xử lý yêu cầu của bạn. Nếu sự cố vẫn tiếp diễn, vui lòng liên hệ quản trị viên.',
+    'error.btnHome': 'Về trang chủ',
+    'error.btnRetry': 'Thử lại',
+    'notFound.title': 'Không tìm thấy trang',
+    'notFound.desc1': 'Trang bạn yêu cầu đã bị xóa hoặc đường dẫn không hợp lệ.',
+    'notFound.desc2': 'Vui lòng nhấn nút bên dưới để quay lại màn hình chính.',
+    'notFound.btnHome': 'Quay lại trang chính',
 
     'projects.noAuthAlert': 'Không có quyền chuyển sang đang tiến hành.',
     'projects.pmRequiredAlert': 'Phải chỉ định PM trước khi giao việc.',
