@@ -166,6 +166,73 @@ export interface EstimateRequest {
   histories: EstimateRequestHistory[];
 }
 
+export type EstimateTemplateType = '개산견적' | '공내역서' | '설계예가' | '공사비검증';
+export type EstimateSheetStatus = 'DRAFT' | 'SENT';
+
+export interface EstimateSheetCellState {
+  value?: string | number | null;
+  formula?: string;
+  userFormula?: boolean;
+}
+
+export interface EstimateSheetState {
+  type: EstimateTemplateType;
+  cells: Record<string, EstimateSheetCellState>;
+  maxRow: number;
+  maxCol: number;
+  rowHeights: number[];
+  colWidths: number[];
+  merges: [number, number, number, number][];
+}
+
+export interface EstimateTemplateRecord {
+  id: string;
+  type: EstimateTemplateType;
+  sheetName: string;
+  version: number;
+  sourceHash: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EstimateSheetVersion {
+  id: string;
+  estimateSheetId: string;
+  version: number;
+  templateVersion: number;
+  templateHash: string;
+  state: EstimateSheetState;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface EstimateSheetExport {
+  id: string;
+  estimateSheetId: string;
+  version: number;
+  format: 'XLSX' | 'PDF';
+  fileName: string;
+  actorId: string;
+  createdAt: string;
+}
+
+export interface EstimateSheet {
+  id: string;
+  estimateRequestId: string;
+  templateId: string;
+  templateType: EstimateTemplateType;
+  status: EstimateSheetStatus;
+  currentVersion: number;
+  createdBy: string;
+  updatedBy: string;
+  createdAt: string;
+  updatedAt: string;
+  template: EstimateTemplateRecord;
+  versions: EstimateSheetVersion[];
+  exports: EstimateSheetExport[];
+}
+
 export type DeliveryLifecycle =
   | "UNSCHEDULED"
   | "UPCOMING"

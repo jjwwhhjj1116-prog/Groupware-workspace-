@@ -134,10 +134,75 @@ model EstimateRequest {
   activities  EstimateRequestActivity[]
   attachments EstimateRequestAttachment[]
   histories   EstimateRequestHistory[]
+  estimateSheet EstimateSheet?
 
   @@index([departmentId, status])
   @@index([ownerId])
   @@index([createdAt])
+}
+
+model EstimateTemplate {
+  id          String   @id @default(uuid())
+  type        String   @unique
+  sheetName   String
+  version     Int      @default(1)
+  sourceHash  String
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sheets      EstimateSheet[]
+}
+
+model EstimateSheet {
+  id                String   @id @default(uuid())
+  estimateRequestId String   @unique
+  templateId        String
+  templateType      String
+  status            String   @default("DRAFT")
+  currentVersion    Int      @default(1)
+  idempotencyKey    String?  @unique
+  createdBy         String
+  updatedBy         String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  estimateRequest EstimateRequest @relation(fields: [estimateRequestId], references: [id], onDelete: Cascade)
+  template        EstimateTemplate @relation(fields: [templateId], references: [id])
+  versions        EstimateSheetVersion[]
+  exports         EstimateSheetExport[]
+
+  @@index([templateType, status])
+}
+
+model EstimateSheetVersion {
+  id              String   @id @default(uuid())
+  estimateSheetId String
+  version         Int
+  templateVersion Int
+  templateHash    String
+  stateJson       String   @db.Text
+  createdBy       String
+  createdAt       DateTime @default(now())
+
+  estimateSheet EstimateSheet @relation(fields: [estimateSheetId], references: [id], onDelete: Cascade)
+
+  @@unique([estimateSheetId, version])
+  @@index([estimateSheetId, createdAt])
+}
+
+model EstimateSheetExport {
+  id              String   @id @default(uuid())
+  estimateSheetId String
+  version         Int
+  format          String
+  fileName        String
+  actorId         String
+  createdAt       DateTime @default(now())
+
+  estimateSheet EstimateSheet @relation(fields: [estimateSheetId], references: [id], onDelete: Cascade)
+
+  @@index([estimateSheetId, createdAt])
 }
 
 model EstimateRequestActivity {
