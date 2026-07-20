@@ -7,6 +7,7 @@ import { useTranslationStore } from '@/store/translationStore';
 import { useTranslation } from '@/lib/localization';
 import { useUiStore } from '@/store/uiStore';
 import { LayoutDashboard, Briefcase, Calendar, CheckSquare, Bell, Settings, ClipboardList, ChevronLeft, AlertTriangle, Menu, ShieldCheck, Database, FileUp, KanbanSquare, Inbox, ListTodo, CalendarDays, BarChart3, Users, Languages } from 'lucide-react';
+import { BrandLogo } from '@/components/ui/BrandLogo';
 
 export const Sidebar = () => {
   const pathname = usePathname();
@@ -56,10 +57,10 @@ export const Sidebar = () => {
       onFocus={() => setIsHovered(true)}
       onBlur={() => setIsHovered(false)}
     >
-      <div className={`px-4 h-14 flex items-center border-b border-[var(--color-border)] bg-slate-50 ${!isExpanded ? 'justify-center' : ''}`}>
-        <h1 className={`font-bold text-[var(--color-primary)] transition-all whitespace-nowrap overflow-hidden ${isExpanded ? 'text-lg tracking-tight' : 'text-sm'}`}>
-          {isExpanded ? 'CON-COST&Viet_QS OS' : 'C&V'}
-        </h1>
+      <div className={`px-2 h-14 flex items-center justify-center border-b border-[var(--color-border)] bg-slate-50`}>
+        <div className={`transition-all duration-300 flex items-center justify-center ${isExpanded ? 'w-[140px]' : 'w-[44px]'}`}>
+          <BrandLogo />
+        </div>
       </div>
 
       
