@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Project, PersonnelCard, ProjectSourceType } from '@/types/models';
+import { Project, ProjectSourceType } from '@/types/models';
 import { useAuthStore } from '@/store/authStore';
 import { getUserDisplayName, useTranslation } from '@/lib/localization';
 import { useProjectStore } from '@/store/projectStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import { useTranslationStore } from '@/store/translationStore';
-import { mockUsers } from '@/data/mockData';
+import { EstimateRequestWorkbench } from '@/components/intake/EstimateRequestWorkbench';
 
 export default function IntakePage() {
   const { currentUser, users } = useAuthStore();
@@ -29,7 +29,7 @@ export default function IntakePage() {
 
   // Authorization Check
   if (!currentUser) return <div className="py-10 text-center text-[var(--color-text-sub)]">{t('header.loginRequired')}</div>;
-  if (currentUser.role !== 'SUPER_ADMIN' && currentUser.role !== 'DEPARTMENT_MANAGER') {
+  if (!['SUPER_ADMIN', 'SYSTEM_ADMIN', 'DEPARTMENT_MANAGER', 'PM'].includes(currentUser.role)) {
     return <div className="py-10 text-center text-[var(--color-danger)] font-bold">{t('intake.noPermission')}</div>;
   }
 
@@ -117,6 +117,10 @@ export default function IntakePage() {
         </button>
       </div>
 
+      {isClient ? (
+        <EstimateRequestWorkbench currentUser={currentUser} users={users} t={t} />
+      ) : (
+      <>
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-[var(--color-text-main)]">
           {isClient ? t('orderProjectManagement') : t('devTaskListManagement')}
@@ -269,6 +273,8 @@ export default function IntakePage() {
           </tbody>
         </table>
       </div>
+      </>
+      )}
     </div>
   );
 }

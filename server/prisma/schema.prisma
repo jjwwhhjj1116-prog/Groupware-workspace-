@@ -71,6 +71,7 @@ model PersonnelCard {
   pmProjects         Project[]    @relation("PMProjects")
   tasks              Task[]       @relation("AssigneeTasks")
   assignments        ProcessTemplateAssignment[] @relation("PMAssignments")
+  estimateRequests   EstimateRequest[] @relation("EstimateRequestOwner")
 }
 
 model Project {
@@ -87,6 +88,104 @@ model Project {
   manager     PersonnelCard @relation("ManagerProjects", fields: [managerId], references: [id])
   pm          PersonnelCard @relation("PMProjects", fields: [pmId], references: [id])
   tasks       Task[]
+  estimateRequest EstimateRequest?
+}
+
+model EstimateRequest {
+  id                String   @id @default(uuid())
+  requestNo         String   @unique
+  idempotencyKey    String?  @unique
+  status            String   @default("REQUEST_MEMO")
+  projectName       String
+  company           String?
+  client            String?
+  contact           String?
+  contactDepartment String?
+  phone             String?
+  email             String?
+  ownerId           String?
+  departmentId      String
+  requestDate       DateTime @default(now())
+  memo              String?  @db.Text
+  rawMemo           String?  @db.Text
+  firstDelivery     String?
+  secondDelivery    String?
+  thirdDelivery     String?
+  finalDelivery     String?
+  expectedStartDate String?
+  areaPy            String?
+  floors            String?
+  scope             String?
+  usage             String?
+  buildingCount     String?
+  unitWork          String?
+  bidDate           String?
+  estimateType      String?
+  estimateId        String?
+  projectId         String?  @unique
+  version           Int      @default(1)
+  createdBy         String
+  updatedBy         String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  owner       PersonnelCard? @relation("EstimateRequestOwner", fields: [ownerId], references: [id])
+  project     Project? @relation(fields: [projectId], references: [id])
+  activities  EstimateRequestActivity[]
+  attachments EstimateRequestAttachment[]
+  histories   EstimateRequestHistory[]
+
+  @@index([departmentId, status])
+  @@index([ownerId])
+  @@index([createdAt])
+}
+
+model EstimateRequestActivity {
+  id                String   @id @default(uuid())
+  estimateRequestId String
+  kind              String
+  content           String   @db.Text
+  occurredAt        DateTime @default(now())
+  createdBy         String
+  createdAt         DateTime @default(now())
+
+  estimateRequest EstimateRequest @relation(fields: [estimateRequestId], references: [id], onDelete: Cascade)
+
+  @@index([estimateRequestId, occurredAt])
+}
+
+model EstimateRequestAttachment {
+  id                String   @id @default(uuid())
+  estimateRequestId String
+  category          String
+  label             String
+  originalName      String
+  size              Int
+  mimeType          String?
+  memo              String?  @db.Text
+  storageKey        String?
+  status            String   @default("REGISTERED")
+  createdBy         String
+  createdAt         DateTime @default(now())
+
+  estimateRequest EstimateRequest @relation(fields: [estimateRequestId], references: [id], onDelete: Cascade)
+
+  @@index([estimateRequestId, category])
+}
+
+model EstimateRequestHistory {
+  id                String   @id @default(uuid())
+  estimateRequestId String
+  action            String
+  fromStatus        String?
+  toStatus          String?
+  changes           String?  @db.Text
+  actorId           String
+  createdAt         DateTime @default(now())
+
+  estimateRequest EstimateRequest @relation(fields: [estimateRequestId], references: [id], onDelete: Cascade)
+
+  @@index([estimateRequestId, createdAt])
 }
 
 model Task {

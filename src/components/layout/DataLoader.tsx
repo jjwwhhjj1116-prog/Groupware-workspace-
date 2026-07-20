@@ -38,7 +38,8 @@ export function DataLoader() {
   const replaceNotifications = useNotificationStore(state => state.replaceNotifications);
   const resetNotifications = useNotificationStore(state => state.resetNotifications);
 
-  const processTemplateStore = useProcessTemplateStore();
+  const processTemplates = useProcessTemplateStore(state => state.templates);
+  const loadInitialProcessData = useProcessTemplateStore(state => state.loadInitialData);
 
   // We only run the loader when dataSourceMode changes.
   // To avoid infinite loops or overwriting user interactions constantly, we load once per mode change.
@@ -47,11 +48,23 @@ export function DataLoader() {
   useEffect(() => {
     if (prevMode.current === dataSourceMode) return;
     prevMode.current = dataSourceMode;
+    const withPersistedEstimateProjects = (baseProjects: typeof fullProjects) => {
+      const persisted = useProjectStore.getState().projects.filter(
+        project => project.source === 'ESTIMATE_REQUEST'
+      );
+      return [
+        ...baseProjects,
+        ...persisted.filter(
+          localProject => !baseProjects.some(project => project.id === localProject.id)
+        ),
+      ];
+    };
 
     switch (dataSourceMode) {
       case 'JSON_OPERATION_DATA':
         if (operationData && operationData.data) {
-          replaceProjects(operationData.data.projects || []);
+          const operationProjects = operationData.data.projects || [];
+          replaceProjects(withPersistedEstimateProjects(operationProjects));
           replaceTasks(operationData.data.tasks || []);
           replaceUsers(operationData.data.personnel || []);
           replaceSchedules(operationData.data.personalSchedules || []);
@@ -72,13 +85,13 @@ export function DataLoader() {
 
       case 'DEMO_SEED_DATA':
         // Load mock/full seed data for testing
-        replaceProjects(fullProjects);
+        replaceProjects(withPersistedEstimateProjects(fullProjects));
         replaceTasks(fullTasks);
         replaceUsers(mockUsers);
         replaceSchedules(fullSchedules);
         
-        if (processTemplateStore.templates.length === 0) {
-          processTemplateStore.loadInitialData(defaultProcessTemplates, defaultProcessStages, defaultProcessTasks);
+        if (processTemplates.length === 0) {
+          loadInitialProcessData(defaultProcessTemplates, defaultProcessStages, defaultProcessTasks);
         }
         // Do not reset settings to empty, let's keep current or load defaults, for now just skip settings/approvals
         break;
@@ -97,7 +110,7 @@ export function DataLoader() {
         // The store is manipulated via ImportPreview Apply button. We don't overwrite it here.
         break;
     }
-  }, [dataSourceMode, replaceProjects, resetProjects, replaceTasks, resetTasks, replaceUsers, resetUsers, replaceSchedules, resetSchedules, replaceSettings, resetSettings, replaceRequests, resetRequests, replaceNotifications, resetNotifications]);
+  }, [dataSourceMode, replaceProjects, resetProjects, replaceTasks, resetTasks, replaceUsers, resetUsers, replaceSchedules, resetSchedules, replaceSettings, resetSettings, replaceRequests, resetRequests, replaceNotifications, resetNotifications, processTemplates.length, loadInitialProcessData]);
 
   return null;
 }

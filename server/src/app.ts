@@ -31,6 +31,7 @@ import processRoutes from './routes/process';
 import auditRoutes from './routes/audit';
 import notificationRoutes from './routes/notifications';
 import importRoutes from './routes/import';
+import estimateRequestRoutes from './routes/estimateRequests';
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -40,6 +41,7 @@ app.use('/api/process', processRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/import', importRoutes);
+app.use('/api/estimate-requests', estimateRequestRoutes);
 app.get('/api/ping', (req, res) => {
   res.json({ message: 'pong' });
 });

@@ -78,6 +78,94 @@ export type ProjectSourceType = 'CLIENT_ORDER' | 'INTERNAL_DEVELOPMENT';
 
 export type DataSourceMode = 'JSON_OPERATION_DATA' | 'EXCEL_IMPORT_DATA' | 'DEMO_SEED_DATA' | 'EMPTY';
 
+export type EstimateRequestStatus =
+  | 'REQUEST_MEMO'
+  | 'ESTIMATE_DRAFTING'
+  | 'WAITING'
+  | 'WON'
+  | 'LOST'
+  | 'CANCELLED'
+  | 'OTHER';
+
+export type EstimateRequestActivityKind = 'CONSULTATION' | 'CALL' | 'EMAIL' | 'NOTE';
+
+export interface EstimateRequestActivity {
+  id: string;
+  estimateRequestId: string;
+  kind: EstimateRequestActivityKind;
+  content: string;
+  occurredAt: string;
+  createdBy: UserId;
+  createdAt: string;
+}
+
+export interface EstimateRequestAttachment {
+  id: string;
+  estimateRequestId: string;
+  category: string;
+  label: string;
+  originalName: string;
+  size: number;
+  mimeType?: string | null;
+  memo?: string | null;
+  storageKey?: string | null;
+  status: 'REGISTERED';
+  createdBy: UserId;
+  createdAt: string;
+}
+
+export interface EstimateRequestHistory {
+  id: string;
+  estimateRequestId: string;
+  action: string;
+  fromStatus?: EstimateRequestStatus | null;
+  toStatus?: EstimateRequestStatus | null;
+  changes?: string | null;
+  actorId: UserId;
+  createdAt: string;
+}
+
+export interface EstimateRequest {
+  id: string;
+  requestNo: string;
+  status: EstimateRequestStatus;
+  projectName: string;
+  company?: string | null;
+  client?: string | null;
+  contact?: string | null;
+  contactDepartment?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  ownerId?: UserId | null;
+  departmentId: DepartmentId;
+  requestDate: string;
+  memo?: string | null;
+  rawMemo?: string | null;
+  firstDelivery?: string | null;
+  secondDelivery?: string | null;
+  thirdDelivery?: string | null;
+  finalDelivery?: string | null;
+  expectedStartDate?: string | null;
+  areaPy?: string | null;
+  floors?: string | null;
+  scope?: string | null;
+  usage?: string | null;
+  buildingCount?: string | null;
+  unitWork?: string | null;
+  bidDate?: string | null;
+  estimateType?: string | null;
+  estimateId?: string | null;
+  projectId?: string | null;
+  version: number;
+  createdBy: UserId;
+  updatedBy: UserId;
+  createdAt: string;
+  updatedAt: string;
+  activities: EstimateRequestActivity[];
+  attachments: EstimateRequestAttachment[];
+  histories: EstimateRequestHistory[];
+}
+
 export type DeliveryLifecycle =
   | "UNSCHEDULED"
   | "UPCOMING"
