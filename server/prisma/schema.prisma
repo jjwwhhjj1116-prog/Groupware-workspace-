@@ -171,8 +171,32 @@ model EstimateSheet {
   template        EstimateTemplate @relation(fields: [templateId], references: [id])
   versions        EstimateSheetVersion[]
   exports         EstimateSheetExport[]
+  submissions     EstimateSubmission[]
 
   @@index([templateType, status])
+}
+
+model EstimateSubmission {
+  id              String    @id @default(uuid())
+  estimateSheetId String
+  version         Int
+  status          String    @default("SUBMITTED")
+  submittedAt     DateTime  @default(now())
+  submittedBy     String
+  sentAt          DateTime?
+  sentBy          String?
+  recipient       String?
+  deliveryChannel String?
+  documentHash    String
+  summaryJson     String    @db.Text
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  estimateSheet EstimateSheet @relation(fields: [estimateSheetId], references: [id], onDelete: Cascade)
+
+  @@unique([estimateSheetId, version])
+  @@index([status, submittedAt])
+  @@index([sentAt])
 }
 
 model EstimateSheetVersion {

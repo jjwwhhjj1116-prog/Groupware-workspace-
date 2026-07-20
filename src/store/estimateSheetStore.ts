@@ -6,6 +6,7 @@ import { useEstimateRequestStore } from '@/store/estimateRequestStore';
 import {
   EstimateSheet,
   EstimateSheetState,
+  EstimateSubmission,
   EstimateSheetVersion,
   EstimateTemplateType,
 } from '@/types/models';
@@ -20,7 +21,9 @@ interface EstimateSheetStore {
   sync: (requestId: string) => Promise<EstimateSheet | null>;
   createSheet: (requestId: string, type: EstimateTemplateType, state: EstimateSheetState, actorId: string) => Promise<EstimateSheet>;
   saveVersion: (requestId: string, state: EstimateSheetState, actorId: string) => Promise<EstimateSheet>;
-  markSent: (requestId: string, actorId: string) => Promise<EstimateSheet>;
+  submitSheet: (requestId: string, actorId: string, recipient?: string, deliveryChannel?: string) => Promise<EstimateSheet>;
+  sendSubmission: (requestId: string, actorId: string) => Promise<EstimateSheet>;
+  startRevision: (requestId: string, actorId: string) => Promise<EstimateSheet>;
   recordExport: (requestId: string, format: 'XLSX' | 'PDF', fileName: string, actorId: string) => Promise<void>;
 }
 
@@ -28,6 +31,32 @@ const id = (prefix: string) => `${prefix}-${globalThis.crypto?.randomUUID?.() ||
 const timestamp = () => new Date().toISOString();
 const replace = (sheets: Record<string, EstimateSheet>, requestId: string, sheet: EstimateSheet) => ({ ...sheets, [requestId]: sheet });
 const canFallback = (error: unknown) => error instanceof TypeError || (error instanceof EstimateSheetApiError && [401, 404].includes(error.status));
+const assertRequestIsActive = (requestId: string) => {
+  const request = useEstimateRequestStore.getState().requests.find((item) => item.id === requestId);
+  if (request && ['WON', 'LOST', 'CANCELLED'].includes(request.status)) {
+    throw new Error('A terminal estimate request cannot change its estimate submission');
+  }
+};
+
+const sha256 = async (value: string) => {
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+};
+
+const submissionSummary = (requestId: string, sheet: EstimateSheet) => {
+  const request = useEstimateRequestStore.getState().requests.find((item) => item.id === requestId);
+  const version = sheet.versions.find((item) => item.version === sheet.currentVersion) || sheet.versions[0];
+  const value = (key: string) => String(version?.state.cells[key]?.value ?? '');
+  return {
+    requestNo: request?.requestNo || '',
+    projectName: value('6:2') || request?.projectName || '',
+    company: value('5:2') || request?.company || request?.client || '',
+    serviceDescription: value('7:2'),
+    total: value('10:2'),
+    templateType: sheet.templateType,
+    version: sheet.currentVersion,
+  };
+};
 
 export const useEstimateSheetStore = create<EstimateSheetStore>()(persist((set, get) => ({
   sheets: {},
@@ -69,7 +98,7 @@ export const useEstimateSheetStore = create<EstimateSheetStore>()(persist((set, 
       id: sheetId, estimateRequestId: requestId, templateId: `legacy-${type}`, templateType: type,
       status: 'DRAFT', currentVersion: 1, createdBy: actorId, updatedBy: actorId, createdAt: now, updatedAt: now,
       template: { id: `legacy-${type}`, type, sheetName: spec.sheet, version: 1, sourceHash: spec.sourceHash, active: true, createdAt: now, updatedAt: now },
-      versions: [version], exports: [],
+      versions: [version], exports: [], submissions: [],
     };
     set((current) => ({ sheets: replace(current.sheets, requestId, sheet) }));
     await useEstimateRequestStore.getState().updateRequest(requestId, {
@@ -103,18 +132,85 @@ export const useEstimateSheetStore = create<EstimateSheetStore>()(persist((set, 
     return sheet;
   },
 
-  markSent: async (requestId, actorId) => {
+  submitSheet: async (requestId, actorId, recipient, deliveryChannel) => {
+    assertRequestIsActive(requestId);
     const current = get().sheets[requestId];
     if (!current) throw new Error('Estimate sheet not found');
+    if (current.status !== 'DRAFT') throw new Error('Only a draft estimate sheet can be submitted');
     if (get().persistenceMode === 'SERVER') {
-      const sheet = await estimateSheetApi.markSent(requestId, current.currentVersion);
+      const sheet = await estimateSheetApi.submit(requestId, current.currentVersion, recipient, deliveryChannel);
+      set((value) => ({ sheets: replace(value.sheets, requestId, sheet) }));
+      return sheet;
+    }
+    const now = timestamp();
+    const summary = submissionSummary(requestId, current);
+    const version = current.versions.find((item) => item.version === current.currentVersion);
+    if (!version) throw new Error('Current estimate sheet version is missing');
+    const submission: EstimateSubmission = {
+      id: id('estimate-submission'), estimateSheetId: current.id, version: current.currentVersion,
+      status: 'SUBMITTED', submittedAt: now, submittedBy: actorId, recipient: recipient || summary.company || null,
+      deliveryChannel: deliveryChannel || null, documentHash: await sha256(JSON.stringify(version.state)),
+      summary, createdAt: now, updatedAt: now,
+    };
+    const sheet = { ...current, status: 'SUBMITTED' as const, updatedBy: actorId, updatedAt: now, submissions: [submission, ...(current.submissions || [])] };
+    set((value) => ({ sheets: replace(value.sheets, requestId, sheet) }));
+    return sheet;
+  },
+
+  sendSubmission: async (requestId, actorId) => {
+    assertRequestIsActive(requestId);
+    const current = get().sheets[requestId];
+    if (!current) throw new Error('Estimate sheet not found');
+    if (current.status !== 'SUBMITTED') throw new Error('Submit the current version before sending it');
+    const submission = (current.submissions || []).find((item) => item.version === current.currentVersion);
+    if (!submission) throw new Error('Current estimate submission not found');
+    if (get().persistenceMode === 'SERVER') {
+      const sheet = await estimateSheetApi.sendSubmission(requestId, submission.id, current.currentVersion);
       set((value) => ({ sheets: replace(value.sheets, requestId, sheet) }));
       await useEstimateRequestStore.getState().sync();
       return sheet;
     }
-    const sheet = { ...current, status: 'SENT' as const, updatedBy: actorId, updatedAt: timestamp() };
+    const now = timestamp();
+    const sheet = {
+      ...current,
+      status: 'SENT' as const,
+      updatedBy: actorId,
+      updatedAt: now,
+      submissions: (current.submissions || []).map((item) => item.id === submission.id
+        ? { ...item, status: 'SENT' as const, sentAt: now, sentBy: actorId, updatedAt: now }
+        : item),
+    };
     set((value) => ({ sheets: replace(value.sheets, requestId, sheet) }));
     await useEstimateRequestStore.getState().changeStatus(requestId, 'WAITING', actorId);
+    return sheet;
+  },
+
+  startRevision: async (requestId, actorId) => {
+    assertRequestIsActive(requestId);
+    const current = get().sheets[requestId];
+    if (!current) throw new Error('Estimate sheet not found');
+    if (current.status !== 'SENT') throw new Error('A new version can only start from a sent estimate sheet');
+    if (get().persistenceMode === 'SERVER') {
+      const sheet = await estimateSheetApi.createRevision(requestId, current.currentVersion);
+      set((value) => ({ sheets: replace(value.sheets, requestId, sheet) }));
+      await useEstimateRequestStore.getState().sync();
+      return sheet;
+    }
+    const now = timestamp();
+    const source = current.versions.find((item) => item.version === current.currentVersion);
+    if (!source) throw new Error('Current estimate sheet version is missing');
+    const nextVersion = current.currentVersion + 1;
+    const next: EstimateSheetVersion = {
+      ...source,
+      id: id('estimate-version'),
+      version: nextVersion,
+      state: JSON.parse(JSON.stringify(source.state)),
+      createdBy: actorId,
+      createdAt: now,
+    };
+    const sheet = { ...current, status: 'DRAFT' as const, currentVersion: nextVersion, updatedBy: actorId, updatedAt: now, versions: [next, ...current.versions] };
+    set((value) => ({ sheets: replace(value.sheets, requestId, sheet) }));
+    await useEstimateRequestStore.getState().changeStatus(requestId, 'ESTIMATE_DRAFTING', actorId);
     return sheet;
   },
 

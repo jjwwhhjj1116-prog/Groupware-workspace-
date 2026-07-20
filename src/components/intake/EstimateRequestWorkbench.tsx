@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import {
   FileSpreadsheet,
+  FileCheck2,
   FileText,
   History,
   Mail,
@@ -82,7 +83,7 @@ export function EstimateRequestWorkbench({ currentUser, users, t }: Props) {
   } = useEstimateRequestStore();
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<EstimateRequestStatus | 'ALL'>('ALL');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(() => typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('requestId'));
   const [showCreate, setShowCreate] = useState(false);
   const [draft, setDraft] = useState(emptyDraft);
   const [activityKind, setActivityKind] = useState<EstimateRequestActivityKind>('CONSULTATION');
@@ -91,7 +92,6 @@ export function EstimateRequestWorkbench({ currentUser, users, t }: Props) {
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => { void sync(); }, [sync]);
-
   const eligibleOwners = users.filter((user) => {
     if (user.isActive === false || !['PM', 'DEPARTMENT_MANAGER'].includes(user.role)) return false;
     if (currentUser.role === 'PM') return user.id === currentUser.id;
@@ -190,6 +190,7 @@ export function EstimateRequestWorkbench({ currentUser, users, t }: Props) {
             className="grid size-9 place-items-center rounded border bg-[var(--color-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] disabled:opacity-50">
             <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
+          <Link href="/projects/intake/estimates" className="inline-flex items-center gap-2 border px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"><FileCheck2 className="size-4" />{t('estimateSubmission.openManagement')}</Link>
           <button type="button" onClick={() => setShowCreate((value) => !value)}
             className="inline-flex items-center gap-2 rounded bg-[var(--color-primary)] px-3 py-2 text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2">
             <Plus className="size-4" /> {t('estimateRequest.new')}

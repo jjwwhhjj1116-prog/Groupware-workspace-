@@ -16,21 +16,29 @@ import {
 } from '../middlewares/estimateRequestGuards';
 import {
   createEstimateSheet,
+  createEstimateSheetRevision,
   getEstimateSheet,
+  listEstimateSubmissions,
   markEstimateSheetSent,
   recordEstimateSheetExport,
+  sendEstimateSubmission,
   saveEstimateSheetVersion,
+  submitEstimateSheet,
 } from '../controllers/estimateSheetController';
 
 const router = Router();
 
 router.use(requireAuth);
+router.get('/submissions', listEstimateSubmissions);
 router.get('/', listEstimateRequests);
 router.post('/', createEstimateRequest);
 router.get('/:id', requireEstimateRequestView, getEstimateRequest);
 router.get('/:id/estimate-sheet', requireEstimateRequestView, getEstimateSheet);
 router.post('/:id/estimate-sheet', requireEstimateRequestManage, createEstimateSheet);
 router.post('/:id/estimate-sheet/versions', requireEstimateRequestManage, saveEstimateSheetVersion);
+router.post('/:id/estimate-sheet/revision', requireEstimateRequestManage, createEstimateSheetRevision);
+router.post('/:id/estimate-sheet/submissions', requireEstimateRequestManage, submitEstimateSheet);
+router.post('/:id/estimate-sheet/submissions/:submissionId/send', requireEstimateRequestManage, sendEstimateSubmission);
 router.post('/:id/estimate-sheet/sent', requireEstimateRequestManage, markEstimateSheetSent);
 router.post('/:id/estimate-sheet/exports', requireEstimateRequestManage, recordEstimateSheetExport);
 router.patch('/:id', requireEstimateRequestManage, updateEstimateRequest);

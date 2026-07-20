@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
-  CheckCircle2,
+  ClipboardCheck,
   Columns3,
   Download,
   FileSpreadsheet,
@@ -12,8 +12,10 @@ import {
   LoaderCircle,
   Plus,
   Printer,
+  RotateCcw,
   Rows3,
   Save,
+  Send,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useEstimateRequestStore } from '@/store/estimateRequestStore';
@@ -76,7 +78,7 @@ export function EstimateSheetWorkbench({ requestId }: { requestId: string }) {
   const { requests, sync: syncRequests } = useEstimateRequestStore();
   const { settings } = useTranslationStore();
   const t = useTranslation(settings.uiLanguage);
-  const { sheets, persistenceMode, loading, error, sync, createSheet, saveVersion, markSent, recordExport } = useEstimateSheetStore();
+  const { sheets, persistenceMode, loading, error, sync, createSheet, saveVersion, submitSheet, sendSubmission, startRevision, recordExport } = useEstimateSheetStore();
   const sheet = sheets[requestId];
   const request = requests.find((item) => item.id === requestId);
   const [templateType, setTemplateType] = useState<EstimateTemplateType>('개산견적');
@@ -85,6 +87,8 @@ export function EstimateSheetWorkbench({ requestId }: { requestId: string }) {
   const [activeCell, setActiveCell] = useState({ row: 1, column: 1 });
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+  const [recipient, setRecipient] = useState<string | null>(null);
+  const [deliveryChannel, setDeliveryChannel] = useState('EMAIL');
   const hydrated = useRef(false);
 
   useEffect(() => {
@@ -92,7 +96,10 @@ export function EstimateSheetWorkbench({ requestId }: { requestId: string }) {
     hydrated.current = true;
     void syncRequests().catch(() => undefined);
     void sync(requestId).then((loaded) => {
-      const selected = loaded?.versions.find((entry) => entry.version === loaded.currentVersion) || loaded?.versions[0];
+      const requestedVersion = Number(new URLSearchParams(window.location.search).get('version'));
+      const selected = loaded?.versions.find((entry) => entry.version === requestedVersion)
+        || loaded?.versions.find((entry) => entry.version === loaded.currentVersion)
+        || loaded?.versions[0];
       if (loaded && selected) {
         setVersion(selected.version);
         setTemplateType(loaded.templateType);
@@ -112,7 +119,7 @@ export function EstimateSheetWorkbench({ requestId }: { requestId: string }) {
     || (currentUser?.role === 'DEPARTMENT_MANAGER' && request.departmentId === currentUser.departmentId)
     || (currentUser?.role === 'PM' && request.ownerId === currentUser.id)
   ));
-  const readOnly = Boolean(sheet && (!canManage || sheet.status === 'SENT' || version !== sheet.currentVersion));
+  const readOnly = Boolean(sheet && (!canManage || sheet.status !== 'DRAFT' || version !== sheet.currentVersion));
   const active = state.cells[estimateCellKey(activeCell.row, activeCell.column)] || {};
   const formulaValue = active.formula ? `=${active.formula}` : String(active.value ?? '');
   const spec = ESTIMATE_TEMPLATE_SPECS[state.type];
@@ -167,10 +174,25 @@ export function EstimateSheetWorkbench({ requestId }: { requestId: string }) {
     await recordExport(requestId, 'PDF', fileName, currentUser.id);
   }, t('estimateSheet.printOpened'));
 
+  const submit = () => run(async () => {
+    if (!currentUser) return;
+    await submitSheet(requestId, currentUser.id, recipient ?? request?.company ?? request?.client ?? '', deliveryChannel);
+  }, t('estimateSheet.submitted'));
+
   const send = () => run(async () => {
     if (!currentUser) return;
-    await markSent(requestId, currentUser.id);
+    await sendSubmission(requestId, currentUser.id);
   }, t('estimateSheet.sent'));
+
+  const revise = () => run(async () => {
+    if (!currentUser) return;
+    const updated = await startRevision(requestId, currentUser.id);
+    const latest = updated.versions.find((entry) => entry.version === updated.currentVersion);
+    if (latest) {
+      setVersion(latest.version);
+      setState(clone(latest.state));
+    }
+  }, t('estimateSheet.revisionStarted'));
 
   if (!requestId) return <p className="p-8 text-center text-[var(--color-danger)]">{t('estimateSheet.missingRequest')}</p>;
   if (!currentUser) return <p className="p-8 text-center">{t('header.loginRequired')}</p>;
@@ -180,13 +202,16 @@ export function EstimateSheetWorkbench({ requestId }: { requestId: string }) {
     <div className="min-w-0 space-y-4 px-4 py-6 md:px-6">
       <header className="flex flex-wrap items-start justify-between gap-3 border-b pb-4">
         <div className="min-w-0">
-          <Link href="/projects/intake" className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-[var(--color-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"><ArrowLeft className="size-4" />{t('estimateSheet.back')}</Link>
+          <div className="mb-2 flex flex-wrap gap-4">
+            <Link href={`/projects/intake?requestId=${encodeURIComponent(requestId)}`} className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--color-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"><ArrowLeft className="size-4" />{t('estimateSheet.back')}</Link>
+            <Link href="/projects/intake/estimates" className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--color-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"><History className="size-4" />{t('estimateSubmission.openManagement')}</Link>
+          </div>
           <h1 className="truncate text-2xl font-bold">{t('estimateSheet.title')}</h1>
           <p className="mt-1 text-sm text-[var(--color-text-sub)]">{request?.projectName || requestId}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <span className={`text-xs font-semibold ${persistenceMode === 'SERVER' ? 'text-emerald-600' : 'text-amber-600'}`}>{persistenceMode === 'SERVER' ? t('estimateRequest.serverMode') : t('estimateRequest.localMode')}</span>
-          {sheet && <span className="border-l pl-2 text-xs font-semibold">{sheet.status === 'SENT' ? t('estimateSheet.statusSent') : t('estimateSheet.statusDraft')}</span>}
+          {sheet && <span className="border-l pl-2 text-xs font-semibold">{sheet.status === 'SENT' ? t('estimateSheet.statusSent') : sheet.status === 'SUBMITTED' ? t('estimateSheet.statusSubmitted') : t('estimateSheet.statusDraft')}</span>}
         </div>
       </header>
 
@@ -211,16 +236,25 @@ export function EstimateSheetWorkbench({ requestId }: { requestId: string }) {
               <button type="button" onClick={save} disabled={busy || readOnly} className="inline-flex items-center gap-2 border px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] disabled:opacity-40"><Save className="size-4" />{t('common.save')}</button>
               <button type="button" onClick={exportXlsx} disabled={busy} className="inline-flex items-center gap-2 border px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] disabled:opacity-40"><Download className="size-4" />XLSX</button>
               <button type="button" onClick={printPdf} disabled={busy} className="inline-flex items-center gap-2 border px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] disabled:opacity-40"><Printer className="size-4" />PDF</button>
-              <button type="button" onClick={send} disabled={busy || readOnly} className="inline-flex items-center gap-2 bg-[var(--color-primary)] px-3 py-2 text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] disabled:opacity-40"><CheckCircle2 className="size-4" />{t('estimateSheet.markSent')}</button>
+              {sheet.status === 'DRAFT' && <button type="button" onClick={submit} disabled={busy || readOnly} className="inline-flex items-center gap-2 bg-[var(--color-primary)] px-3 py-2 text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] disabled:opacity-40"><ClipboardCheck className="size-4" />{t('estimateSheet.submit')}</button>}
+              {sheet.status === 'SUBMITTED' && <button type="button" onClick={send} disabled={busy || !canManage} className="inline-flex items-center gap-2 bg-[var(--color-primary)] px-3 py-2 text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] disabled:opacity-40"><Send className="size-4" />{t('estimateSheet.markSent')}</button>}
+              {sheet.status === 'SENT' && <button type="button" onClick={revise} disabled={busy || !canManage} className="inline-flex items-center gap-2 border px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] disabled:opacity-40"><RotateCcw className="size-4" />{t('estimateSheet.newRevision')}</button>}
             </div>
           </div>
+
+          {sheet.status === 'DRAFT' && version === sheet.currentVersion && canManage && (
+            <div className="grid gap-3 border-b pb-4 sm:grid-cols-2">
+              <label className="text-sm"><span className="mb-1 block font-medium">{t('estimateSubmission.recipient')}</span><input value={recipient ?? request?.company ?? request?.client ?? ''} onChange={(event) => setRecipient(event.target.value)} className="w-full border bg-[var(--color-surface)] px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]" /></label>
+              <label className="text-sm"><span className="mb-1 block font-medium">{t('estimateSubmission.deliveryChannel')}</span><select value={deliveryChannel} onChange={(event) => setDeliveryChannel(event.target.value)} className="w-full border bg-[var(--color-surface)] px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"><option value="EMAIL">Email</option><option value="PORTAL">Portal</option><option value="HANDOFF">Handoff</option></select></label>
+            </div>
+          )}
 
           <div className="grid grid-cols-[70px_minmax(0,1fr)] border text-sm">
             <div className="border-r bg-[var(--color-bg-sub)] px-2 py-2 text-center font-semibold">{columnLabel(activeCell.column)}{activeCell.row}</div>
             <input aria-label={t('estimateSheet.formulaBar')} value={formulaValue} disabled={readOnly} onChange={(event) => updateFormula(event.target.value)} className="min-w-0 bg-[var(--color-surface)] px-3 py-2 font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-primary)] disabled:opacity-60" />
           </div>
 
-          {readOnly && <p className="bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">{sheet.status === 'SENT' ? t('estimateSheet.sentReadonly') : t('estimateSheet.historyReadonly')}</p>}
+          {readOnly && <p className="bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">{sheet.status === 'SENT' ? t('estimateSheet.sentReadonly') : sheet.status === 'SUBMITTED' ? t('estimateSheet.submittedReadonly') : t('estimateSheet.historyReadonly')}</p>}
 
           <div className="relative max-h-[68vh] overflow-auto border bg-white text-black">
             <table className="border-collapse table-fixed" style={{ width: state.colWidths.reduce((sum, width) => sum + width, 42) }}>

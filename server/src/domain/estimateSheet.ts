@@ -33,8 +33,52 @@ export function assertVersion(expected: number, current: number) {
 
 export function nextEstimateSheetStatus(current: string, target: string) {
   if (current === target) return current;
+  if (current === 'DRAFT' && target === 'SUBMITTED') return target;
+  if (current === 'SUBMITTED' && target === 'SENT') return target;
+  // Backward-compatible command used by the OFF-PM-05 endpoint. It still
+  // creates a submission record before the sheet is marked as sent.
   if (current === 'DRAFT' && target === 'SENT') return target;
   const error = new Error(`Invalid estimate sheet transition: ${current} -> ${target}`) as Error & { status?: number };
   error.status = 409;
   throw error;
+}
+
+export const ESTIMATE_SUBMISSION_STATUSES = ['SUBMITTED', 'SENT'] as const;
+export type EstimateSubmissionStatus = typeof ESTIMATE_SUBMISSION_STATUSES[number];
+
+export type EstimateSubmissionFilters = {
+  q?: string;
+  status?: EstimateSubmissionStatus | 'ALL';
+  templateType?: string | 'ALL';
+  from?: string;
+  to?: string;
+};
+
+export function submissionIsDecisionReady(status: string) {
+  return status === 'SENT';
+}
+
+export function submissionMatchesFilters(
+  item: {
+    status: string;
+    templateType: string;
+    requestNo: string;
+    projectName: string;
+    company?: string | null;
+    submittedAt: string;
+  },
+  filters: EstimateSubmissionFilters,
+) {
+  if (filters.status && filters.status !== 'ALL' && item.status !== filters.status) return false;
+  if (filters.templateType && filters.templateType !== 'ALL' && item.templateType !== filters.templateType) return false;
+  const submittedAt = new Date(item.submittedAt).getTime();
+  if (filters.from && submittedAt < new Date(`${filters.from}T00:00:00`).getTime()) return false;
+  if (filters.to && submittedAt > new Date(`${filters.to}T23:59:59.999`).getTime()) return false;
+  const q = filters.q?.trim().toLowerCase();
+  if (!q) return true;
+  return [item.requestNo, item.projectName, item.company, item.templateType]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+    .includes(q);
 }

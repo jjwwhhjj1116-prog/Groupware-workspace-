@@ -167,7 +167,8 @@ export interface EstimateRequest {
 }
 
 export type EstimateTemplateType = '개산견적' | '공내역서' | '설계예가' | '공사비검증';
-export type EstimateSheetStatus = 'DRAFT' | 'SENT';
+export type EstimateSheetStatus = 'DRAFT' | 'SUBMITTED' | 'SENT';
+export type EstimateSubmissionStatus = 'SUBMITTED' | 'SENT';
 
 export interface EstimateSheetCellState {
   value?: string | number | null;
@@ -217,6 +218,45 @@ export interface EstimateSheetExport {
   createdAt: string;
 }
 
+export interface EstimateSubmissionSummary {
+  requestNo: string;
+  projectName: string;
+  company: string;
+  serviceDescription: string;
+  total: string;
+  templateType: EstimateTemplateType;
+  version: number;
+}
+
+export interface EstimateSubmission {
+  id: string;
+  estimateSheetId: string;
+  version: number;
+  status: EstimateSubmissionStatus;
+  submittedAt: string;
+  submittedBy: string;
+  sentAt?: string | null;
+  sentBy?: string | null;
+  recipient?: string | null;
+  deliveryChannel?: string | null;
+  documentHash: string;
+  summary: EstimateSubmissionSummary;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EstimateSubmissionListItem extends EstimateSubmission {
+  estimateRequestId: string;
+  requestNo: string;
+  projectName: string;
+  company?: string | null;
+  ownerId?: string | null;
+  departmentId: string;
+  requestStatus: EstimateRequestStatus;
+  templateType: EstimateTemplateType;
+  decisionReady: boolean;
+}
+
 export interface EstimateSheet {
   id: string;
   estimateRequestId: string;
@@ -231,6 +271,7 @@ export interface EstimateSheet {
   template: EstimateTemplateRecord;
   versions: EstimateSheetVersion[];
   exports: EstimateSheetExport[];
+  submissions: EstimateSubmission[];
 }
 
 export type DeliveryLifecycle =

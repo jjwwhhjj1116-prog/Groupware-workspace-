@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Project, ProjectSourceType } from '@/types/models';
 import { useAuthStore } from '@/store/authStore';
 import { getUserDisplayName, useTranslation } from '@/lib/localization';
@@ -26,6 +26,15 @@ export default function IntakePage() {
   const [newDeliveryDate, setNewDeliveryDate] = useState('');
   const [newTargetDate, setNewTargetDate] = useState('');
   const [newClientName, setNewClientName] = useState(''); // for requester
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      if (new URLSearchParams(window.location.search).has('requestId')) {
+        setActiveTab('CLIENT_ORDER');
+      }
+    }, 0);
+    return () => window.clearTimeout(timeout);
+  }, []);
 
   // Authorization Check
   if (!currentUser) return <div className="py-10 text-center text-[var(--color-text-sub)]">{t('header.loginRequired')}</div>;
