@@ -10,6 +10,7 @@ import {
   commercialDecisionRequiresSentSubmission,
   normalizeAgreedAmount,
 } from '../domain/commercialDecision';
+import { buildProjectIntakeDraft } from '../domain/projectIntake';
 
 const nullableText = z.string().trim().max(10000).nullable().optional();
 const decisionSchema = z.object({
@@ -68,7 +69,7 @@ export const recordCommercialDecision = async (req: Request, res: Response) => {
 
   try {
     const requestId = String(req.params.id);
-    const actor = (req as any).user;
+    const actor = req.user!;
     const existing = await prisma.commercialDecision.findUnique({ where: { idempotencyKey } });
     if (existing) {
       if (existing.estimateRequestId !== requestId) return res.status(409).json({ error: 'Idempotency key belongs to another estimate request' });
@@ -149,8 +150,21 @@ export const recordCommercialDecision = async (req: Request, res: Response) => {
             projectId: project.id,
             projectNo: current.requestNo,
             sourceSnapshotJson: JSON.stringify(snapshot),
+            draftJson: JSON.stringify(buildProjectIntakeDraft(snapshot, {
+              projectId: project.id,
+              commercialDecisionId: decision.id,
+              projectNo: current.requestNo,
+            })),
             createdBy: actor.personnelId,
             updatedBy: actor.personnelId,
+            histories: {
+              create: {
+                action: 'CREATED_FROM_COMMERCIAL_DECISION',
+                toStatus: 'DRAFT',
+                changesJson: JSON.stringify({ estimateRequestId: current.id, commercialDecisionId: decision.id, projectId: project.id }),
+                actorId: actor.personnelId,
+              },
+            },
           },
         });
       }

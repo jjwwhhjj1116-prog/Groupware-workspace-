@@ -108,19 +108,122 @@ export interface CommercialDecision {
   createdAt: string;
 }
 
+export type ProjectIntakeStatus = 'DRAFT' | 'REVIEWED' | 'ACCEPTED';
+export type ProjectIntakeMaterialStatus = 'NOT_RECEIVED' | 'PARTIAL' | 'RECEIVED' | 'CONFIRMED';
+
+export interface ProjectIntakeContact {
+  id: string;
+  name: string;
+  role: string;
+  department: string;
+  telephone: string;
+  mobile: string;
+  email: string;
+}
+
+export interface ProjectIntakeMaterial {
+  id: string;
+  category: string;
+  label: string;
+  memo: string;
+  status: ProjectIntakeMaterialStatus;
+  comment: string;
+  confirmedBy: string;
+  originalName: string;
+  size: number | null;
+  mimeType: string;
+  storageKey: string;
+}
+
+export interface ProjectIntakeSecretReference {
+  id: string;
+  label: string;
+  provider: string;
+  reference: string;
+  note: string;
+}
+
+export interface ProjectIntakeDraft {
+  projectName: string;
+  projectNo: string;
+  company: string;
+  client: string;
+  usage: string;
+  area: string;
+  buildings: string;
+  floors: string;
+  basementFloors: string;
+  groundFloors: string;
+  bidDate: string;
+  unitPrice: string;
+  businessTypes: string[];
+  scopes: string[];
+  contacts: ProjectIntakeContact[];
+  materials: ProjectIntakeMaterial[];
+  expectedStartDate: string;
+  firstDelivery: string;
+  secondDelivery: string;
+  thirdDelivery: string;
+  finalDelivery: string;
+  workContent: string;
+  notes: string;
+  request: string;
+  secretReferences: ProjectIntakeSecretReference[];
+  source: {
+    estimateRequestId: string;
+    requestNo: string;
+    estimateId: string | null;
+    estimateSheetId: string | null;
+    estimateSubmissionId: string | null;
+    estimateDocumentHash: string | null;
+    commercialDecisionId: string;
+    projectId: string;
+  };
+  commercial: {
+    agreedAmount: string | null;
+    agreedScope: string | null;
+    agreedSchedule: string | null;
+    startCondition: string | null;
+  };
+}
+
+export interface ProjectIntakeHistory {
+  id: string;
+  projectIntakeId: string;
+  action: string;
+  fromStatus?: ProjectIntakeStatus | null;
+  toStatus?: ProjectIntakeStatus | null;
+  changesJson?: string | null;
+  actorId: UserId;
+  createdAt: string;
+}
+
 export interface ProjectIntake {
   id: string;
   estimateRequestId: string;
   commercialDecisionId: string;
   projectId: string;
-  status: 'DRAFT' | 'REVIEWED' | 'ACCEPTED';
+  status: ProjectIntakeStatus;
   projectNo: string;
   sourceSnapshotJson: string;
+  draftJson?: string | null;
+  draft?: ProjectIntakeDraft;
+  reviewNote?: string | null;
+  reviewedBy?: UserId | null;
+  reviewedAt?: string | null;
+  acceptedBy?: UserId | null;
+  acceptedAt?: string | null;
   version: number;
   createdBy: UserId;
   updatedBy: UserId;
   createdAt: string;
   updatedAt: string;
+  histories?: ProjectIntakeHistory[];
+  commercialDecision?: CommercialDecision;
+  project?: CommercialDecisionProject;
+  estimateRequest?: EstimateRequest;
+  completeness?: { missing: string[] };
+  permissions?: { canEdit: boolean; canReview: boolean };
 }
 
 export interface CommercialDecisionInput {

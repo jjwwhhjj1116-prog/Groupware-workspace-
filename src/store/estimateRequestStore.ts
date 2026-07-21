@@ -234,7 +234,7 @@ export const useEstimateRequestStore = create<EstimateRequestState>()(persist((s
     if (input.decision === 'WON' && !current.ownerId) throw new Error('An owner must be assigned before marking the request as won');
     const { useEstimateSheetStore } = await import('@/store/estimateSheetStore');
     const sheet = useEstimateSheetStore.getState().sheets[id];
-    const sentSubmission = sheet?.submissions.find((item) => item.status === 'SENT' && item.sentAt) || null;
+    const sentSubmission = sheet?.submissions?.find((item) => item.status === 'SENT' && item.sentAt) || null;
     if (['WON', 'LOST'].includes(input.decision) && !sentSubmission) {
       throw new Error('A sent estimate submission is required before this decision');
     }

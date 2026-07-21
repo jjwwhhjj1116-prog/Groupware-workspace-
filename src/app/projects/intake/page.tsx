@@ -8,6 +8,9 @@ import { useProjectStore } from '@/store/projectStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import { useTranslationStore } from '@/store/translationStore';
 import { EstimateRequestWorkbench } from '@/components/intake/EstimateRequestWorkbench';
+import { ProjectIntakeWorkbench } from '@/components/intake/ProjectIntakeWorkbench';
+
+type IntakeTab = ProjectSourceType | 'PROJECT_INTAKE';
 
 export default function IntakePage() {
   const { currentUser, users } = useAuthStore();
@@ -16,7 +19,7 @@ export default function IntakePage() {
   const { projects, addProject, assignPM, updateProjectField } = useProjectStore();
   const { addNotification } = useNotificationStore();
   
-  const [activeTab, setActiveTab] = useState<ProjectSourceType>('INTERNAL_DEVELOPMENT');
+  const [activeTab, setActiveTab] = useState<IntakeTab>('INTERNAL_DEVELOPMENT');
   const [showForm, setShowForm] = useState(false);
   
   const [newTitle, setNewTitle] = useState('');
@@ -29,7 +32,10 @@ export default function IntakePage() {
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
-      if (new URLSearchParams(window.location.search).has('requestId')) {
+      const params = new URLSearchParams(window.location.search);
+      if (params.has('intakeId')) {
+        setActiveTab('PROJECT_INTAKE');
+      } else if (params.has('requestId')) {
         setActiveTab('CLIENT_ORDER');
       }
     }, 0);
@@ -62,7 +68,7 @@ export default function IntakePage() {
       priority: newPriority,
       departmentId: currentUser.departmentId,
       startDate: newStartDate || undefined,
-      projectSourceType: activeTab,
+      projectSourceType: activeTab === 'PROJECT_INTAKE' ? 'INTERNAL_DEVELOPMENT' : activeTab,
     };
 
     if (activeTab === 'CLIENT_ORDER') {
@@ -100,13 +106,13 @@ export default function IntakePage() {
   };
 
   return (
-    <div className="w-full px-6 mx-auto space-y-6 md:space-y-8 animate-in fade-in duration-500">
+    <div className="w-full min-w-0 mx-auto space-y-6 md:space-y-8 animate-in fade-in duration-500">
       
       {/* Tabs */}
-      <div className="flex gap-4 mb-4 mt-8">
+      <div className="grid grid-cols-1 gap-2 mb-4 sm:grid-cols-3 sm:gap-3 lg:flex lg:gap-4">
         <button
           onClick={() => { setActiveTab('INTERNAL_DEVELOPMENT'); setShowForm(false); }}
-          className={`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] px-4 py-2 font-medium rounded-md transition-colors ${
+          className={`w-full px-3 py-2 text-sm font-medium rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] lg:w-auto lg:px-4 ${
             activeTab === 'INTERNAL_DEVELOPMENT'
               ? 'bg-blue-600 text-white shadow-md'
               : 'bg-[var(--color-bg-sub)] text-[var(--color-text-sub)] hover:bg-gray-200'
@@ -116,7 +122,7 @@ export default function IntakePage() {
         </button>
         <button
           onClick={() => { setActiveTab('CLIENT_ORDER'); setShowForm(false); }}
-          className={`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] px-4 py-2 font-medium rounded-md transition-colors ${
+          className={`w-full px-3 py-2 text-sm font-medium rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] lg:w-auto lg:px-4 ${
             activeTab === 'CLIENT_ORDER'
               ? 'bg-[var(--color-primary)] text-[var(--color-surface)] shadow-md'
               : 'bg-[var(--color-bg-sub)] text-[var(--color-text-sub)] hover:bg-gray-200'
@@ -124,9 +130,21 @@ export default function IntakePage() {
         >
           {t('orderProjectManagement')}
         </button>
+        <button
+          onClick={() => { setActiveTab('PROJECT_INTAKE'); setShowForm(false); }}
+          className={`w-full px-3 py-2 text-sm font-medium rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] lg:w-auto lg:px-4 ${
+            activeTab === 'PROJECT_INTAKE'
+              ? 'bg-emerald-600 text-white shadow-md'
+              : 'bg-[var(--color-bg-sub)] text-[var(--color-text-sub)] hover:bg-gray-200'
+          }`}
+        >
+          {t('projectIntake.tab')}
+        </button>
       </div>
 
-      {isClient ? (
+      {activeTab === 'PROJECT_INTAKE' ? (
+        <ProjectIntakeWorkbench currentUser={currentUser} t={t} />
+      ) : isClient ? (
         <EstimateRequestWorkbench currentUser={currentUser} users={users} t={t} />
       ) : (
       <>

@@ -295,6 +295,12 @@ model ProjectIntake {
   status               String   @default("DRAFT")
   projectNo            String
   sourceSnapshotJson   String   @db.Text
+  draftJson            String?  @db.Text
+  reviewNote           String?  @db.Text
+  reviewedBy           String?
+  reviewedAt           DateTime?
+  acceptedBy           String?
+  acceptedAt           DateTime?
   version              Int      @default(1)
   createdBy            String
   updatedBy            String
@@ -304,8 +310,24 @@ model ProjectIntake {
   estimateRequest    EstimateRequest    @relation(fields: [estimateRequestId], references: [id], onDelete: Cascade)
   commercialDecision CommercialDecision @relation(fields: [commercialDecisionId], references: [id], onDelete: Cascade)
   project            Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  histories          ProjectIntakeHistory[]
 
   @@index([status, updatedAt])
+}
+
+model ProjectIntakeHistory {
+  id              String   @id @default(uuid())
+  projectIntakeId String
+  action          String
+  fromStatus      String?
+  toStatus        String?
+  changesJson     String?  @db.Text
+  actorId         String
+  createdAt       DateTime @default(now())
+
+  projectIntake ProjectIntake @relation(fields: [projectIntakeId], references: [id], onDelete: Cascade)
+
+  @@index([projectIntakeId, createdAt])
 }
 
 model EstimateSheetVersion {
