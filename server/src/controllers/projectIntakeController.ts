@@ -313,6 +313,16 @@ export const acceptProjectIntake = async (req: Request, res: Response) => {
         },
         update: {},
       });
+      await tx.projectQcChecklist.upsert({
+        where: { projectId: current.projectId },
+        create: {
+          id: current.projectId,
+          projectId: current.projectId,
+          createdBy: actor.personnelId,
+          updatedBy: actor.personnelId,
+        },
+        update: {},
+      });
       const changes = { version: parsed.data.expectedVersion + 1, note: parsed.data.note, acceptedAt, projectStatus: 'MANAGER_REVIEW' };
       await tx.projectIntakeHistory.create({
         data: { projectIntakeId: id, action: 'ACCEPTED', fromStatus: current.status, toStatus: 'ACCEPTED', changesJson: JSON.stringify(changes), actorId: actor.personnelId },

@@ -666,6 +666,89 @@ export interface ProjectOperation {
   permissions: { canView: boolean; canEdit: boolean; canApprove: boolean };
 }
 
+export type ProjectQcItemStatus = 'PENDING' | 'PARTIAL' | 'CONFIRMED' | 'SENT';
+
+export interface ProjectQcCheck {
+  target: string;
+  done: boolean;
+  na: boolean;
+  checkedBy: string;
+  checkedAt: string;
+}
+
+export interface ProjectQcAttachment {
+  id: string;
+  projectQcItemId: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  storageKey?: string | null;
+  checksum?: string | null;
+  createdBy: UserId;
+  createdAt: string;
+}
+
+export interface ProjectQcHistory {
+  id: string;
+  projectQcChecklistId: string;
+  projectQcItemId?: string | null;
+  action: string;
+  details: Record<string, unknown>;
+  actorId: UserId;
+  createdAt: string;
+}
+
+export interface ProjectQcItem {
+  id: string;
+  projectQcChecklistId: string;
+  group: string;
+  middleCategory?: string | null;
+  subCategory?: string | null;
+  trade: string;
+  serialNo: string;
+  item: string;
+  method: string;
+  targets: string[];
+  checks: ProjectQcCheck[];
+  status: ProjectQcItemStatus;
+  comment: string;
+  objection: Record<string, unknown>;
+  eliminated: boolean;
+  sentAt?: string | null;
+  sentBy?: UserId | null;
+  createdBy: UserId;
+  updatedBy: UserId;
+  createdAt: string;
+  updatedAt: string;
+  attachments: ProjectQcAttachment[];
+  histories: ProjectQcHistory[];
+}
+
+export interface ProjectQcChecklist {
+  id: string;
+  projectId: string;
+  status: 'OPEN' | 'IN_PROGRESS' | 'COMPLETED';
+  version: number;
+  createdBy: UserId;
+  updatedBy: UserId;
+  createdAt: string;
+  updatedAt: string;
+  project: { id: string; name: string; status: string; departmentId: DepartmentId; managerId: UserId; pmId: UserId };
+  items: ProjectQcItem[];
+  histories: ProjectQcHistory[];
+  permissions: { canView: boolean; canEdit: boolean; canSend: boolean };
+}
+
+export interface ProjectQcTerm {
+  id: string;
+  term: string;
+  definition: string;
+  createdBy: UserId;
+  updatedBy: UserId;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Project {
   id: string;
   projectSourceType?: ProjectSourceType; // Default to CLIENT_ORDER if undefined

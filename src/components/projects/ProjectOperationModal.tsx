@@ -8,8 +8,9 @@ import { useProjectOperationStore } from '@/store/projectOperationStore';
 import { useProjectStore } from '@/store/projectStore';
 import { useTranslationStore } from '@/store/translationStore';
 import { ProjectOperationActivityKind } from '@/types/models';
+import { ProjectQcPanel } from './ProjectQcPanel';
 
-type Tab = 'OVERVIEW' | 'ACTIVITY' | 'ASSIGNMENTS' | 'TIMELINE' | 'DELIVERY';
+type Tab = 'OVERVIEW' | 'ACTIVITY' | 'ASSIGNMENTS' | 'TIMELINE' | 'QC' | 'DELIVERY';
 type Props = { projectId: string; onClose: () => void };
 
 const inputClass = 'w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-main)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]';
@@ -77,6 +78,7 @@ export function ProjectOperationModal({ projectId, onClose }: Props) {
     ['ACTIVITY', t('projectOperation.tab.activity')],
     ['ASSIGNMENTS', t('projectOperation.tab.assignments')],
     ['TIMELINE', t('projectOperation.tab.timeline')],
+    ['QC', t('projectOperation.tab.qc')],
     ['DELIVERY', t('projectOperation.tab.delivery')],
   ];
 
@@ -170,6 +172,8 @@ export function ProjectOperationModal({ projectId, onClose }: Props) {
                   </div>
                   <ActivityGroup icon={<ClipboardList className="h-4 w-4" />} title={t('projectOperation.tab.timeline')} items={activityGroups.timeline} userName={userName} canDelete={false} deleteLabel={t('projectOperation.action.deleteActivity')} onDelete={() => undefined} />
                 </div>}
+
+                {tab === 'QC' && <ProjectQcPanel projectId={projectId} />}
 
                 {tab === 'DELIVERY' && <div className="space-y-5">
                   <h3 className="font-bold text-[var(--color-text-main)]">{t('projectOperation.delivery.title')}</h3>

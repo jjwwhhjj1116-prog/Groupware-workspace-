@@ -94,6 +94,7 @@ model Project {
   projectIntake ProjectIntake?
   pmSchedule ProjectPmSchedule?
   operation ProjectOperation?
+  qcChecklist ProjectQcChecklist?
 }
 
 model EstimateDbRecord {
@@ -415,6 +416,102 @@ model ProjectOperationActivity {
 
   @@index([projectOperationId, occurredAt])
   @@index([kind, occurredAt])
+}
+
+model ProjectQcChecklist {
+  id        String   @id
+  projectId String   @unique
+  status    String   @default("OPEN")
+  version   Int      @default(1)
+  createdBy String
+  updatedBy String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project  Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  items    ProjectQcItem[]
+  histories ProjectQcHistory[]
+
+  @@index([updatedAt])
+}
+
+model ProjectQcItem {
+  id                 String   @id @default(uuid())
+  projectQcChecklistId String
+  group              String
+  middleCategory     String?
+  subCategory        String?
+  trade              String
+  serialNo           String
+  item               String   @db.Text
+  method             String   @db.Text
+  targetsJson        String   @db.Text
+  checksJson         String   @db.Text
+  status             String   @default("PENDING")
+  comment            String   @db.Text
+  objectionJson      String?  @db.Text
+  eliminated         Boolean  @default(false)
+  sentAt             DateTime?
+  sentBy             String?
+  createdBy          String
+  updatedBy          String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  deletedBy          String?
+  deletedAt          DateTime?
+
+  checklist  ProjectQcChecklist  @relation(fields: [projectQcChecklistId], references: [id], onDelete: Cascade)
+  attachments ProjectQcAttachment[]
+  histories   ProjectQcHistory[]
+
+  @@index([projectQcChecklistId, group, serialNo])
+  @@index([status, updatedAt])
+}
+
+model ProjectQcAttachment {
+  id           String   @id @default(uuid())
+  projectQcItemId String
+  originalName String
+  mimeType     String
+  size         Int
+  storageKey   String?
+  checksum     String?
+  createdBy    String
+  createdAt    DateTime @default(now())
+  deletedBy    String?
+  deletedAt    DateTime?
+
+  item ProjectQcItem @relation(fields: [projectQcItemId], references: [id], onDelete: Cascade)
+
+  @@index([projectQcItemId, createdAt])
+}
+
+model ProjectQcHistory {
+  id                 String   @id @default(uuid())
+  projectQcChecklistId String
+  projectQcItemId    String?
+  action             String
+  detailsJson        String?  @db.Text
+  actorId            String
+  createdAt          DateTime @default(now())
+
+  checklist ProjectQcChecklist @relation(fields: [projectQcChecklistId], references: [id], onDelete: Cascade)
+  item      ProjectQcItem?      @relation(fields: [projectQcItemId], references: [id], onDelete: SetNull)
+
+  @@index([projectQcChecklistId, createdAt])
+  @@index([projectQcItemId, createdAt])
+}
+
+model ProjectQcTerm {
+  id         String   @id @default(uuid())
+  term       String   @unique
+  definition String   @db.Text
+  createdBy  String
+  updatedBy  String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([updatedAt])
 }
 
 model EstimateSheetVersion {
