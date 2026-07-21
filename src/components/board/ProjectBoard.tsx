@@ -13,9 +13,10 @@ interface Props {
   groupBy: GroupByOption;
   onProjectClick: (projectId: string) => void;
   onProjectMove?: (projectId: string, sourceColId: string, targetColId: string) => void;
+  onOperationClick?: (projectId: string) => void;
 }
 
-export const ProjectBoard: React.FC<Props> = ({ projects, tasks, revisionRequests, groupBy, onProjectClick, onProjectMove }) => {
+export const ProjectBoard: React.FC<Props> = ({ projects, tasks, revisionRequests, groupBy, onProjectClick, onProjectMove, onOperationClick }) => {
   const { settings } = useTranslationStore();
   const t = useTranslation(settings.uiLanguage);
 
@@ -95,6 +96,7 @@ export const ProjectBoard: React.FC<Props> = ({ projects, tasks, revisionRequest
                   project={project} 
                   tasks={tasks}
                   onClick={onProjectClick} 
+                  onOperationClick={onOperationClick}
                   draggable={true}
                   onDragStart={(e) => {
                     e.dataTransfer.setData('projectId', project.id);

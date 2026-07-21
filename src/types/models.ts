@@ -615,6 +615,57 @@ export interface PmScheduleConflict {
   endDate: string;
 }
 
+export type ProjectOperationActivityKind = 'MEETING' | 'CALL' | 'EMAIL' | 'AWARD' | 'START_APPROVAL' | 'COMPLETION_CHANGED' | 'COMPLETED' | 'NOTE';
+export type ProjectStartApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface ProjectOperationActivity {
+  id: string;
+  projectOperationId: string;
+  kind: ProjectOperationActivityKind;
+  occurredAt: string;
+  title: string;
+  body: string;
+  metadata: Record<string, string | number | boolean | null>;
+  createdBy: UserId;
+  createdAt: string;
+}
+
+export interface ProjectOperation {
+  id: string;
+  projectId: string;
+  awardDate?: string | null;
+  expectedCompletionDate?: string | null;
+  actualCompletionDate?: string | null;
+  startApprovalStatus: ProjectStartApprovalStatus;
+  startApprovedBy?: UserId | null;
+  startApprovedAt?: string | null;
+  version: number;
+  createdBy: UserId;
+  updatedBy: UserId;
+  createdAt: string;
+  updatedAt: string;
+  project: {
+    id: string;
+    name: string;
+    status: string;
+    departmentId: DepartmentId;
+    managerId: UserId;
+    pmId: UserId;
+    manager?: PersonnelCard;
+    pm?: PersonnelCard;
+  };
+  activities: ProjectOperationActivity[];
+  assignments: { assignment: Partial<PmAssignment>; rows: PmScheduleRow[] };
+  sourceTrace: {
+    canonicalProjectId: string;
+    projectIntakeId?: string | null;
+    estimateRequestId?: string | null;
+    requestNo?: string | null;
+    commercialDecisionId?: string | null;
+  };
+  permissions: { canView: boolean; canEdit: boolean; canApprove: boolean };
+}
+
 export interface Project {
   id: string;
   projectSourceType?: ProjectSourceType; // Default to CLIENT_ORDER if undefined

@@ -21,6 +21,7 @@ import { FileText, ArrowLeft, ChevronRight, History, Wrench, Code2, Briefcase } 
 import { Badge } from '@/components/ui/Badge';
 import { useTranslationStore } from '@/store/translationStore';
 import { useTranslation } from '@/lib/localization';
+import { ProjectOperationModal } from '@/components/projects/ProjectOperationModal';
 
 export type ExtendedViewType = BoardViewType | 'PART' | 'HISTORY';
 
@@ -44,6 +45,7 @@ export default function ProjectBoardPage() {
   const [selectedMonth, setSelectedMonth] = useState<number | 'ALL'>('ALL');
   const [activeTab, setActiveTab] = useState<ProjectSourceType>('INTERNAL_DEVELOPMENT');
   const [historyFilter, setHistoryFilter] = useState<'ALL' | 'APPROVAL' | 'COMPLETED' | 'AUDIT'>('ALL');
+  const [operationProjectId, setOperationProjectId] = useState<string>('');
 
   const { settings } = useTranslationStore();
   const t = useTranslation(settings.uiLanguage);
@@ -454,9 +456,12 @@ export default function ProjectBoardPage() {
           revisionRequests={revisionRequests}
           groupBy={groupBy}
           onProjectClick={setSelectedProjectId}
+          onOperationClick={setOperationProjectId}
           onProjectMove={handleProjectMove}
         />
       )}
+
+      {operationProjectId && <ProjectOperationModal projectId={operationProjectId} onClose={() => setOperationProjectId('')} />}
 
       {dispatchProject && (
         <PmDispatchModal

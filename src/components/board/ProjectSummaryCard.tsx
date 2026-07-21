@@ -1,7 +1,7 @@
 import React from 'react';
 import { Project, TaskCard } from '@/types/models';
 import { getProjectOverallProgress, getProjectDeliveryLifecycle, getProjectDeliveryBadge } from '@/lib/selectors';
-import { AlertCircle, Clock, CheckCircle, User } from 'lucide-react';
+import { Activity, AlertCircle, Clock, CheckCircle, User } from 'lucide-react';
 import { useProjectStore } from '@/store/projectStore';
 import { useAuthStore } from '@/store/authStore';
 import { Badge } from '@/components/ui/Badge';
@@ -14,9 +14,10 @@ interface Props {
   onClick: (projectId: string) => void;
   draggable?: boolean;
   onDragStart?: (e: React.DragEvent<HTMLDivElement>, projectId: string) => void;
+  onOperationClick?: (projectId: string) => void;
 }
 
-export const ProjectSummaryCard: React.FC<Props> = ({ project, tasks, onClick, draggable, onDragStart }) => {
+export const ProjectSummaryCard: React.FC<Props> = ({ project, tasks, onClick, draggable, onDragStart, onOperationClick }) => {
   const { users, currentUser } = useAuthStore();
   const { postDeliveryWorkRequests, revisionRequests } = useProjectStore();
   const { settings } = useTranslationStore();
@@ -61,7 +62,10 @@ export const ProjectSummaryCard: React.FC<Props> = ({ project, tasks, onClick, d
           </Badge>
           <Badge variant={getLifecycleBadgeVariant()}>{badgeText}</Badge>
         </div>
-        <h3 className="font-bold text-[15px] text-[var(--color-text-main)] line-clamp-2 leading-snug group-hover:text-[var(--color-primary)] transition-colors">{project.title}</h3>
+        <div className="flex items-start gap-2">
+          <h3 className="min-w-0 flex-1 font-bold text-[15px] text-[var(--color-text-main)] line-clamp-2 leading-snug group-hover:text-[var(--color-primary)] transition-colors">{project.title}</h3>
+          {onOperationClick && <button type="button" title={t('projectOperation.open')} aria-label={t('projectOperation.open')} onClick={(event) => { event.stopPropagation(); onOperationClick(project.id); }} className="shrink-0 rounded-md border border-[var(--color-border)] p-1.5 text-[var(--color-text-sub)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"><Activity className="h-4 w-4" /></button>}
+        </div>
       </div>
 
       <div className="flex items-center justify-between text-[11px] text-[var(--color-text-sub)]">

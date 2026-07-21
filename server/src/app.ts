@@ -35,6 +35,7 @@ import estimateRequestRoutes from './routes/estimateRequests';
 import estimateDatabaseRoutes from './routes/estimateDatabase';
 import projectIntakeRoutes from './routes/projectIntakes';
 import projectPmScheduleRoutes from './routes/projectPmSchedules';
+import projectOperationRoutes from './routes/projectOperations';
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -48,6 +49,7 @@ app.use('/api/estimate-requests', estimateRequestRoutes);
 app.use('/api/estimate-database', estimateDatabaseRoutes);
 app.use('/api/project-intakes', projectIntakeRoutes);
 app.use('/api/project-pm-schedules', projectPmScheduleRoutes);
+app.use('/api/project-operations', projectOperationRoutes);
 app.get('/api/ping', (req, res) => {
   res.json({ message: 'pong' });
 });

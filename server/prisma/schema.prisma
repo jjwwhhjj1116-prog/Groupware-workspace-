@@ -93,6 +93,7 @@ model Project {
   commercialDecision CommercialDecision?
   projectIntake ProjectIntake?
   pmSchedule ProjectPmSchedule?
+  operation ProjectOperation?
 }
 
 model EstimateDbRecord {
@@ -374,6 +375,46 @@ model ProjectPmScheduleHistory {
   projectPmSchedule ProjectPmSchedule @relation(fields: [projectPmScheduleId], references: [id], onDelete: Cascade)
 
   @@index([projectPmScheduleId, createdAt])
+}
+
+model ProjectOperation {
+  id                     String   @id
+  projectId              String   @unique
+  awardDate              DateTime?
+  expectedCompletionDate DateTime?
+  actualCompletionDate   DateTime?
+  startApprovalStatus    String   @default("PENDING")
+  startApprovedBy        String?
+  startApprovedAt        DateTime?
+  version                Int      @default(1)
+  createdBy              String
+  updatedBy              String
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  project    Project                    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  activities ProjectOperationActivity[]
+
+  @@index([updatedAt])
+}
+
+model ProjectOperationActivity {
+  id                 String   @id @default(uuid())
+  projectOperationId String
+  kind               String
+  occurredAt         DateTime
+  title              String
+  body               String   @db.Text
+  metadataJson       String?  @db.Text
+  createdBy          String
+  createdAt          DateTime @default(now())
+  deletedBy          String?
+  deletedAt          DateTime?
+
+  projectOperation ProjectOperation @relation(fields: [projectOperationId], references: [id], onDelete: Cascade)
+
+  @@index([projectOperationId, occurredAt])
+  @@index([kind, occurredAt])
 }
 
 model EstimateSheetVersion {
