@@ -3,6 +3,9 @@
 import Link from 'next/link';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import {
+  BadgeCheck,
+  Ban,
+  CircleOff,
   Database,
   FileSpreadsheet,
   FileCheck2,
@@ -16,12 +19,20 @@ import {
   RefreshCw,
   Save,
   Search,
+  PauseCircle,
   Trash2,
   UserRound,
 } from 'lucide-react';
 import { getUserDisplayName, useTranslation } from '@/lib/localization';
 import { useEstimateRequestStore } from '@/store/estimateRequestStore';
-import { EstimateRequest, EstimateRequestActivityKind, EstimateRequestStatus, PersonnelCard } from '@/types/models';
+import {
+  CommercialDecisionInput,
+  CommercialDecisionType,
+  EstimateRequest,
+  EstimateRequestActivityKind,
+  EstimateRequestStatus,
+  PersonnelCard,
+} from '@/types/models';
 
 type Translate = ReturnType<typeof useTranslation>;
 
@@ -32,7 +43,22 @@ const STATUSES: EstimateRequestStatus[] = [
   'WON',
   'LOST',
   'CANCELLED',
+  'ON_HOLD',
   'OTHER',
+];
+
+const OPERATIONAL_STATUSES: EstimateRequestStatus[] = [
+  'REQUEST_MEMO',
+  'ESTIMATE_DRAFTING',
+  'WAITING',
+  'OTHER',
+];
+
+const DECISIONS: Array<{ value: CommercialDecisionType; icon: typeof BadgeCheck }> = [
+  { value: 'WON', icon: BadgeCheck },
+  { value: 'LOST', icon: CircleOff },
+  { value: 'CANCELLED', icon: Ban },
+  { value: 'ON_HOLD', icon: PauseCircle },
 ];
 
 const ACTIVITY_ICONS = {
@@ -78,6 +104,7 @@ export function EstimateRequestWorkbench({ currentUser, users, t }: Props) {
     createRequest,
     updateRequest,
     changeStatus,
+    recordDecision,
     addActivity,
     addAttachments,
     removeAttachment,
@@ -89,6 +116,14 @@ export function EstimateRequestWorkbench({ currentUser, users, t }: Props) {
   const [draft, setDraft] = useState(emptyDraft);
   const [activityKind, setActivityKind] = useState<EstimateRequestActivityKind>('CONSULTATION');
   const [activityContent, setActivityContent] = useState('');
+  const [decisionDraft, setDecisionDraft] = useState<CommercialDecisionInput>({
+    decision: 'WON',
+    reason: '',
+    agreedAmount: '',
+    agreedScope: '',
+    agreedSchedule: '',
+    startCondition: '',
+  });
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -150,6 +185,16 @@ export function EstimateRequestWorkbench({ currentUser, users, t }: Props) {
       const updated = await changeStatus(selected.id, status, currentUser.id);
       setSelectedId(updated.id);
     }, t('estimateRequest.statusChanged'));
+  };
+
+  const handleDecision = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!selected) return;
+    await run(async () => {
+      const result = await recordDecision(selected.id, decisionDraft, currentUser.id);
+      setSelectedId(result.request.id);
+      setDecisionDraft({ decision: 'WON', reason: '', agreedAmount: '', agreedScope: '', agreedSchedule: '', startCondition: '' });
+    }, decisionDraft.decision === 'WON' ? t('estimateRequest.decisionWon') : t('estimateRequest.decisionSaved'));
   };
 
   const handleOwner = async (ownerId: string) => {
@@ -263,9 +308,11 @@ export function EstimateRequestWorkbench({ currentUser, users, t }: Props) {
                 <div><p className="text-xs font-semibold text-[var(--color-primary)]">{selected.requestNo}</p><h2 className="mt-1 text-xl font-bold">{selected.projectName}</h2><p className="mt-1 text-sm text-[var(--color-text-sub)]">{selected.company || selected.client || '-'}</p></div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Link href={`/projects/intake/estimate?requestId=${encodeURIComponent(selected.id)}`} className="inline-flex items-center gap-2 border px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"><FileSpreadsheet className="size-4" />{t('estimateSheet.open')}</Link>
-                  <select aria-label={t('estimateRequest.changeStatus')} value={selected.status} disabled={!canManage(selected) || busy} onChange={(event) => void handleStatus(event.target.value as EstimateRequestStatus)} className="rounded border bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] disabled:opacity-50">
-                    {STATUSES.map((status) => <option key={status} value={status}>{statusText(t, status)}</option>)}
-                  </select>
+                  {OPERATIONAL_STATUSES.includes(selected.status) ? (
+                    <select aria-label={t('estimateRequest.changeStatus')} value={selected.status} disabled={!canManage(selected) || busy} onChange={(event) => void handleStatus(event.target.value as EstimateRequestStatus)} className="rounded border bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] disabled:opacity-50">
+                      {OPERATIONAL_STATUSES.map((status) => <option key={status} value={status}>{statusText(t, status)}</option>)}
+                    </select>
+                  ) : <span className="border px-3 py-2 text-sm font-semibold text-[var(--color-primary)]">{statusText(t, selected.status)}</span>}
                 </div>
               </div>
 
@@ -285,6 +332,41 @@ export function EstimateRequestWorkbench({ currentUser, users, t }: Props) {
                   {eligibleOwners.map((user) => <option key={user.id} value={user.id}>{getUserDisplayName(user)}</option>)}
                 </select>
               </label>
+
+              <section aria-labelledby="commercial-decision-title" className="border-y py-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h3 id="commercial-decision-title" className="font-bold">{t('estimateRequest.decisionTitle')}</h3>
+                    <p className="mt-1 text-xs text-[var(--color-text-sub)]">{t('estimateRequest.decisionDescription')}</p>
+                  </div>
+                  {selected.projectId && (
+                    <Link href="/projects" className="inline-flex items-center gap-2 border px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]">
+                      <BadgeCheck className="size-4" />{t('estimateRequest.openProject')}
+                    </Link>
+                  )}
+                </div>
+                {(selected.projectId || ['WON', 'LOST', 'CANCELLED'].includes(selected.status)) ? (
+                  <p className="mt-4 text-sm font-semibold text-[var(--color-primary)]">{t('estimateRequest.decisionLocked')}</p>
+                ) : (
+                  <form onSubmit={handleDecision} className="mt-4 space-y-3">
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      {DECISIONS.map(({ value, icon: Icon }) => (
+                        <button key={value} type="button" onClick={() => setDecisionDraft({ ...decisionDraft, decision: value })} aria-pressed={decisionDraft.decision === value} className={`inline-flex min-h-10 items-center justify-center gap-2 border px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] ${decisionDraft.decision === value ? 'border-[var(--color-primary)] bg-[var(--color-bg-sub)] text-[var(--color-primary)]' : ''}`}>
+                          <Icon className="size-4" />{statusText(t, value)}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label className="text-sm sm:col-span-2"><span className="mb-1 block font-medium">{t('estimateRequest.decisionReason')}</span><textarea required={['LOST', 'CANCELLED'].includes(decisionDraft.decision)} rows={2} value={decisionDraft.reason || ''} onChange={(event) => setDecisionDraft({ ...decisionDraft, reason: event.target.value })} className="w-full rounded border bg-[var(--color-surface)] p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]" /></label>
+                      <Field label={t('estimateRequest.agreedAmount')} value={decisionDraft.agreedAmount || ''} onChange={(value) => setDecisionDraft({ ...decisionDraft, agreedAmount: value })} />
+                      <Field label={t('estimateRequest.agreedSchedule')} value={decisionDraft.agreedSchedule || ''} onChange={(value) => setDecisionDraft({ ...decisionDraft, agreedSchedule: value })} />
+                      <label className="text-sm"><span className="mb-1 block font-medium">{t('estimateRequest.agreedScope')}</span><textarea rows={2} value={decisionDraft.agreedScope || ''} onChange={(event) => setDecisionDraft({ ...decisionDraft, agreedScope: event.target.value })} className="w-full rounded border bg-[var(--color-surface)] p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]" /></label>
+                      <label className="text-sm"><span className="mb-1 block font-medium">{t('estimateRequest.startCondition')}</span><textarea rows={2} value={decisionDraft.startCondition || ''} onChange={(event) => setDecisionDraft({ ...decisionDraft, startCondition: event.target.value })} className="w-full rounded border bg-[var(--color-surface)] p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]" /></label>
+                    </div>
+                    <div className="flex justify-end"><button type="submit" disabled={busy || !canManage(selected)} className="inline-flex items-center gap-2 rounded bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] disabled:opacity-50"><BadgeCheck className="size-4" />{t('estimateRequest.confirmDecision')}</button></div>
+                  </form>
+                )}
+              </section>
 
               <div className="border-t pt-4">
                 <h3 className="mb-3 flex items-center gap-2 font-bold"><MessageSquareText className="size-4" />{t('estimateRequest.activityTitle')}</h3>

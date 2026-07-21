@@ -5,6 +5,7 @@ export const ESTIMATE_REQUEST_STATUSES = [
   'WON',
   'LOST',
   'CANCELLED',
+  'ON_HOLD',
   'OTHER',
 ] as const;
 

@@ -85,7 +85,64 @@ export type EstimateRequestStatus =
   | 'WON'
   | 'LOST'
   | 'CANCELLED'
+  | 'ON_HOLD'
   | 'OTHER';
+
+export type CommercialDecisionType = 'WON' | 'LOST' | 'CANCELLED' | 'ON_HOLD';
+
+export interface CommercialDecision {
+  id: string;
+  estimateRequestId: string;
+  estimateSheetId?: string | null;
+  estimateSubmissionId?: string | null;
+  projectId?: string | null;
+  idempotencyKey: string;
+  decision: CommercialDecisionType;
+  reason?: string | null;
+  agreedAmount?: string | null;
+  agreedScope?: string | null;
+  agreedSchedule?: string | null;
+  startCondition?: string | null;
+  decidedAt: string;
+  decidedBy: UserId;
+  createdAt: string;
+}
+
+export interface ProjectIntake {
+  id: string;
+  estimateRequestId: string;
+  commercialDecisionId: string;
+  projectId: string;
+  status: 'DRAFT' | 'REVIEWED' | 'ACCEPTED';
+  projectNo: string;
+  sourceSnapshotJson: string;
+  version: number;
+  createdBy: UserId;
+  updatedBy: UserId;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CommercialDecisionInput {
+  decision: CommercialDecisionType;
+  reason?: string | null;
+  agreedAmount?: string | null;
+  agreedScope?: string | null;
+  agreedSchedule?: string | null;
+  startCondition?: string | null;
+}
+
+export interface CommercialDecisionProject {
+  id: string;
+  companyId: string;
+  name: string;
+  status: string;
+  managerId: string;
+  pmId: string;
+  orderIndex: number;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export type EstimateRequestActivityKind = 'CONSULTATION' | 'CALL' | 'EMAIL' | 'NOTE';
 
@@ -164,6 +221,16 @@ export interface EstimateRequest {
   activities: EstimateRequestActivity[];
   attachments: EstimateRequestAttachment[];
   histories: EstimateRequestHistory[];
+  commercialDecisions?: CommercialDecision[];
+  projectIntake?: ProjectIntake | null;
+}
+
+export interface CommercialDecisionResult {
+  request: EstimateRequest;
+  decision: CommercialDecision;
+  intake: ProjectIntake | null;
+  project: CommercialDecisionProject | null;
+  idempotent: boolean;
 }
 
 export type EstimateTemplateType = '개산견적' | '공내역서' | '설계예가' | '공사비검증';

@@ -25,6 +25,7 @@ import {
   saveEstimateSheetVersion,
   submitEstimateSheet,
 } from '../controllers/estimateSheetController';
+import { recordCommercialDecision } from '../controllers/commercialDecisionController';
 
 const router = Router();
 
@@ -42,6 +43,7 @@ router.post('/:id/estimate-sheet/submissions/:submissionId/send', requireEstimat
 router.post('/:id/estimate-sheet/sent', requireEstimateRequestManage, markEstimateSheetSent);
 router.post('/:id/estimate-sheet/exports', requireEstimateRequestManage, recordEstimateSheetExport);
 router.patch('/:id', requireEstimateRequestManage, updateEstimateRequest);
+router.post('/:id/decision', requireEstimateRequestManage, recordCommercialDecision);
 router.post('/:id/status', requireEstimateRequestManage, changeEstimateRequestStatus);
 router.post('/:id/activities', requireEstimateRequestManage, addEstimateRequestActivity);
 router.post('/:id/attachments', requireEstimateRequestManage, addEstimateRequestAttachment);

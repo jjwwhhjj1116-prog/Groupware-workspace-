@@ -1,5 +1,7 @@
 import { API_BASE_URL } from '@/lib/apiClient';
 import {
+  CommercialDecisionInput,
+  CommercialDecisionResult,
   EstimateRequest,
   EstimateRequestActivity,
   EstimateRequestActivityKind,
@@ -50,6 +52,12 @@ export const estimateRequestApi = {
     request<EstimateRequest>(`/estimate-requests/${id}/status`, {
       method: 'POST',
       body: JSON.stringify({ status, version }),
+    }),
+  decide: (id: string, expectedVersion: number, input: CommercialDecisionInput) =>
+    request<CommercialDecisionResult>(`/estimate-requests/${id}/decision`, {
+      method: 'POST',
+      headers: { 'Idempotency-Key': `estimate-decision:${id}:${expectedVersion}:${input.decision}` },
+      body: JSON.stringify({ ...input, expectedVersion }),
     }),
   addActivity: (id: string, kind: EstimateRequestActivityKind, content: string) =>
     request<EstimateRequestActivity>(`/estimate-requests/${id}/activities`, {

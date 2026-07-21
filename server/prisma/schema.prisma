@@ -90,6 +90,8 @@ model Project {
   tasks       Task[]
   estimateRequest EstimateRequest?
   estimateDbRecords EstimateDbRecord[]
+  commercialDecision CommercialDecision?
+  projectIntake ProjectIntake?
 }
 
 model EstimateDbRecord {
@@ -190,6 +192,8 @@ model EstimateRequest {
   attachments EstimateRequestAttachment[]
   histories   EstimateRequestHistory[]
   estimateSheet EstimateSheet?
+  commercialDecisions CommercialDecision[]
+  projectIntake ProjectIntake?
 
   @@index([departmentId, status])
   @@index([ownerId])
@@ -227,6 +231,7 @@ model EstimateSheet {
   versions        EstimateSheetVersion[]
   exports         EstimateSheetExport[]
   submissions     EstimateSubmission[]
+  commercialDecisions CommercialDecision[]
 
   @@index([templateType, status])
 }
@@ -248,10 +253,59 @@ model EstimateSubmission {
   updatedAt       DateTime  @updatedAt
 
   estimateSheet EstimateSheet @relation(fields: [estimateSheetId], references: [id], onDelete: Cascade)
+  commercialDecisions CommercialDecision[]
 
   @@unique([estimateSheetId, version])
   @@index([status, submittedAt])
   @@index([sentAt])
+}
+
+model CommercialDecision {
+  id                   String   @id @default(uuid())
+  estimateRequestId    String
+  estimateSheetId      String?
+  estimateSubmissionId String?
+  projectId            String?  @unique
+  idempotencyKey       String   @unique
+  decision             String
+  reason               String?  @db.Text
+  agreedAmount         Decimal? @db.Decimal(18, 2)
+  agreedScope          String?  @db.Text
+  agreedSchedule       String?  @db.Text
+  startCondition       String?  @db.Text
+  decidedAt            DateTime @default(now())
+  decidedBy            String
+  createdAt            DateTime @default(now())
+
+  estimateRequest    EstimateRequest     @relation(fields: [estimateRequestId], references: [id], onDelete: Cascade)
+  estimateSheet      EstimateSheet?      @relation(fields: [estimateSheetId], references: [id], onDelete: SetNull)
+  estimateSubmission EstimateSubmission? @relation(fields: [estimateSubmissionId], references: [id], onDelete: SetNull)
+  project            Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  projectIntake      ProjectIntake?
+
+  @@index([estimateRequestId, decidedAt])
+  @@index([decision, decidedAt])
+}
+
+model ProjectIntake {
+  id                   String   @id @default(uuid())
+  estimateRequestId    String   @unique
+  commercialDecisionId String   @unique
+  projectId            String   @unique
+  status               String   @default("DRAFT")
+  projectNo            String
+  sourceSnapshotJson   String   @db.Text
+  version              Int      @default(1)
+  createdBy            String
+  updatedBy            String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  estimateRequest    EstimateRequest    @relation(fields: [estimateRequestId], references: [id], onDelete: Cascade)
+  commercialDecision CommercialDecision @relation(fields: [commercialDecisionId], references: [id], onDelete: Cascade)
+  project            Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([status, updatedAt])
 }
 
 model EstimateSheetVersion {

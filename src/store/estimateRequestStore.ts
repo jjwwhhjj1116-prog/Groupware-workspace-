@@ -7,6 +7,8 @@ import {
 } from '@/lib/estimateRequestApi';
 import { useProjectStore } from '@/store/projectStore';
 import {
+  CommercialDecisionInput,
+  CommercialDecisionResult,
   EstimateRequest,
   EstimateRequestActivityKind,
   EstimateRequestHistory,
@@ -24,6 +26,7 @@ interface EstimateRequestState {
   createRequest: (draft: EstimateRequestDraft, actorId: string) => Promise<EstimateRequest>;
   updateRequest: (id: string, updates: Partial<EstimateRequest>, actorId: string) => Promise<EstimateRequest>;
   changeStatus: (id: string, status: EstimateRequestStatus, actorId: string) => Promise<EstimateRequest>;
+  recordDecision: (id: string, input: CommercialDecisionInput, actorId: string) => Promise<CommercialDecisionResult>;
   addActivity: (id: string, kind: EstimateRequestActivityKind, content: string, actorId: string) => Promise<void>;
   addAttachments: (id: string, category: string, files: File[], actorId: string) => Promise<void>;
   removeAttachment: (id: string, attachmentId: string, actorId: string) => Promise<void>;
@@ -42,7 +45,8 @@ const replaceRequest = (requests: EstimateRequest[], request: EstimateRequest) =
 const ensureLinkedProject = (request: EstimateRequest) => {
   if (request.status !== 'WON' || !request.ownerId) return request.projectId || null;
   const projectStore = useProjectStore.getState();
-  const existing = projectStore.projects.find((project) => project.id === request.projectId);
+  const linkedProjectId = request.projectId || `project-${request.id}`;
+  const existing = projectStore.projects.find((project) => project.id === linkedProjectId);
   if (existing) {
     if (existing.source !== 'ESTIMATE_REQUEST') {
       projectStore.updateProjectField(existing.id, 'source', 'ESTIMATE_REQUEST');
@@ -69,18 +73,26 @@ const ensureLinkedProject = (request: EstimateRequest) => {
     }]);
     return request.projectId;
   }
-  return projectStore.addProject({
+  const projectId = linkedProjectId;
+  const timestamp = now();
+  projectStore.replaceProjects([...projectStore.projects, {
+    id: projectId,
     projectSourceType: 'CLIENT_ORDER',
     source: 'ESTIMATE_REQUEST',
     title: request.projectName,
     description: request.memo || undefined,
     priority: 'NORMAL',
+    status: 'INTAKE_RECEIVED',
     departmentId: request.departmentId,
     managerId: request.ownerId,
     pmId: request.ownerId,
     startDate: request.expectedStartDate || undefined,
     deliveryDate: request.finalDelivery || request.firstDelivery || undefined,
-  }).id;
+    progress: 0,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  }]);
+  return projectId;
 };
 
 export const useEstimateRequestStore = create<EstimateRequestState>()(persist((set, get) => ({
@@ -173,14 +185,19 @@ export const useEstimateRequestStore = create<EstimateRequestState>()(persist((s
   changeStatus: async (id, status, actorId) => {
     const current = get().requests.find((item) => item.id === id);
     if (!current) throw new Error('Estimate request not found');
+    if (current.projectId || ['WON', 'LOST', 'CANCELLED'].includes(current.status)) {
+      throw new Error('A terminal commercial decision cannot be changed through the status action');
+    }
+    if (['WON', 'LOST', 'CANCELLED', 'ON_HOLD'].includes(status)) {
+      throw new Error('Commercial decisions must use the decision action');
+    }
     if (get().persistenceMode === 'SERVER') {
       const updated = await estimateRequestApi.changeStatus(id, current.version, status);
-      ensureLinkedProject(updated);
       set((state) => ({ requests: replaceRequest(state.requests, updated) }));
       return updated;
     }
     const timestamp = now();
-    let updated: EstimateRequest = {
+    const updated: EstimateRequest = {
       ...current,
       status,
       projectId: current.projectId,
@@ -197,10 +214,96 @@ export const useEstimateRequestStore = create<EstimateRequestState>()(persist((s
         createdAt: timestamp,
       }, ...current.histories],
     };
-    const projectId = ensureLinkedProject(updated);
-    if (projectId && projectId !== updated.projectId) updated = { ...updated, projectId };
     set((state) => ({ requests: replaceRequest(state.requests, updated) }));
     return updated;
+  },
+
+  recordDecision: async (id, input, actorId) => {
+    const current = get().requests.find((item) => item.id === id);
+    if (!current) throw new Error('Estimate request not found');
+    if (get().persistenceMode === 'SERVER') {
+      const result = await estimateRequestApi.decide(id, current.version, input);
+      ensureLinkedProject(result.request);
+      set((state) => ({ requests: replaceRequest(state.requests, result.request) }));
+      return result;
+    }
+    if (current.projectId || current.status === 'WON') throw new Error('This estimate request has already been converted to a project');
+    if (['LOST', 'CANCELLED'].includes(current.status)) throw new Error('A terminal estimate request cannot be decided again');
+    if (current.status === 'ON_HOLD' && input.decision === 'ON_HOLD') throw new Error('This estimate request is already on hold');
+    if (['LOST', 'CANCELLED'].includes(input.decision) && !input.reason?.trim()) throw new Error('A reason is required for lost or cancelled decisions');
+    if (input.decision === 'WON' && !current.ownerId) throw new Error('An owner must be assigned before marking the request as won');
+    const { useEstimateSheetStore } = await import('@/store/estimateSheetStore');
+    const sheet = useEstimateSheetStore.getState().sheets[id];
+    const sentSubmission = sheet?.submissions.find((item) => item.status === 'SENT' && item.sentAt) || null;
+    if (['WON', 'LOST'].includes(input.decision) && !sentSubmission) {
+      throw new Error('A sent estimate submission is required before this decision');
+    }
+    const timestamp = now();
+    const decisionId = newId('commercial-decision');
+    let projectId = current.projectId || null;
+    if (input.decision === 'WON') {
+      projectId = ensureLinkedProject({ ...current, status: 'WON' }) || null;
+    }
+    const decision = {
+      id: decisionId,
+      estimateRequestId: id,
+      estimateSheetId: sheet?.id || null,
+      estimateSubmissionId: sentSubmission?.id || null,
+      projectId,
+      idempotencyKey: `estimate-decision:${id}:${current.version}:${input.decision}`,
+      decision: input.decision,
+      reason: input.reason || null,
+      agreedAmount: input.agreedAmount || null,
+      agreedScope: input.agreedScope || null,
+      agreedSchedule: input.agreedSchedule || null,
+      startCondition: input.startCondition || null,
+      decidedAt: timestamp,
+      decidedBy: actorId,
+      createdAt: timestamp,
+    };
+    const intake = projectId && input.decision === 'WON' ? {
+      id: newId('project-intake'),
+      estimateRequestId: id,
+      commercialDecisionId: decisionId,
+      projectId,
+      status: 'DRAFT' as const,
+      projectNo: current.requestNo,
+      sourceSnapshotJson: JSON.stringify({
+        schemaVersion: 1,
+        source: { estimateRequestId: id, requestNo: current.requestNo, estimateId: current.estimateId || null, estimateSheetId: sheet?.id || null, estimateSubmissionId: sentSubmission?.id || null, estimateDocumentHash: sentSubmission?.documentHash || null, commercialDecisionId: decisionId },
+        project: { ...current, activities: undefined, attachments: undefined, histories: undefined, commercialDecisions: undefined, projectIntake: undefined },
+        decision: input,
+        attachments: current.attachments,
+        activities: current.activities,
+      }),
+      version: 1,
+      createdBy: actorId,
+      updatedBy: actorId,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    } : null;
+    const updated: EstimateRequest = {
+      ...current,
+      status: input.decision,
+      projectId,
+      version: current.version + 1,
+      updatedBy: actorId,
+      updatedAt: timestamp,
+      commercialDecisions: [decision, ...(current.commercialDecisions || [])],
+      projectIntake: intake,
+      histories: [{
+        id: newId('history'),
+        estimateRequestId: id,
+        action: 'COMMERCIAL_DECISION_RECORDED',
+        fromStatus: current.status,
+        toStatus: input.decision,
+        changes: JSON.stringify({ decisionId, projectId, projectIntakeId: intake?.id || null, estimateSubmissionId: sentSubmission?.id || null }),
+        actorId,
+        createdAt: timestamp,
+      }, ...current.histories],
+    };
+    set((state) => ({ requests: replaceRequest(state.requests, updated) }));
+    return { request: updated, decision, intake, project: null, idempotent: false };
   },
 
   addActivity: async (id, kind, content, actorId) => {

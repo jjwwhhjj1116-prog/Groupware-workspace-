@@ -9,6 +9,7 @@ import {
   canViewEstimateRequest,
   normalizeEstimateRequestStatus,
 } from '../domain/estimateRequest';
+import { COMMERCIAL_DECISIONS } from '../domain/commercialDecision';
 
 const nullableText = z.string().trim().max(5000).nullable().optional();
 const requestFields = {
@@ -79,6 +80,8 @@ const detailInclude = {
   activities: { orderBy: { occurredAt: 'desc' as const } },
   attachments: { orderBy: { createdAt: 'desc' as const } },
   histories: { orderBy: { createdAt: 'desc' as const } },
+  commercialDecisions: { orderBy: { decidedAt: 'desc' as const } },
+  projectIntake: true,
 };
 
 const audit = (actorId: string, action: string, entityId: string, details: unknown) => ({
@@ -154,6 +157,9 @@ export const createEstimateRequest = async (req: Request, res: Response) => {
     }
     const parsed = createSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ error: 'Invalid input', details: parsed.error.issues });
+    if (parsed.data.status && (COMMERCIAL_DECISIONS as readonly string[]).includes(parsed.data.status)) {
+      return res.status(400).json({ error: 'A new estimate request cannot start with a commercial decision' });
+    }
 
     const idempotencyKey = String(req.header('Idempotency-Key') || '').trim() || null;
     if (idempotencyKey) {
@@ -266,30 +272,17 @@ export const changeEstimateRequestStatus = async (req: Request, res: Response) =
     const current = (req as any).estimateRequest;
     const parsed = statusSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ error: 'Invalid input', details: parsed.error.issues });
-    if (parsed.data.status === 'WON' && !current.ownerId) {
-      return res.status(400).json({ error: 'An owner must be assigned before marking the request as won' });
+    if (current.projectId || ['WON', 'LOST', 'CANCELLED'].includes(current.status)) {
+      return res.status(409).json({ error: 'A terminal commercial decision cannot be changed through the status endpoint' });
+    }
+    if ((COMMERCIAL_DECISIONS as readonly string[]).includes(parsed.data.status)) {
+      return res.status(400).json({ error: 'Commercial decisions must use the decision endpoint' });
     }
 
     const updated = await prisma.$transaction(async (tx) => {
-      let projectId = current.projectId as string | null;
-      if (parsed.data.status === 'WON' && !projectId) {
-        const owner = await tx.personnelCard.findUniqueOrThrow({ where: { id: current.ownerId } });
-        const maxOrder = await tx.project.aggregate({ _max: { orderIndex: true } });
-        const project = await tx.project.create({
-          data: {
-            companyId: owner.companyId || 'CON_COST',
-            name: current.projectName,
-            status: 'INTAKE_RECEIVED',
-            managerId: actor.role === 'DEPARTMENT_MANAGER' ? actor.personnelId : current.ownerId,
-            pmId: current.ownerId,
-            orderIndex: (maxOrder._max.orderIndex || 0) + 1,
-          },
-        });
-        projectId = project.id;
-      }
       const result = await tx.estimateRequest.updateMany({
         where: { id: current.id, version: parsed.data.version },
-        data: { status: parsed.data.status, projectId, updatedBy: actor.personnelId, version: { increment: 1 } },
+        data: { status: parsed.data.status, updatedBy: actor.personnelId, version: { increment: 1 } },
       });
       if (result.count !== 1) throw new Error('VERSION_CONFLICT');
       await tx.estimateRequestHistory.create({
@@ -305,7 +298,6 @@ export const changeEstimateRequestStatus = async (req: Request, res: Response) =
         data: audit(actor.personnelId, 'ESTIMATE_REQUEST_STATUS_CHANGE', current.id, {
           from: current.status,
           to: parsed.data.status,
-          projectId,
         }),
       });
       return tx.estimateRequest.findUniqueOrThrow({ where: { id: current.id }, include: detailInclude });
