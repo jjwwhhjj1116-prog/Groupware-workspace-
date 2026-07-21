@@ -96,6 +96,7 @@ model Project {
   operation ProjectOperation?
   qcChecklist ProjectQcChecklist?
   deliveryWorkspace ProjectDeliveryWorkspace?
+  profitAnalysis ProjectProfitAnalysis?
 }
 
 model EstimateDbRecord {
@@ -650,6 +651,131 @@ model ProjectDeliveryHistory {
   workspace ProjectDeliveryWorkspace @relation(fields: [projectDeliveryWorkspaceId], references: [id], onDelete: Cascade)
 
   @@index([projectDeliveryWorkspaceId, createdAt])
+}
+
+model ProjectProfitAnalysis {
+  id                         String   @id
+  projectId                  String   @unique
+  status                     String   @default("OPEN")
+  unitPriceTableId           String?
+  sourceCommercialDecisionId String?
+  version                    Int      @default(1)
+  createdBy                  String
+  updatedBy                  String
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  project         Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  unitPriceTable  UnitPriceTable?        @relation(fields: [unitPriceTableId], references: [id], onDelete: SetNull)
+  contractAmounts ProfitContractAmount[]
+  rounds          ProjectProfitRound[]
+  histories       ProjectProfitHistory[]
+
+  @@index([status, updatedAt])
+  @@index([unitPriceTableId])
+}
+
+model ProfitContractAmount {
+  id                      String   @id @default(uuid())
+  projectProfitAnalysisId String
+  category                String
+  amount                  Decimal  @db.Decimal(18, 2)
+  sourceType              String
+  sourceRef               String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  analysis ProjectProfitAnalysis @relation(fields: [projectProfitAnalysisId], references: [id], onDelete: Cascade)
+
+  @@unique([projectProfitAnalysisId, category])
+}
+
+model ProjectProfitRound {
+  id                      String   @id @default(uuid())
+  projectProfitAnalysisId String
+  roundNo                 Int
+  startDate               DateTime?
+  endDate                 DateTime?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  analysis  ProjectProfitAnalysis @relation(fields: [projectProfitAnalysisId], references: [id], onDelete: Cascade)
+  members   ProjectProfitMember[]
+  otherCosts ProjectProfitOtherCost[]
+
+  @@unique([projectProfitAnalysisId, roundNo])
+}
+
+model ProjectProfitMember {
+  id                   String   @id @default(uuid())
+  projectProfitRoundId String
+  personnelId          String?
+  sourceScheduleRowId  String?
+  category             String
+  grade                String
+  name                 String
+  workDatesJson        String   @db.Text
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  round ProjectProfitRound @relation(fields: [projectProfitRoundId], references: [id], onDelete: Cascade)
+
+  @@index([projectProfitRoundId, category])
+  @@index([personnelId])
+}
+
+model ProjectProfitOtherCost {
+  id                   String   @id @default(uuid())
+  projectProfitRoundId String
+  category             String
+  amount               Decimal  @db.Decimal(18, 2)
+  sourceType           String
+  sourceRef            String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  round ProjectProfitRound @relation(fields: [projectProfitRoundId], references: [id], onDelete: Cascade)
+
+  @@unique([projectProfitRoundId, category])
+}
+
+model UnitPriceTable {
+  id            String   @id @default(uuid())
+  version       Int      @unique
+  effectiveDate DateTime
+  active        Boolean  @default(true)
+  createdBy     String
+  createdAt     DateTime @default(now())
+
+  entries  UnitPriceEntry[]
+  analyses ProjectProfitAnalysis[]
+
+  @@index([active, effectiveDate])
+}
+
+model UnitPriceEntry {
+  id               String   @id @default(uuid())
+  unitPriceTableId String
+  grade            String
+  unitPrice        Decimal  @db.Decimal(18, 2)
+  createdAt        DateTime @default(now())
+
+  table UnitPriceTable @relation(fields: [unitPriceTableId], references: [id], onDelete: Cascade)
+
+  @@unique([unitPriceTableId, grade])
+}
+
+model ProjectProfitHistory {
+  id                      String   @id @default(uuid())
+  projectProfitAnalysisId String
+  action                  String
+  detailsJson             String?  @db.Text
+  actorId                 String
+  createdAt               DateTime @default(now())
+
+  analysis ProjectProfitAnalysis @relation(fields: [projectProfitAnalysisId], references: [id], onDelete: Cascade)
+
+  @@index([projectProfitAnalysisId, createdAt])
 }
 
 model EstimateSheetVersion {

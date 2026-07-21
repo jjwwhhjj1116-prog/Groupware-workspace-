@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '../lib/db';
 import { emptyPmAssignment, emptyPmPlan, emptyPmRequestTargets } from '../domain/projectPmSchedule';
+import { OTHER_COST_CATEGORIES, PROFIT_CATEGORIES } from '../domain/projectProfit';
 import {
   buildProjectIntakeDraft,
   canEditProjectIntake,
@@ -332,6 +333,41 @@ export const acceptProjectIntake = async (req: Request, res: Response) => {
           updatedBy: actor.personnelId,
         },
         update: {},
+      });
+      const [commercialDecision, unitPriceTable] = await Promise.all([
+        tx.commercialDecision.findUnique({ where: { id: current.commercialDecisionId } }),
+        tx.unitPriceTable.findFirst({ where: { active: true }, orderBy: [{ effectiveDate: 'desc' }, { version: 'desc' }] }),
+      ]);
+      await tx.projectProfitAnalysis.upsert({
+        where: { projectId: current.projectId },
+        create: {
+          id: current.projectId,
+          projectId: current.projectId,
+          sourceCommercialDecisionId: current.commercialDecisionId,
+          unitPriceTableId: unitPriceTable?.id,
+          createdBy: actor.personnelId,
+          updatedBy: actor.personnelId,
+        },
+        update: {},
+      });
+      await tx.projectProfitRound.createMany({
+        data: [1, 2, 3].map((roundNo) => ({ projectProfitAnalysisId: current.projectId, roundNo })),
+        skipDuplicates: true,
+      });
+      await tx.profitContractAmount.createMany({
+        data: PROFIT_CATEGORIES.map((category) => ({
+          projectProfitAnalysisId: current.projectId,
+          category,
+          amount: category === 'STRUCTURE' ? commercialDecision?.agreedAmount || 0 : 0,
+          sourceType: category === 'STRUCTURE' && commercialDecision?.agreedAmount ? 'COMMERCIAL_DECISION' : 'MANUAL',
+          sourceRef: category === 'STRUCTURE' && commercialDecision?.agreedAmount ? current.commercialDecisionId : null,
+        })),
+        skipDuplicates: true,
+      });
+      const profitRounds = await tx.projectProfitRound.findMany({ where: { projectProfitAnalysisId: current.projectId } });
+      await tx.projectProfitOtherCost.createMany({
+        data: profitRounds.flatMap((round) => OTHER_COST_CATEGORIES.map((category) => ({ projectProfitRoundId: round.id, category, amount: 0, sourceType: 'MANUAL' }))),
+        skipDuplicates: true,
       });
       const changes = { version: parsed.data.expectedVersion + 1, note: parsed.data.note, acceptedAt, projectStatus: 'MANAGER_REVIEW' };
       await tx.projectIntakeHistory.create({

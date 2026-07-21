@@ -74,6 +74,22 @@ const parsePlan = (value: string, id: 'plan1' | 'plan2'): PmSchedulePlan => {
   return parsed.success ? parsed.data : emptyPmPlan(id);
 };
 
+const profitCategory = (category: PmSchedulePlan['rows'][number]['category']) => category === 'FINISH' ? 'FINISH' : category === 'CIVIL' ? 'CIVIL' : 'STRUCTURE';
+const profitGrade = (rank: string | null, companyId: string | null) => {
+  if (companyId === 'VIET_QS') return 'VIETNAM';
+  return ({ CEO: 'DIRECTOR', COO: 'DIRECTOR', VICE_PRESIDENT: 'DIRECTOR', MANAGER: 'MANAGER', PM: 'TEAM_LEADER', TEAM_LEADER: 'TEAM_LEADER', DEPUTY_TEAM_LEADER: 'PART_LEADER', STAFF: 'PROFESSIONAL', TRAINEE: 'PROFESSIONAL' } as Record<string, string>)[rank || ''] || 'PRINCIPAL';
+};
+const profitWorkDates = (startDate: string, workDays: number) => {
+  const result: string[] = [];
+  const cursor = new Date(`${startDate}T00:00:00.000Z`);
+  if (!Number.isFinite(cursor.getTime())) return result;
+  for (let index = 0; index < Math.min(62, Math.max(1, workDays)); index += 1) {
+    result.push(cursor.toISOString().slice(0, 10));
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return result;
+};
+
 const scopeFor = (schedule: ScheduleWithRelations): ProjectPmScheduleScope => {
   const assignment = parseAssignment(schedule.assignmentsJson);
   const plan1 = parsePlan(schedule.plan1Json, 'plan1');
@@ -274,6 +290,23 @@ export const approveProjectPmSchedule = async (req: Request, res: Response) => {
       if (claimed.count !== 1) throw httpError('PM schedule was changed by another user', 409);
       await tx.project.update({ where: { id: projectId }, data: { status: 'SCHEDULE_APPROVED' } });
       await historyAndAudit(tx, current.id, projectId, actor.personnelId, 'APPROVED', current.status, target, { approvedPlan: parsed.data.selectedProposal, rowCount: selected.rows.length });
+      const profit = await tx.projectProfitAnalysis.findUnique({ where: { projectId }, include: { rounds: true } });
+      if (profit) {
+        const firstRound = profit.rounds.find((round) => round.roundNo === 1) || await tx.projectProfitRound.create({ data: { projectProfitAnalysisId: profit.id, roundNo: 1 } });
+        const personnel = await tx.personnelCard.findMany({ where: { id: { in: selected.rows.map((row) => row.assigneeId) } } });
+        const people = new Map(personnel.map((person) => [person.id, person]));
+        await tx.projectProfitMember.deleteMany({ where: { projectProfitRoundId: firstRound.id, sourceScheduleRowId: { not: null } } });
+        if (selected.rows.length) {
+          await tx.projectProfitMember.createMany({ data: selected.rows.map((row) => {
+            const person = people.get(row.assigneeId);
+            return { projectProfitRoundId: firstRound.id, personnelId: row.assigneeId, sourceScheduleRowId: row.id, category: profitCategory(row.category), grade: profitGrade(person?.organizationRank || null, person?.companyId || null), name: person?.displayName || person?.name || row.assigneeId, workDatesJson: JSON.stringify(profitWorkDates(row.startDate, row.workDays)) };
+          }) });
+        }
+        const starts = selected.rows.map((row) => row.startDate).filter(Boolean).sort();
+        const ends = selected.rows.map((row) => row.endDate).filter(Boolean).sort();
+        await tx.projectProfitRound.update({ where: { id: firstRound.id }, data: { startDate: starts[0] ? new Date(`${starts[0]}T00:00:00.000Z`) : null, endDate: ends.at(-1) ? new Date(`${ends.at(-1)}T00:00:00.000Z`) : null } });
+        await tx.projectProfitHistory.create({ data: { projectProfitAnalysisId: profit.id, action: 'PM_SCHEDULE_SYNCED', actorId: actor.personnelId, detailsJson: JSON.stringify({ approvedPlan: parsed.data.selectedProposal, rowCount: selected.rows.length, sourceScheduleId: current.id }) } });
+      }
     });
     res.json(serialize(await loadSchedule(projectId), actor));
   } catch (error) { handleError(res, error, 'Approve project PM schedule'); }

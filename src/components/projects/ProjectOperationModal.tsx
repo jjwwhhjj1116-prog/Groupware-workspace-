@@ -10,8 +10,9 @@ import { useTranslationStore } from '@/store/translationStore';
 import { ProjectOperationActivityKind } from '@/types/models';
 import { ProjectQcPanel } from './ProjectQcPanel';
 import { ProjectDeliveryPanel } from './ProjectDeliveryPanel';
+import { ProjectProfitPanel } from './ProjectProfitPanel';
 
-type Tab = 'OVERVIEW' | 'ACTIVITY' | 'ASSIGNMENTS' | 'TIMELINE' | 'QC' | 'DELIVERY' | 'DAILY';
+type Tab = 'OVERVIEW' | 'ACTIVITY' | 'ASSIGNMENTS' | 'TIMELINE' | 'QC' | 'DELIVERY' | 'DAILY' | 'PROFIT';
 type Props = { projectId: string; onClose: () => void };
 
 const inputClass = 'w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-main)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]';
@@ -82,6 +83,7 @@ export function ProjectOperationModal({ projectId, onClose }: Props) {
     ['QC', t('projectOperation.tab.qc')],
     ['DELIVERY', t('projectOperation.tab.delivery')],
     ['DAILY', t('projectDelivery.tab.daily')],
+    ['PROFIT', t('projectProfit.tab')],
   ];
 
   return (
@@ -179,6 +181,7 @@ export function ProjectOperationModal({ projectId, onClose }: Props) {
 
                 {tab === 'DELIVERY' && <ProjectDeliveryPanel projectId={projectId} mode="DELIVERY" />}
                 {tab === 'DAILY' && <ProjectDeliveryPanel projectId={projectId} mode="DAILY" />}
+                {tab === 'PROFIT' && <ProjectProfitPanel projectId={projectId} />}
               </>}
         </div>
       </section>

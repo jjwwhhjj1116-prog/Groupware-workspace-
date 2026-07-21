@@ -867,6 +867,119 @@ export interface ProjectDeliveryWorkspace {
   };
 }
 
+export type ProfitCategory = 'STRUCTURE' | 'FINISH' | 'CIVIL' | 'MECHANICAL' | 'ELECTRICAL' | 'OUTSOURCING' | 'AS';
+export type ProfitLaborCategory = 'STRUCTURE' | 'FINISH' | 'CIVIL';
+export type ProfitOtherCostCategory = 'MECHANICAL' | 'ELECTRICAL' | 'OUTSOURCING' | 'AS';
+export type ProfitGrade = 'DIRECTOR' | 'MANAGER' | 'TEAM_LEADER' | 'PART_LEADER' | 'PRINCIPAL' | 'RESPONSIBLE' | 'SENIOR' | 'PROFESSIONAL' | 'VIETNAM';
+
+export interface UnitPriceEntry {
+  id?: string;
+  unitPriceTableId?: string;
+  grade: ProfitGrade;
+  unitPrice: string;
+  createdAt?: string;
+}
+
+export interface UnitPriceTable {
+  id: string;
+  version: number;
+  effectiveDate: string;
+  active: boolean;
+  createdBy: UserId;
+  createdAt: string;
+  entries: UnitPriceEntry[];
+}
+
+export interface ProfitContractAmount {
+  id?: string;
+  projectProfitAnalysisId?: string;
+  category: ProfitCategory;
+  amount: string;
+  sourceType: 'COMMERCIAL_DECISION' | 'MANUAL';
+  sourceRef?: string | null;
+}
+
+export interface ProjectProfitMember {
+  id: string;
+  projectProfitRoundId?: string;
+  personnelId?: UserId | null;
+  sourceScheduleRowId?: string | null;
+  category: ProfitLaborCategory;
+  grade: ProfitGrade;
+  name: string;
+  workDates: string[];
+  days: number;
+  unitPrice?: string;
+  cost: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ProjectProfitOtherCost {
+  id?: string;
+  projectProfitRoundId?: string;
+  category: ProfitOtherCostCategory;
+  amount: string;
+  sourceType: 'ESTIMATE_DATABASE' | 'MANUAL';
+  sourceRef?: string | null;
+}
+
+export interface ProjectProfitRound {
+  id: string;
+  projectProfitAnalysisId?: string;
+  roundNo: number;
+  startDate?: string | null;
+  endDate?: string | null;
+  members: ProjectProfitMember[];
+  otherCosts: ProjectProfitOtherCost[];
+}
+
+export interface ProjectProfitSummaryCategory {
+  category: ProfitCategory;
+  contractAmount: string;
+  roundCosts: string[];
+  totalCost: string;
+}
+
+export interface ProjectProfitSummary {
+  formula: string;
+  contractTotal: string;
+  costTotal: string;
+  result: string;
+  roundTotals: Array<{ roundNo: number; amount: string }>;
+  byCategory: ProjectProfitSummaryCategory[];
+}
+
+export interface ProjectProfitHistory {
+  id: string;
+  projectProfitAnalysisId: string;
+  action: string;
+  details: Record<string, unknown>;
+  actorId: UserId;
+  createdAt: string;
+}
+
+export interface ProjectProfitAnalysis {
+  id: string;
+  projectId: string;
+  status: 'OPEN' | 'ANALYZED';
+  unitPriceTableId?: string | null;
+  sourceCommercialDecisionId?: string | null;
+  version: number;
+  createdBy: UserId;
+  updatedBy: UserId;
+  createdAt: string;
+  updatedAt: string;
+  project: { id: string; name: string; status: string; departmentId: DepartmentId; managerId: UserId; pmId: UserId };
+  unitPriceTable?: UnitPriceTable | null;
+  contractAmounts: ProfitContractAmount[];
+  rounds: ProjectProfitRound[];
+  histories: ProjectProfitHistory[];
+  sourceTrace: { canonicalProjectId: string; commercialDecisionId?: string | null; agreedAmount?: string | null; unitPriceTableId?: string | null; unitPriceTableVersion?: number | null };
+  summary: ProjectProfitSummary;
+  permissions: { canView: boolean; canEdit: boolean; canViewUnitPrices: boolean; canManageUnitPrices: boolean };
+}
+
 export interface Project {
   id: string;
   projectSourceType?: ProjectSourceType; // Default to CLIENT_ORDER if undefined

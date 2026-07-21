@@ -38,6 +38,7 @@ import projectPmScheduleRoutes from './routes/projectPmSchedules';
 import projectOperationRoutes from './routes/projectOperations';
 import projectQcRoutes from './routes/projectQc';
 import projectDeliveryRoutes from './routes/projectDeliveries';
+import projectProfitRoutes from './routes/projectProfits';
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -54,6 +55,7 @@ app.use('/api/project-pm-schedules', projectPmScheduleRoutes);
 app.use('/api/project-operations', projectOperationRoutes);
 app.use('/api/project-qc', projectQcRoutes);
 app.use('/api/project-deliveries', projectDeliveryRoutes);
+app.use('/api/project-profits', projectProfitRoutes);
 app.get('/api/ping', (req, res) => {
   res.json({ message: 'pong' });
 });
