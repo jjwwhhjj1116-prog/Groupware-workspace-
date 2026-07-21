@@ -95,6 +95,7 @@ model Project {
   pmSchedule ProjectPmSchedule?
   operation ProjectOperation?
   qcChecklist ProjectQcChecklist?
+  deliveryWorkspace ProjectDeliveryWorkspace?
 }
 
 model EstimateDbRecord {
@@ -512,6 +513,143 @@ model ProjectQcTerm {
   updatedAt  DateTime @updatedAt
 
   @@index([updatedAt])
+}
+
+model ProjectDeliveryWorkspace {
+  id            String   @id
+  projectId     String   @unique
+  status        String   @default("OPEN")
+  progressRate  Int      @default(0)
+  currentStage  String?
+  version       Int      @default(1)
+  createdBy     String
+  updatedBy     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  project          Project                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  rounds           ProjectDeliveryRound[]
+  records          ProjectDeliveryRecord[]
+  downloadRequests ProjectDownloadRequest[]
+  dailyReports     ProjectDailyReport[]
+  histories        ProjectDeliveryHistory[]
+
+  @@index([status, updatedAt])
+}
+
+model ProjectDeliveryRound {
+  id                         String   @id @default(uuid())
+  projectDeliveryWorkspaceId String
+  roundNo                    Int
+  kind                       String   @default("DELIVERY")
+  parentRoundId              String?
+  label                      String
+  deliveryDate               DateTime
+  memo                       String   @db.Text
+  status                     String   @default("REGISTERED")
+  createdBy                  String
+  createdAt                  DateTime @default(now())
+
+  workspace ProjectDeliveryWorkspace @relation(fields: [projectDeliveryWorkspaceId], references: [id], onDelete: Cascade)
+  files     ProjectDeliveryFile[]
+  parentRound ProjectDeliveryRound?  @relation("DeliveryRoundRevisions", fields: [parentRoundId], references: [id], onDelete: SetNull)
+  redeliveries ProjectDeliveryRound[] @relation("DeliveryRoundRevisions")
+
+  @@unique([projectDeliveryWorkspaceId, roundNo])
+  @@index([projectDeliveryWorkspaceId, deliveryDate])
+  @@index([parentRoundId])
+}
+
+model ProjectDeliveryFile {
+  id                     String   @id @default(uuid())
+  projectDeliveryRoundId String
+  logicalFileKey         String
+  version                Int
+  originalName           String
+  mimeType               String
+  size                   Int
+  storageKey             String?
+  checksum               String?
+  memo                   String   @db.Text
+  createdBy              String
+  createdAt              DateTime @default(now())
+
+  round ProjectDeliveryRound @relation(fields: [projectDeliveryRoundId], references: [id], onDelete: Cascade)
+
+  @@unique([projectDeliveryRoundId, logicalFileKey, version])
+  @@index([projectDeliveryRoundId, createdAt])
+}
+
+model ProjectDeliveryRecord {
+  id                         String   @id @default(uuid())
+  projectDeliveryWorkspaceId String
+  occurredAt                 DateTime
+  type                       String
+  memo                       String   @db.Text
+  writerId                   String
+  createdAt                  DateTime @default(now())
+
+  workspace ProjectDeliveryWorkspace @relation(fields: [projectDeliveryWorkspaceId], references: [id], onDelete: Cascade)
+
+  @@index([projectDeliveryWorkspaceId, occurredAt])
+}
+
+model ProjectDownloadRequest {
+  id                         String   @id @default(uuid())
+  projectDeliveryWorkspaceId String
+  targetFile                 String
+  reason                     String   @db.Text
+  status                     String   @default("PENDING")
+  requestedBy                String
+  requestedAt                DateTime @default(now())
+  reviewedBy                 String?
+  reviewedAt                 DateTime?
+  reviewNote                 String?  @db.Text
+
+  workspace ProjectDeliveryWorkspace @relation(fields: [projectDeliveryWorkspaceId], references: [id], onDelete: Cascade)
+
+  @@index([projectDeliveryWorkspaceId, requestedAt])
+  @@index([status, requestedAt])
+}
+
+model ProjectDailyReport {
+  id                         String   @id @default(uuid())
+  projectDeliveryWorkspaceId String
+  scheduleRowId              String?
+  reportDate                 DateTime
+  stage                      String
+  planMemo                   String   @db.Text
+  resultMemo                 String   @db.Text
+  progressRate               Int
+  delayReason                String   @db.Text
+  overtimeReason             String   @db.Text
+  pmStatus                   String   @default("NOT_REQUIRED")
+  managerStatus              String   @default("NOT_REQUIRED")
+  executiveStatus            String   @default("NOT_REQUIRED")
+  createdBy                  String
+  updatedBy                  String
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  workspace ProjectDeliveryWorkspace @relation(fields: [projectDeliveryWorkspaceId], references: [id], onDelete: Cascade)
+
+  @@index([projectDeliveryWorkspaceId, reportDate])
+  @@index([createdBy, reportDate])
+}
+
+model ProjectDeliveryHistory {
+  id                         String   @id @default(uuid())
+  projectDeliveryWorkspaceId String
+  entityType                 String
+  entityId                   String?
+  action                     String
+  detailsJson                String?  @db.Text
+  actorId                    String
+  createdAt                  DateTime @default(now())
+
+  workspace ProjectDeliveryWorkspace @relation(fields: [projectDeliveryWorkspaceId], references: [id], onDelete: Cascade)
+
+  @@index([projectDeliveryWorkspaceId, createdAt])
 }
 
 model EstimateSheetVersion {

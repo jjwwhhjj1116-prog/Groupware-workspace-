@@ -749,6 +749,124 @@ export interface ProjectQcTerm {
   updatedAt: string;
 }
 
+export type DeliveryRoundKind = 'DELIVERY' | 'REDELIVERY';
+export type DeliveryRecordType = 'CLIENT_DELIVERY' | 'REVISION_REQUEST' | 'INTERNAL_REVIEW' | 'APPROVED' | 'OTHER';
+export type DailyReportStage = 'MORNING_DRAFT' | 'FINAL' | 'OVERTIME' | 'DELAY';
+export type ApprovalStatus = 'NOT_REQUIRED' | 'PENDING' | 'APPROVED';
+
+export interface ProjectDeliveryFile {
+  id: string;
+  projectDeliveryRoundId: string;
+  logicalFileKey: string;
+  version: number;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  storageKey?: string | null;
+  checksum?: string | null;
+  memo: string;
+  createdBy: UserId;
+  createdAt: string;
+}
+
+export interface ProjectDeliveryRound {
+  id: string;
+  projectDeliveryWorkspaceId: string;
+  roundNo: number;
+  kind: DeliveryRoundKind;
+  parentRoundId?: string | null;
+  label: string;
+  deliveryDate: string;
+  memo: string;
+  status: string;
+  createdBy: UserId;
+  createdAt: string;
+  files: ProjectDeliveryFile[];
+}
+
+export interface ProjectDeliveryRecord {
+  id: string;
+  projectDeliveryWorkspaceId: string;
+  occurredAt: string;
+  type: DeliveryRecordType;
+  memo: string;
+  writerId: UserId;
+  createdAt: string;
+}
+
+export interface ProjectDownloadRequest {
+  id: string;
+  projectDeliveryWorkspaceId: string;
+  targetFile: string;
+  reason: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  requestedBy: UserId;
+  requestedAt: string;
+  reviewedBy?: UserId | null;
+  reviewedAt?: string | null;
+  reviewNote?: string | null;
+}
+
+export interface ProjectDailyReport {
+  id: string;
+  projectDeliveryWorkspaceId: string;
+  scheduleRowId?: string | null;
+  reportDate: string;
+  stage: DailyReportStage;
+  planMemo: string;
+  resultMemo: string;
+  progressRate: number;
+  delayReason: string;
+  overtimeReason: string;
+  pmStatus: ApprovalStatus;
+  managerStatus: ApprovalStatus;
+  executiveStatus: ApprovalStatus;
+  createdBy: UserId;
+  updatedBy: UserId;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProjectDeliveryHistory {
+  id: string;
+  projectDeliveryWorkspaceId: string;
+  entityType: string;
+  entityId?: string | null;
+  action: string;
+  details: Record<string, unknown>;
+  actorId: UserId;
+  createdAt: string;
+}
+
+export interface ProjectDeliveryWorkspace {
+  id: string;
+  projectId: string;
+  status: 'OPEN' | 'IN_PROGRESS' | 'DELIVERING' | 'COMPLETED';
+  progressRate: number;
+  currentStage?: string | null;
+  version: number;
+  createdBy: UserId;
+  updatedBy: UserId;
+  createdAt: string;
+  updatedAt: string;
+  project: { id: string; name: string; status: string; departmentId: DepartmentId; managerId: UserId; pmId: UserId };
+  assignments: { rows: PmScheduleRow[] };
+  rounds: ProjectDeliveryRound[];
+  records: ProjectDeliveryRecord[];
+  downloadRequests: ProjectDownloadRequest[];
+  dailyReports: ProjectDailyReport[];
+  histories: ProjectDeliveryHistory[];
+  permissions: {
+    canView: boolean;
+    canManageDelivery: boolean;
+    canWriteDaily: boolean;
+    canApproveDownload: boolean;
+    canApprovePm: boolean;
+    canApproveManager: boolean;
+    canApproveExecutive: boolean;
+  };
+}
+
 export interface Project {
   id: string;
   projectSourceType?: ProjectSourceType; // Default to CLIENT_ORDER if undefined

@@ -9,8 +9,9 @@ import { useProjectStore } from '@/store/projectStore';
 import { useTranslationStore } from '@/store/translationStore';
 import { ProjectOperationActivityKind } from '@/types/models';
 import { ProjectQcPanel } from './ProjectQcPanel';
+import { ProjectDeliveryPanel } from './ProjectDeliveryPanel';
 
-type Tab = 'OVERVIEW' | 'ACTIVITY' | 'ASSIGNMENTS' | 'TIMELINE' | 'QC' | 'DELIVERY';
+type Tab = 'OVERVIEW' | 'ACTIVITY' | 'ASSIGNMENTS' | 'TIMELINE' | 'QC' | 'DELIVERY' | 'DAILY';
 type Props = { projectId: string; onClose: () => void };
 
 const inputClass = 'w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-main)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]';
@@ -80,6 +81,7 @@ export function ProjectOperationModal({ projectId, onClose }: Props) {
     ['TIMELINE', t('projectOperation.tab.timeline')],
     ['QC', t('projectOperation.tab.qc')],
     ['DELIVERY', t('projectOperation.tab.delivery')],
+    ['DAILY', t('projectDelivery.tab.daily')],
   ];
 
   return (
@@ -175,18 +177,8 @@ export function ProjectOperationModal({ projectId, onClose }: Props) {
 
                 {tab === 'QC' && <ProjectQcPanel projectId={projectId} />}
 
-                {tab === 'DELIVERY' && <div className="space-y-5">
-                  <h3 className="font-bold text-[var(--color-text-main)]">{t('projectOperation.delivery.title')}</h3>
-                  <dl className="grid grid-cols-2 gap-x-6 gap-y-4 md:grid-cols-3">
-                    <Info label={t('projectOperation.delivery.date')} value={project?.deliveryDate || t('unset')} />
-                    <Info label={t('projectOperation.delivery.status')} value={project?.deliveryDateStatus || t('unset')} />
-                    <Info label={t('projectOperation.delivery.lifecycle')} value={project?.deliveryLifecycle || t('unset')} />
-                    <Info label={t('projectOperation.delivery.changedBy')} value={userName(project?.deliveryDateUpdatedBy)} />
-                    <Info label={t('projectOperation.delivery.changeReason')} value={project?.deliveryDateChangeReason || t('unset')} />
-                    <Info label={t('projectOperation.delivery.closedAt')} value={project?.deliveryClosedAt || t('unset')} />
-                  </dl>
-                  <p className="border-t border-[var(--color-border)] pt-4 text-sm text-[var(--color-text-sub)]">{t('projectOperation.delivery.deferred')}</p>
-                </div>}
+                {tab === 'DELIVERY' && <ProjectDeliveryPanel projectId={projectId} mode="DELIVERY" />}
+                {tab === 'DAILY' && <ProjectDeliveryPanel projectId={projectId} mode="DAILY" />}
               </>}
         </div>
       </section>
