@@ -92,6 +92,7 @@ model Project {
   estimateDbRecords EstimateDbRecord[]
   commercialDecision CommercialDecision?
   projectIntake ProjectIntake?
+  pmSchedule ProjectPmSchedule?
 }
 
 model EstimateDbRecord {
@@ -328,6 +329,51 @@ model ProjectIntakeHistory {
   projectIntake ProjectIntake @relation(fields: [projectIntakeId], references: [id], onDelete: Cascade)
 
   @@index([projectIntakeId, createdAt])
+}
+
+model ProjectPmSchedule {
+  id                 String   @id @default(uuid())
+  projectId          String   @unique
+  status             String   @default("PENDING_ASSIGNMENT")
+  assignmentsJson    String   @db.Text
+  requestTargetsJson String   @db.Text
+  requestMemo        String?  @db.Text
+  plan1Json          String   @db.Text
+  plan2Json          String   @db.Text
+  selectedProposal   String?
+  approvedPlan       String?
+  rejectReason       String?  @db.Text
+  requestedBy        String?
+  requestedAt        DateTime?
+  submittedBy        String?
+  submittedAt        DateTime?
+  approvedBy         String?
+  approvedAt         DateTime?
+  version            Int      @default(1)
+  createdBy          String
+  updatedBy          String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  project   Project                    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  histories ProjectPmScheduleHistory[]
+
+  @@index([status, updatedAt])
+}
+
+model ProjectPmScheduleHistory {
+  id                  String   @id @default(uuid())
+  projectPmScheduleId String
+  action              String
+  fromStatus          String?
+  toStatus            String?
+  detailsJson         String?  @db.Text
+  actorId             String
+  createdAt           DateTime @default(now())
+
+  projectPmSchedule ProjectPmSchedule @relation(fields: [projectPmScheduleId], references: [id], onDelete: Cascade)
+
+  @@index([projectPmScheduleId, createdAt])
 }
 
 model EstimateSheetVersion {

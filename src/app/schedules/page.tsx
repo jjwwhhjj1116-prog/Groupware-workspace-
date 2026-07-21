@@ -4,13 +4,14 @@ import { useAuthStore } from '@/store/authStore';
 import { useScheduleStore } from '@/store/scheduleStore';
 import { useProjectStore } from '@/store/projectStore';
 import { useTaskStore } from '@/store/taskStore';
-import { Project, TaskCard } from '@/types/models';
+import { TaskCard } from '@/types/models';
 import { PersonalSchedule } from '@/types/models'; // Added explicit import since we split them for multiline replace
 import { getUserDisplayName, useTranslation } from '@/lib/localization';
 import { useTranslationStore } from '@/store/translationStore';
 import { canViewSchedule, canViewEmployeeSchedule } from '@/lib/permissions';
 import { getProjectOverallProgress } from '@/lib/selectors';
 import { LeaveRegistrationModal } from '@/components/schedule/LeaveRegistrationModal';
+import { PmScheduleWorkbench } from '@/components/schedule/PmScheduleWorkbench';
 
 export default function SchedulesPage() {
   const { currentUser, users } = useAuthStore();
@@ -20,7 +21,7 @@ export default function SchedulesPage() {
   const { projects } = useProjectStore();
   const { tasks } = useTaskStore();
   
-  const [activeTab, setActiveTab] = useState<'MONTHLY_MATRIX' | 'PROJECT_SCHEDULE' | 'USER_DETAIL'>('MONTHLY_MATRIX');
+  const [activeTab, setActiveTab] = useState<'MONTHLY_MATRIX' | 'PROJECT_SCHEDULE' | 'USER_DETAIL' | 'PM_MANAGEMENT'>('MONTHLY_MATRIX');
   
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showLeaveModal, setShowLeaveModal] = useState(false);
@@ -153,11 +154,11 @@ export default function SchedulesPage() {
   };
 
   return (
-    <div className="w-full px-6 space-y-6 md:space-y-8 animate-in fade-in duration-500">
-      <div className="flex justify-between items-center bg-[var(--color-surface)] p-4 rounded-xl shadow-sm border">
+    <div className="w-full px-3 sm:px-6 space-y-6 md:space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-col gap-3 bg-[var(--color-surface)] p-4 rounded-xl shadow-sm border xl:flex-row xl:items-center xl:justify-between">
         <h1 className="text-xl font-bold text-[var(--color-text-main)]">{t('schedules.title')}</h1>
         
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           <button 
             className={`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] px-4 py-2 rounded-lg text-sm font-bold ${activeTab === 'MONTHLY_MATRIX' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-[var(--color-text-sub)] hover:bg-gray-200'}`}
             onClick={() => setActiveTab('MONTHLY_MATRIX')}
@@ -176,9 +177,15 @@ export default function SchedulesPage() {
           >
             {t('schedules.viewWorkload')}
           </button>
+          <button
+            className={`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] px-4 py-2 rounded-lg text-sm font-bold ${activeTab === 'PM_MANAGEMENT' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-[var(--color-text-sub)] hover:bg-gray-200'}`}
+            onClick={() => setActiveTab('PM_MANAGEMENT')}
+          >
+            {t('pmSchedule.tab')}
+          </button>
           
           <button 
-            className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] px-4 py-2 rounded-lg text-sm font-bold bg-green-600 text-white hover:bg-green-700 ml-4 shadow-sm"
+            className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] col-span-2 px-4 py-2 rounded-lg text-sm font-bold bg-green-600 text-white hover:bg-green-700 shadow-sm sm:ml-4"
             onClick={() => setShowLeaveModal(true)}
           >
             {t('schedules.btnLeave')}
@@ -186,7 +193,7 @@ export default function SchedulesPage() {
         </div>
       </div>
 
-      <div className="bg-[var(--color-surface)] rounded-xl shadow-sm border p-4 space-y-4">
+      {activeTab !== 'PM_MANAGEMENT' && <div className="bg-[var(--color-surface)] rounded-xl shadow-sm border p-4 space-y-4">
         <div className="flex justify-between items-center">
           <div className="flex gap-2">
             <button onClick={prevMonth} aria-label={t('schedules.prevMonth')} className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] p-2 bg-gray-100 rounded hover:bg-gray-200 text-sm font-medium transition-colors">&lt;</button>
@@ -428,7 +435,9 @@ export default function SchedulesPage() {
             })}
           </div>
         )}
-      </div>
+      </div>}
+
+      {activeTab === 'PM_MANAGEMENT' && <PmScheduleWorkbench />}
 
       <LeaveRegistrationModal 
         isOpen={showLeaveModal} 

@@ -8,6 +8,7 @@ import {
 } from '@/lib/projectIntake';
 import { useEstimateRequestStore } from '@/store/estimateRequestStore';
 import { useProjectStore } from '@/store/projectStore';
+import { useProjectPmScheduleStore } from '@/store/projectPmScheduleStore';
 import {
   ProjectIntake,
   ProjectIntakeDraft,
@@ -200,6 +201,7 @@ export const useProjectIntakeStore = create<ProjectIntakeState>()(persist((set, 
     if (missing.length) throw new Error(`Project intake is incomplete: ${missing.join(', ')}`);
     const timestamp = now();
     useProjectStore.getState().updateProjectField(current.projectId, 'status', 'MANAGER_REVIEW');
+    await useProjectPmScheduleStore.getState().sync(actor);
     const updated = {
       ...current,
       status: 'ACCEPTED' as const,

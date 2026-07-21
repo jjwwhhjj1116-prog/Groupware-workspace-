@@ -517,6 +517,104 @@ export type DeliveryLifecycle =
   | "POST_DELIVERY_WORK_IN_PROGRESS"
   | "REOPENED";
 
+export type ProjectPmScheduleStatus =
+  | 'PENDING_ASSIGNMENT'
+  | 'PM_ASSIGNED'
+  | 'DRAFT_REQUESTED'
+  | 'DRAFTING'
+  | 'SUBMITTED'
+  | 'REJECTED'
+  | 'APPROVED';
+
+export interface PmAssignment {
+  primaryPmId: UserId | '';
+  finishPmId: UserId | '';
+  structurePmId: UserId | '';
+  bimPmId: UserId | '';
+  civilPmId: UserId | '';
+}
+
+export interface PmRequestTargets {
+  pmIds: UserId[];
+  teamLeaderIds: UserId[];
+}
+
+export interface PmScheduleRow {
+  id: string;
+  assigneeId: UserId;
+  departmentId: DepartmentId | '';
+  category: 'STRUCTURE' | 'FINISH' | 'BIM' | 'CIVIL' | 'OTHER';
+  scope: string;
+  people: number;
+  workDays: number;
+  totalDays: number;
+  startDate: string;
+  endDate: string;
+}
+
+export interface PmSchedulePlan {
+  id: 'plan1' | 'plan2';
+  title: string;
+  rows: PmScheduleRow[];
+}
+
+export interface ProjectPmScheduleHistory {
+  id: string;
+  projectPmScheduleId: string;
+  action: string;
+  fromStatus: string;
+  toStatus: string;
+  detailsJson: string;
+  actorId: UserId;
+  createdAt: string;
+}
+
+export interface ProjectPmSchedule {
+  id: string;
+  projectId: string;
+  status: ProjectPmScheduleStatus;
+  assignment: PmAssignment;
+  requestTargets: PmRequestTargets;
+  requestMemo: string;
+  plan1: PmSchedulePlan;
+  plan2: PmSchedulePlan;
+  selectedProposal?: 'plan1' | 'plan2' | null;
+  approvedPlan?: 'plan1' | 'plan2' | null;
+  rejectReason?: string | null;
+  requestedBy?: UserId | null;
+  requestedAt?: string | null;
+  submittedBy?: UserId | null;
+  submittedAt?: string | null;
+  approvedBy?: UserId | null;
+  approvedAt?: string | null;
+  version: number;
+  createdBy: UserId;
+  updatedBy: UserId;
+  createdAt: string;
+  updatedAt: string;
+  completeness: { missing: string[] };
+  permissions: { canView: boolean; canAssign: boolean; canEdit: boolean; canReview: boolean };
+  histories: ProjectPmScheduleHistory[];
+  project: {
+    id: string;
+    name: string;
+    status: string;
+    departmentId: DepartmentId;
+    managerId: UserId;
+    pmId: UserId;
+  };
+}
+
+export interface PmScheduleConflict {
+  assigneeId: UserId;
+  projectId: string;
+  projectName: string;
+  candidateRowId: string;
+  conflictingRowId: string;
+  startDate: string;
+  endDate: string;
+}
+
 export interface Project {
   id: string;
   projectSourceType?: ProjectSourceType; // Default to CLIENT_ORDER if undefined

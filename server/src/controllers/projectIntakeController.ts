@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '../lib/db';
+import { emptyPmAssignment, emptyPmPlan, emptyPmRequestTargets } from '../domain/projectPmSchedule';
 import {
   buildProjectIntakeDraft,
   canEditProjectIntake,
@@ -273,7 +274,31 @@ export const acceptProjectIntake = async (req: Request, res: Response) => {
         },
       });
       if (claimed.count !== 1) throw httpError('Project intake was changed by another user', 409);
-      await tx.project.update({ where: { id: current.projectId }, data: { status: 'MANAGER_REVIEW' } });
+      const project = await tx.project.update({ where: { id: current.projectId }, data: { status: 'MANAGER_REVIEW' } });
+      const pmSchedule = await tx.projectPmSchedule.upsert({
+        where: { projectId: current.projectId },
+        create: {
+          projectId: current.projectId,
+          status: 'PENDING_ASSIGNMENT',
+          assignmentsJson: JSON.stringify(emptyPmAssignment(project.pmId)),
+          requestTargetsJson: JSON.stringify(emptyPmRequestTargets()),
+          plan1Json: JSON.stringify(emptyPmPlan('plan1')),
+          plan2Json: JSON.stringify(emptyPmPlan('plan2')),
+          createdBy: actor.personnelId,
+          updatedBy: actor.personnelId,
+        },
+        update: {},
+      });
+      await tx.projectPmScheduleHistory.create({
+        data: {
+          projectPmScheduleId: pmSchedule.id,
+          action: 'CREATED_FROM_PROJECT_INTAKE',
+          fromStatus: 'PENDING_ASSIGNMENT',
+          toStatus: pmSchedule.status,
+          detailsJson: JSON.stringify({ projectIntakeId: id, canonicalProjectId: current.projectId }),
+          actorId: actor.personnelId,
+        },
+      });
       const changes = { version: parsed.data.expectedVersion + 1, note: parsed.data.note, acceptedAt, projectStatus: 'MANAGER_REVIEW' };
       await tx.projectIntakeHistory.create({
         data: { projectIntakeId: id, action: 'ACCEPTED', fromStatus: current.status, toStatus: 'ACCEPTED', changesJson: JSON.stringify(changes), actorId: actor.personnelId },

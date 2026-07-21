@@ -34,6 +34,7 @@ import importRoutes from './routes/import';
 import estimateRequestRoutes from './routes/estimateRequests';
 import estimateDatabaseRoutes from './routes/estimateDatabase';
 import projectIntakeRoutes from './routes/projectIntakes';
+import projectPmScheduleRoutes from './routes/projectPmSchedules';
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -46,6 +47,7 @@ app.use('/api/import', importRoutes);
 app.use('/api/estimate-requests', estimateRequestRoutes);
 app.use('/api/estimate-database', estimateDatabaseRoutes);
 app.use('/api/project-intakes', projectIntakeRoutes);
+app.use('/api/project-pm-schedules', projectPmScheduleRoutes);
 app.get('/api/ping', (req, res) => {
   res.json({ message: 'pong' });
 });
@@ -56,10 +58,12 @@ app.use((req, res) => {
 });
 
 // Global Error Handler
-app.use((err: unknown, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  void _next;
+  const handled = err as { status?: number; message?: string };
   console.error('Unhandled Error:', err);
-  res.status((err as any).status || 500).json({
-    error: (err as any).message || 'Internal Server Error',
+  res.status(handled.status || 500).json({
+    error: handled.message || 'Internal Server Error',
     requestId: req.headers['x-request-id']
   });
 });
