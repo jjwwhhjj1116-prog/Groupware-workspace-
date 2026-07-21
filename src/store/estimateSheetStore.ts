@@ -81,6 +81,7 @@ export const useEstimateSheetStore = create<EstimateSheetStore>()(persist((set, 
   },
 
   createSheet: async (requestId, type, state, actorId) => {
+    assertRequestIsActive(requestId);
     const spec = ESTIMATE_TEMPLATE_SPECS[type];
     if (get().persistenceMode === 'SERVER') {
       const sheet = await estimateSheetApi.create(requestId, type, spec.sourceHash, state);

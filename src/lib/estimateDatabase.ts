@@ -91,16 +91,34 @@ export const exportEstimateDbJson = async (records: EstimateDbRecord[], vendors:
   saveBlob(new Blob([JSON.stringify({ ...body, checksum }, null, 2)], { type: 'application/json' }), `concost_db_${exportedAt.slice(0, 10)}.json`);
 };
 
-export const exportEstimateDbXlsx = async (records: EstimateDbRecord[], vendors: EstimateDbVendor[], report: EstimateDbAnnualReport) => {
-  const XLSX = await import('xlsx');
-  const workbook = XLSX.utils.book_new();
+export const buildEstimateDbWorkbook = async (records: EstimateDbRecord[], vendors: EstimateDbVendor[], report: EstimateDbAnnualReport) => {
+  const ExcelJS = (await import('exceljs')).default;
+  const workbook = new ExcelJS.Workbook();
+  const addRows = <T extends object>(name: string, rows: T[]) => {
+    const sheet = workbook.addWorksheet(name);
+    const normalizedRows = rows.map((row) => Object.fromEntries(Object.entries(row)));
+    const headers = [...new Set(normalizedRows.flatMap((row) => Object.keys(row)))];
+    if (!headers.length) return;
+    sheet.columns = headers.map((header) => ({ header, key: header, width: Math.max(12, Math.min(32, header.length + 4)) }));
+    normalizedRows.forEach((row) => sheet.addRow(row));
+    sheet.views = [{ state: 'frozen', ySplit: 1 }];
+    sheet.getRow(1).font = { bold: true };
+  };
   (['PJ', 'PROGRESS', 'MEP_CONTRACT'] as EstimateDbSection[]).forEach((section) => {
     const rows = records.filter((record) => record.section === section).map((record) => ({ id: record.id, pjNo: record.pjNo || '', ...record.data }));
-    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(rows), section === 'PJ' ? 'DB_프로젝트' : section === 'PROGRESS' ? 'DB_기성' : 'DB기전외주');
+    addRows(section === 'PJ' ? 'DB_프로젝트' : section === 'PROGRESS' ? 'DB_기성' : 'DB기전외주', rows);
   });
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(vendors.map((vendor) => vendor.data)), '기전업체');
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(report.order), '수주');
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(report.sales), '매출');
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(report.deposit), '입금');
-  XLSX.writeFile(workbook, `CONCOST_DB_${report.year}_${new Date().toISOString().slice(0, 10).replaceAll('-', '')}.xlsx`);
+  addRows('기전업체', vendors.map((vendor) => vendor.data));
+  addRows('수주', report.order);
+  addRows('매출', report.sales);
+  addRows('입금', report.deposit);
+  return workbook.xlsx.writeBuffer();
+};
+
+export const exportEstimateDbXlsx = async (records: EstimateDbRecord[], vendors: EstimateDbVendor[], report: EstimateDbAnnualReport) => {
+  const buffer = await buildEstimateDbWorkbook(records, vendors, report);
+  saveBlob(
+    new Blob([new Uint8Array(buffer)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+    `CONCOST_DB_${report.year}_${new Date().toISOString().slice(0, 10).replaceAll('-', '')}.xlsx`,
+  );
 };

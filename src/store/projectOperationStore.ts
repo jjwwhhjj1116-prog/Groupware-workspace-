@@ -135,6 +135,7 @@ export const useProjectOperationStore = create<ProjectOperationState>()(persist(
     const timestamp = now();
     const activity: ProjectOperationActivity = { id: newId('operation-start'), projectOperationId: current.id, kind: 'START_APPROVAL', occurredAt: timestamp, title: decision, body: note, metadata: { from: current.startApprovalStatus, to: decision }, createdBy: actor.id, createdAt: timestamp };
     const updated = { ...current, startApprovalStatus: decision, startApprovedBy: actor.id, startApprovedAt: timestamp, activities: [activity, ...current.activities], version: current.version + 1, updatedBy: actor.id, updatedAt: timestamp };
+    useProjectStore.getState().updateProjectField(projectId, 'status', decision === 'APPROVED' ? 'IN_PROGRESS' : 'SCHEDULE_APPROVED');
     audit(updated, actor.id, decision === 'APPROVED' ? 'APPROVE' : 'REJECT', `Project ${projectId} start ${decision.toLowerCase()}`);
     set((state) => ({ operations: replace(state.operations, updated) }));
     return updated;

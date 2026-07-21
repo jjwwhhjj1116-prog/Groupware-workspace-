@@ -1,5 +1,5 @@
-const xlsx = require('xlsx');
 const fs = require('fs');
+const { readWorkbook, sheetRows } = require('./exceljsRows');
 
 const FILE_PATH = './(구조팀) VN 스케줄표_2026.07.01(1).xlsx';
 
@@ -8,13 +8,14 @@ if (!fs.existsSync(FILE_PATH)) {
     process.exit(1);
 }
 
-const workbook = xlsx.readFile(FILE_PATH);
-console.log('Sheet Names:', workbook.SheetNames);
+(async () => {
+const workbook = await readWorkbook(FILE_PATH);
+const sheetNames = workbook.worksheets.map((sheet) => sheet.name);
+console.log('Sheet Names:', sheetNames);
 
-const mainSheetName = workbook.SheetNames.find(name => name.includes('2026'));
+const mainSheetName = sheetNames.find(name => name.includes('2026'));
 if (mainSheetName) {
-    const sheet = workbook.Sheets[mainSheetName];
-    const data = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: null });
+    const data = sheetRows(workbook.getWorksheet(mainSheetName));
     
     console.log(`\nAnalyzing sheet: ${mainSheetName}`);
     console.log(`Total rows: ${data.length}`);
@@ -44,3 +45,4 @@ if (mainSheetName) {
         }
     }
 }
+})().catch((error) => { console.error(error); process.exitCode = 1; });

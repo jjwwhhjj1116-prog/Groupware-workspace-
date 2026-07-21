@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "tsx --test src/lib/*.test.ts",
+    "test:off-pm-16": "tsx --test src/lib/estimateSheet.test.ts src/lib/estimateSubmission.test.ts src/lib/offPm16.e2e.test.ts",
     "json:export": "npx tsx scripts/export-current-state.ts",
     "json:import": "npx tsx scripts/import-json-data.ts",
     "json:validate": "npx tsx scripts/validate-json-data.ts"
@@ -31,10 +33,16 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "tailwindcss": "^4",
-    "typescript": "^5",
-    "xlsx": "^0.18.5"
+    "tsx": "^4.23.1",
+    "typescript": "^5"
   },
   "overrides": {
-    "uuid": "11.1.1"
+    "uuid": "11.1.1",
+    "eslint": {
+      "minimatch": {
+        "brace-expansion": "1.1.16"
+      }
+    },
+    "postcss": "8.5.16"
   }
 }
