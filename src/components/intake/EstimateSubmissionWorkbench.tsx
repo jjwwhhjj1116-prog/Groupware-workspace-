@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ExternalLink, FileCheck2, RefreshCw, Search, Send, TimerReset } from 'lucide-react';
+import { ArrowLeft, Database, ExternalLink, FileCheck2, RefreshCw, Search, Send, TimerReset } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { EstimateSheetApiError, estimateSheetApi } from '@/lib/estimateSheetApi';
 import { filterEstimateSubmissions, summarizeEstimateSubmissions } from '@/lib/estimateSubmission';
@@ -101,7 +101,7 @@ export function EstimateSubmissionWorkbench() {
           <h1 className="text-2xl font-bold">{t('estimateSubmission.title')}</h1>
           <p className="mt-1 text-sm text-[var(--color-text-sub)]">{t('estimateSubmission.subtitle')}</p>
         </div>
-        <button type="button" onClick={() => void refresh()} disabled={loading} title={t('estimateRequest.refresh')} className="grid size-9 place-items-center border bg-[var(--color-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] disabled:opacity-50"><RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} /></button>
+        <div className="flex gap-2"><Link href="/projects/intake/database" className="inline-flex min-h-9 items-center gap-2 border px-3 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"><Database className="size-4" />{t('estimateDb.title')}</Link><button type="button" onClick={() => void refresh()} disabled={loading} title={t('estimateRequest.refresh')} className="grid size-9 place-items-center border bg-[var(--color-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] disabled:opacity-50"><RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} /></button></div>
       </header>
 
       {error && <p role="alert" className="border-l-4 border-[var(--color-danger)] bg-[var(--color-bg-sub)] px-4 py-3 text-sm">{error}</p>}

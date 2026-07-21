@@ -89,8 +89,63 @@ model Project {
   pm          PersonnelCard @relation("PMProjects", fields: [pmId], references: [id])
   tasks       Task[]
   estimateRequest EstimateRequest?
+  estimateDbRecords EstimateDbRecord[]
 }
 
+model EstimateDbRecord {
+  id             String   @id @default(uuid())
+  idempotencyKey String?  @unique
+  section        String
+  projectId      String?
+  sourceRecordId String?
+  pjNo           String?
+  year           Int?
+  sortOrder      Int      @default(0)
+  schemaVersion  Int      @default(1)
+  dataJson       String   @db.Text
+  version        Int      @default(1)
+  createdBy      String
+  updatedBy      String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@unique([section, sourceRecordId])
+  @@index([section, year, sortOrder])
+  @@index([projectId])
+  @@index([pjNo])
+}
+
+model EstimateDbVendor {
+  id              String   @id @default(uuid())
+  normalizedName  String
+  normalizedTrade String
+  dataJson        String   @db.Text
+  version         Int      @default(1)
+  createdBy       String
+  updatedBy       String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([normalizedName, normalizedTrade])
+  @@index([normalizedTrade])
+}
+
+model EstimateDbMonthlyTarget {
+  id        String   @id @default(uuid())
+  type      String
+  year      Int
+  month     Int
+  amount    Decimal  @db.Decimal(18, 2)
+  version   Int      @default(1)
+  updatedBy String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([type, year, month])
+  @@index([year, type])
+}
 model EstimateRequest {
   id                String   @id @default(uuid())
   requestNo         String   @unique

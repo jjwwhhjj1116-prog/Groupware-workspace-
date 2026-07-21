@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import {
+  Database,
   FileSpreadsheet,
   FileCheck2,
   FileText,
@@ -191,6 +192,7 @@ export function EstimateRequestWorkbench({ currentUser, users, t }: Props) {
             <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
           <Link href="/projects/intake/estimates" className="inline-flex items-center gap-2 border px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"><FileCheck2 className="size-4" />{t('estimateSubmission.openManagement')}</Link>
+          {['DEPARTMENT_MANAGER', 'SUPER_ADMIN', 'SYSTEM_ADMIN'].includes(currentUser.role) && <Link href="/projects/intake/database" className="inline-flex items-center gap-2 border px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"><Database className="size-4" />{t('estimateDb.title')}</Link>}
           <button type="button" onClick={() => setShowCreate((value) => !value)}
             className="inline-flex items-center gap-2 rounded bg-[var(--color-primary)] px-3 py-2 text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2">
             <Plus className="size-4" /> {t('estimateRequest.new')}

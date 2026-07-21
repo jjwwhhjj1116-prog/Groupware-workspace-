@@ -274,6 +274,65 @@ export interface EstimateSheet {
   submissions: EstimateSubmission[];
 }
 
+export type EstimateDbSection = 'PJ' | 'PROGRESS' | 'MEP_CONTRACT';
+export type EstimateDbTargetType = 'ORDER' | 'SALES' | 'DEPOSIT';
+export type EstimateDbValue = string | number | boolean | null;
+export type EstimateDbPayload = Record<string, EstimateDbValue>;
+
+export interface EstimateDbRecord {
+  id: string;
+  section: EstimateDbSection;
+  projectId?: string | null;
+  sourceRecordId?: string | null;
+  pjNo?: string | null;
+  year?: number | null;
+  sortOrder: number;
+  schemaVersion: number;
+  data: EstimateDbPayload;
+  version: number;
+  createdBy: string;
+  updatedBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EstimateDbVendor {
+  id: string;
+  normalizedName: string;
+  normalizedTrade: string;
+  data: EstimateDbPayload;
+  version: number;
+  createdBy: string;
+  updatedBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EstimateDbMonthlyTarget {
+  id: string;
+  type: EstimateDbTargetType;
+  year: number;
+  month: number;
+  amount: string;
+  version: number;
+  updatedBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EstimateDbAnnualPoint {
+  month: number;
+  amount: string;
+}
+
+export interface EstimateDbAnnualReport {
+  year: number;
+  order: EstimateDbAnnualPoint[];
+  sales: EstimateDbAnnualPoint[];
+  deposit: EstimateDbAnnualPoint[];
+  targets: Array<Pick<EstimateDbMonthlyTarget, 'type' | 'month' | 'amount' | 'version'>>;
+}
+
 export type DeliveryLifecycle =
   | "UNSCHEDULED"
   | "UPCOMING"

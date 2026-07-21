@@ -32,6 +32,7 @@ import auditRoutes from './routes/audit';
 import notificationRoutes from './routes/notifications';
 import importRoutes from './routes/import';
 import estimateRequestRoutes from './routes/estimateRequests';
+import estimateDatabaseRoutes from './routes/estimateDatabase';
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -42,6 +43,7 @@ app.use('/api/audit', auditRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/import', importRoutes);
 app.use('/api/estimate-requests', estimateRequestRoutes);
+app.use('/api/estimate-database', estimateDatabaseRoutes);
 app.get('/api/ping', (req, res) => {
   res.json({ message: 'pong' });
 });
