@@ -12,21 +12,21 @@ export const Badge: React.FC<BadgeProps> = ({ children, variant = 'DEFAULT', cla
   const getVariantStyles = () => {
     switch (variant) {
       case 'SUCCESS':
-        return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300';
+        return 'border-[var(--cc-success-500)]/20 bg-[var(--cc-success-50)] text-[var(--cc-success-700)] dark:bg-emerald-950/45 dark:text-emerald-300';
       case 'WARNING':
-        return 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300';
+        return 'border-[var(--cc-warning-500)]/20 bg-[var(--cc-warning-50)] text-[var(--cc-warning-700)] dark:bg-amber-950/45 dark:text-amber-300';
       case 'ERROR':
-        return 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300';
+        return 'border-[var(--cc-danger-500)]/20 bg-[var(--cc-danger-50)] text-[var(--cc-danger-700)] dark:bg-rose-950/45 dark:text-rose-300';
       case 'INFO':
-        return 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300';
+        return 'border-[var(--cc-info-500)]/20 bg-[var(--cc-info-50)] text-[var(--cc-info-700)] dark:bg-sky-950/45 dark:text-sky-300';
       case 'DEFAULT':
       default:
-        return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
+        return 'border-[var(--color-border)] bg-[var(--cc-surface-3)] text-[var(--cc-ink-700)] dark:text-slate-300';
     }
   };
 
   return (
-    <span className={`inline-flex items-center justify-center text-xs px-2 py-1 rounded-full font-semibold ${getVariantStyles()} ${className}`}>
+    <span className={`inline-flex items-center justify-center rounded-full border px-2 py-1 text-xs font-bold ${getVariantStyles()} ${className}`}>
       {children}
     </span>
   );

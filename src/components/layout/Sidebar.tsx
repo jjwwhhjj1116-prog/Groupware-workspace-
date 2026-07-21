@@ -1,18 +1,32 @@
 'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import {
+  AlertTriangle,
+  Bell,
+  Briefcase,
+  Calendar,
+  CheckSquare,
+  ClipboardList,
+  Database,
+  FileUp,
+  Languages,
+  LayoutDashboard,
+  Settings,
+  ShieldCheck,
+  Users,
+} from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useTranslationStore } from '@/store/translationStore';
 import { useTranslation } from '@/lib/localization';
-import { useUiStore } from '@/store/uiStore';
-import { LayoutDashboard, Briefcase, Calendar, CheckSquare, Bell, Settings, ClipboardList, ChevronLeft, AlertTriangle, Menu, ShieldCheck, Database, FileUp, KanbanSquare, Inbox, ListTodo, CalendarDays, BarChart3, Users, Languages } from 'lucide-react';
 import { BrandLogo } from '@/components/ui/BrandLogo';
 
 export const Sidebar = () => {
   const pathname = usePathname();
   const { currentUser, appMode } = useAuthStore();
-  const [isHovered, setIsHovered] = React.useState(false);
+  const [isExpanded, setIsExpanded] = React.useState(false);
   const { settings } = useTranslationStore();
   const t = useTranslation(settings.uiLanguage);
 
@@ -39,50 +53,75 @@ export const Sidebar = () => {
   ];
 
   const menuItems = appMode === 'ADMIN_VALIDATION' ? adminValidationMenuItems : dailyWorkMenuItems;
-
-  const visibleMenus = menuItems.filter(item => currentUser && item.roles.includes(currentUser.role));
-
-  const isExpanded = isHovered;
-  const isCompact = !isExpanded;
-
-  const innerWidthClass = isExpanded ? 'w-[240px]' : 'w-16';
+  const visibleMenus = menuItems.filter((item) => currentUser && item.roles.includes(currentUser.role));
+  const matchingPaths = visibleMenus
+    .filter((item) => pathname === item.path || (item.path !== '/' && pathname.startsWith(`${item.path}/`)))
+    .sort((a, b) => b.path.length - a.path.length);
+  const activePath = matchingPaths[0]?.path;
+  const mobileMenus = visibleMenus.length <= 5
+    ? visibleMenus
+    : [...visibleMenus.slice(0, 4), visibleMenus[visibleMenus.length - 1]];
 
   return (
     <>
-    <div className="w-16 flex-shrink-0" />
-    <div 
-      className={`${innerWidthClass} fixed left-0 top-0 bg-slate-50 border-r border-[var(--color-border)] text-[var(--color-text-main)] min-h-screen flex flex-col transition-all duration-300 z-[100] shadow-lg`}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      onFocus={() => setIsHovered(true)}
-      onBlur={() => setIsHovered(false)}
-    >
-      <div className={`px-2 h-14 flex items-center justify-center border-b border-[var(--color-border)] bg-slate-50`}>
-        <div className={`transition-all duration-300 flex items-center justify-center ${isExpanded ? 'w-[140px]' : 'w-[44px]'}`}>
-          <BrandLogo />
+      <div className="hidden w-[72px] shrink-0 md:block" aria-hidden="true" />
+      <aside
+        className={`fixed inset-y-0 left-0 z-[var(--z-sidebar)] hidden flex-col border-r border-white/10 bg-[var(--cc-ink-950)] text-white shadow-[8px_0_28px_rgba(15,23,42,.12)] transition-[width] duration-200 md:flex ${isExpanded ? 'w-[260px]' : 'w-[72px]'}`}
+        onMouseEnter={() => setIsExpanded(true)}
+        onMouseLeave={() => setIsExpanded(false)}
+        onFocus={() => setIsExpanded(true)}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) setIsExpanded(false);
+        }}
+      >
+        <div className="flex h-16 items-center justify-center border-b border-white/10 px-2">
+          <div className={`flex h-10 items-center justify-center overflow-hidden rounded-xl bg-white px-2 transition-[width] duration-200 ${isExpanded ? 'w-[164px]' : 'w-11'}`}>
+            <BrandLogo />
+          </div>
         </div>
-      </div>
 
-      
-      <nav className="flex-1 px-3 space-y-1 mt-2 overflow-y-auto custom-scrollbar overflow-x-hidden">
-        {visibleMenus.map((item) => {
-          const isActive = pathname === item.path;
+        <nav aria-label={t('navigation.primary')} className="custom-scrollbar flex-1 space-y-1 overflow-y-auto overflow-x-hidden px-2.5 py-4">
+          {visibleMenus.map((item) => {
+            const isActive = activePath === item.path;
+            return (
+              <Link
+                key={item.path}
+                href={item.path}
+                title={!isExpanded ? item.name : undefined}
+                aria-current={isActive ? 'page' : undefined}
+                className={`group relative flex min-h-11 items-center rounded-xl border focus-visible:outline-none ${isExpanded ? 'px-3' : 'justify-center px-2'} ${isActive
+                  ? 'border-[color:rgb(235_99_0_/_0.32)] bg-[color:rgb(235_99_0_/_0.14)] text-white shadow-[inset_3px_0_0_var(--cc-orange-500)]'
+                  : 'border-transparent text-slate-400 hover:bg-white/[0.07] hover:text-white'}`}
+              >
+                <item.icon className={`h-5 w-5 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5 ${isActive ? 'text-[var(--cc-orange-400)]' : ''} ${isExpanded ? 'mr-3' : ''}`} aria-hidden="true" />
+                {isExpanded && <span className="truncate text-[13px] font-bold">{item.name}</span>}
+                {isActive && <span className="sr-only">({t('navigation.current')})</span>}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className={`border-t border-white/10 p-3 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 ${isExpanded ? 'block' : 'hidden'}`}>
+          CON-COST · VIET QS
+        </div>
+      </aside>
+
+      <nav aria-label={t('navigation.mobile')} className="fixed inset-x-3 bottom-3 z-[var(--z-mobile-nav)] grid min-h-[64px] grid-flow-col auto-cols-fr rounded-2xl border border-white/10 bg-[var(--cc-ink-950)] p-1.5 shadow-[var(--cc-shadow-3)] md:hidden">
+        {mobileMenus.map((item) => {
+          const isActive = activePath === item.path;
           return (
-            <Link key={item.name} href={item.path} className={`flex items-center rounded-lg transition-all group relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:z-10 ${!isExpanded ? 'justify-center py-3' : 'px-3 py-2.5'} ${isActive ? 'bg-[var(--color-surface)] shadow-sm border border-[var(--color-border)]/50 text-[var(--color-primary)] font-bold' : 'text-[var(--color-text-sub)] hover:bg-gray-200/50 hover:text-[var(--color-text-main)] font-medium border border-transparent'}`}>
-              <item.icon className={`flex-shrink-0 ${isExpanded ? 'w-4 h-4 mr-3' : isCompact ? 'w-5 h-5' : 'w-4 h-4'} ${isActive ? 'text-[var(--color-primary)]' : ''}`} />
-              {isExpanded && <span className="truncate text-[13px]">{item.name}</span>}
-              
-              {/* Tooltip for collapsed states */}
-              {!isExpanded && (
-                <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible whitespace-nowrap z-[100] shadow-lg">
-                  {item.name}
-                </div>
-              )}
+            <Link
+              key={item.path}
+              href={item.path}
+              aria-current={isActive ? 'page' : undefined}
+              className={`flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-bold focus-visible:outline-none ${isActive ? 'bg-[var(--cc-orange-500)] text-[var(--cc-ink-950)]' : 'text-slate-400 hover:bg-white/[0.08] hover:text-white'}`}
+            >
+              <item.icon className="h-5 w-5" aria-hidden="true" />
+              <span className="max-w-full truncate">{item.name}</span>
             </Link>
           );
         })}
       </nav>
-    </div>
     </>
   );
 };

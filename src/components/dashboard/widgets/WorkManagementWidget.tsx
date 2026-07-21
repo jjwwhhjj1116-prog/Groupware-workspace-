@@ -65,26 +65,29 @@ export const WorkManagementWidget = () => {
   const currentList = getTabList();
 
   return (
-    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-card)] overflow-hidden shadow-sm flex flex-col h-full">
-      <div className="px-4 py-3 border-b border-[var(--color-border)] flex items-center justify-between bg-[var(--color-bg)]/50">
+    <div className="cc-panel flex h-full flex-col">
+      <div className="flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--cc-surface-2)] px-4 py-3">
         <h3 className="font-bold text-[var(--color-text-main)] flex items-center gap-2">
           {t('dashboard.widget.workManagement')}
         </h3>
         <div className="flex gap-1 text-xs">
           <button
-            className={`px-2 py-1 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] ${activeTab === 'IN_PROGRESS' ? 'bg-[var(--color-primary)] text-white font-medium' : 'text-[var(--color-text-sub)] hover:bg-[var(--color-bg)]'}`}
+            aria-pressed={activeTab === 'IN_PROGRESS'}
+            className={`min-h-8 px-2 py-1 rounded-lg transition-colors focus-visible:outline-none ${activeTab === 'IN_PROGRESS' ? 'bg-[var(--color-primary-strong)] text-white font-bold' : 'text-[var(--color-text-sub)] hover:bg-[var(--cc-surface-3)]'}`}
             onClick={() => setActiveTab('IN_PROGRESS')}
           >
             {t('dashboard.work.inProgress')} ({inProgress.length})
           </button>
           <button
-            className={`px-2 py-1 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] ${activeTab === 'QC_PENDING' ? 'bg-orange-500 text-white font-medium' : 'text-[var(--color-text-sub)] hover:bg-[var(--color-bg)]'}`}
+            aria-pressed={activeTab === 'QC_PENDING'}
+            className={`min-h-8 px-2 py-1 rounded-lg transition-colors focus-visible:outline-none ${activeTab === 'QC_PENDING' ? 'bg-[var(--cc-warning-700)] text-white font-bold' : 'text-[var(--color-text-sub)] hover:bg-[var(--cc-surface-3)]'}`}
             onClick={() => setActiveTab('QC_PENDING')}
           >
             {t('dashboard.work.qcPending')} ({qcPending.length})
           </button>
           <button
-            className={`px-2 py-1 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] ${activeTab === 'UPCOMING' ? 'bg-red-500 text-white font-medium' : 'text-[var(--color-text-sub)] hover:bg-[var(--color-bg)]'}`}
+            aria-pressed={activeTab === 'UPCOMING'}
+            className={`min-h-8 px-2 py-1 rounded-lg transition-colors focus-visible:outline-none ${activeTab === 'UPCOMING' ? 'bg-[var(--cc-danger-700)] text-white font-bold' : 'text-[var(--color-text-sub)] hover:bg-[var(--cc-surface-3)]'}`}
             onClick={() => setActiveTab('UPCOMING')}
           >
             {t('dashboard.work.upcomingDelivery')} ({upcomingDelivery.length})
@@ -101,7 +104,7 @@ export const WorkManagementWidget = () => {
           <ul className="space-y-2">
             {currentList.map((project: Project) => {
               const workflow = workflowByProject.get(project.id)!;
-              return <li key={project.id} className="p-3 bg-[var(--color-bg)] rounded-md border border-[var(--color-border)] flex flex-col gap-2">
+              return <li key={project.id} className="flex flex-col gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--cc-surface-2)] p-3 transition-[background-color,border-color] hover:border-[var(--cc-orange-300)] hover:bg-[var(--cc-orange-50)]">
                 <div className="flex justify-between items-start">
                   <Link href={getProjectWorkflowHref(project.id, workflow.currentTab)} className="min-w-0 rounded font-semibold text-sm text-[var(--color-text-main)] hover:text-[var(--color-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]">
                     <span className="line-clamp-1">{project.title}</span>
@@ -134,7 +137,7 @@ export const WorkManagementWidget = () => {
           </ul>
         )}
       </div>
-      <div className="px-4 py-2 border-t border-[var(--color-border)] bg-[var(--color-bg)]/30 text-xs text-[var(--color-text-sub)] text-center">
+      <div className="border-t border-[var(--color-border)] bg-[var(--cc-surface-2)] px-4 py-2 text-center text-xs text-[var(--color-text-sub)]">
         {t('projectWorkflow.widgetConnected')}
       </div>
     </div>

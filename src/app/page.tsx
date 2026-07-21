@@ -54,8 +54,8 @@ export default function Home() {
   return (
     <div className="w-full mx-auto space-y-6 md:space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--color-text-main)] tracking-tight">{t('dashboard.title')}</h1>
+        <div className="cc-page-heading">
+          <h1 className="text-2xl md:text-[30px] font-extrabold text-[var(--color-text-main)] tracking-[-0.025em]">{t('dashboard.title')}</h1>
           <p className="text-[var(--color-text-sub)] text-sm mt-1 font-medium">
             {getDeptName()} · {getRoleName(currentUser.role)} {t('dashboard.subtitle')}
           </p>
@@ -76,12 +76,12 @@ export default function Home() {
             })}
           </select>
 
-          <button className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-md text-sm font-medium text-[var(--color-text-main)] hover:bg-[var(--color-bg)] hover:text-[var(--color-primary)] shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]">
+          <button className="flex min-h-10 items-center gap-1.5 px-3 py-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-button)] text-sm font-semibold text-[var(--color-text-main)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary-strong)] shadow-sm transition-colors focus-visible:outline-none">
             <Upload className="w-4 h-4 text-[var(--color-text-sub)]" />
             <span>{t('dashboard.actions.importJson')}</span>
           </button>
 
-          <button className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-md text-sm font-medium text-[var(--color-text-main)] hover:bg-[var(--color-bg)] hover:text-[var(--color-primary)] shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]">
+          <button className="flex min-h-10 items-center gap-1.5 px-3 py-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-button)] text-sm font-semibold text-[var(--color-text-main)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary-strong)] shadow-sm transition-colors focus-visible:outline-none">
             <Download className="w-4 h-4 text-[var(--color-text-sub)]" />
             <span>{t('dashboard.actions.exportJson')}</span>
           </button>
