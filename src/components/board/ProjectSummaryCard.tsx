@@ -1,23 +1,26 @@
 import React from 'react';
 import { Project, TaskCard } from '@/types/models';
 import { getProjectOverallProgress, getProjectDeliveryLifecycle, getProjectDeliveryBadge } from '@/lib/selectors';
-import { Activity, AlertCircle, Clock, CheckCircle, User } from 'lucide-react';
+import { Activity, AlertCircle, BarChart3, CheckCircle, ClipboardCheck, Clock, PackageCheck, User } from 'lucide-react';
 import { useProjectStore } from '@/store/projectStore';
 import { useAuthStore } from '@/store/authStore';
 import { Badge } from '@/components/ui/Badge';
 import { getUserDisplayName, useTranslation } from '@/lib/localization';
 import { useTranslationStore } from '@/store/translationStore';
+import { ProjectWorkflowSummary, ProjectWorkflowTab } from '@/lib/projectWorkflow';
+import { ProjectWorkflowProgress } from '@/components/projects/ProjectWorkflowProgress';
 
 interface Props {
   project: Project;
   tasks: TaskCard[];
   onClick: (projectId: string) => void;
   draggable?: boolean;
-  onDragStart?: (e: React.DragEvent<HTMLDivElement>, projectId: string) => void;
-  onOperationClick?: (projectId: string) => void;
+  onDragStart?: (e: React.DragEvent<HTMLElement>, projectId: string) => void;
+  onOperationClick?: (projectId: string, tab?: ProjectWorkflowTab) => void;
+  workflow: ProjectWorkflowSummary;
 }
 
-export const ProjectSummaryCard: React.FC<Props> = ({ project, tasks, onClick, draggable, onDragStart, onOperationClick }) => {
+export const ProjectSummaryCard: React.FC<Props> = ({ project, tasks, onClick, draggable, onDragStart, onOperationClick, workflow }) => {
   const { users, currentUser } = useAuthStore();
   const { postDeliveryWorkRequests, revisionRequests } = useProjectStore();
   const { settings } = useTranslationStore();
@@ -49,11 +52,10 @@ export const ProjectSummaryCard: React.FC<Props> = ({ project, tasks, onClick, d
   };
 
   return (
-    <div 
+    <article
       draggable={draggable}
       onDragStart={(e) => onDragStart && onDragStart(e, project.id)}
-      onClick={() => onClick(project.id)}
-      className="bg-[var(--color-surface)] p-4 rounded-[var(--radius-card)] shadow-sm border border-[var(--color-border)] hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-700 hover:-translate-y-1 transition-all duration-200 cursor-pointer space-y-3 group"
+      className="bg-[var(--color-surface)] p-4 rounded-[var(--radius-card)] shadow-sm border border-[var(--color-border)] hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-700 hover:-translate-y-1 transition-all duration-200 space-y-3 group"
     >
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center gap-2">
@@ -63,9 +65,17 @@ export const ProjectSummaryCard: React.FC<Props> = ({ project, tasks, onClick, d
           <Badge variant={getLifecycleBadgeVariant()}>{badgeText}</Badge>
         </div>
         <div className="flex items-start gap-2">
-          <h3 className="min-w-0 flex-1 font-bold text-[15px] text-[var(--color-text-main)] line-clamp-2 leading-snug group-hover:text-[var(--color-primary)] transition-colors">{project.title}</h3>
-          {onOperationClick && <button type="button" title={t('projectOperation.open')} aria-label={t('projectOperation.open')} onClick={(event) => { event.stopPropagation(); onOperationClick(project.id); }} className="shrink-0 rounded-md border border-[var(--color-border)] p-1.5 text-[var(--color-text-sub)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"><Activity className="h-4 w-4" /></button>}
+          <button type="button" onClick={() => onClick(project.id)} className="min-w-0 flex-1 rounded text-left font-bold text-[15px] text-[var(--color-text-main)] line-clamp-2 leading-snug group-hover:text-[var(--color-primary)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]">{project.title}</button>
+          {onOperationClick && <button type="button" title={t('projectWorkflow.openCurrent')} aria-label={t('projectWorkflow.openCurrent')} onClick={() => onOperationClick(project.id, workflow.currentTab)} className="shrink-0 rounded-md border border-[var(--color-border)] p-1.5 text-[var(--color-text-sub)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"><Activity className="h-4 w-4" /></button>}
         </div>
+      </div>
+
+      <div className="border-y border-[var(--color-border)] py-2">
+        <div className="mb-1.5 flex items-center justify-between gap-2 text-[10px] font-semibold text-[var(--color-text-sub)]">
+          <span>{t(`projectWorkflow.phase.${workflow.currentPhase}`)}</span>
+          <span>{workflow.completion}%</span>
+        </div>
+        <ProjectWorkflowProgress summary={workflow} compact />
       </div>
 
       <div className="flex items-center justify-between text-[11px] text-[var(--color-text-sub)]">
@@ -126,6 +136,16 @@ export const ProjectSummaryCard: React.FC<Props> = ({ project, tasks, onClick, d
           </button>
         </div>
       )}
-    </div>
+
+      {onOperationClick && <div className="grid grid-cols-3 gap-1 border-t border-[var(--color-border)] pt-2">
+        <WorkflowAction icon={<ClipboardCheck className="h-3.5 w-3.5" />} label={t('projectWorkflow.phase.QC')} onClick={() => onOperationClick(project.id, 'QC')} />
+        <WorkflowAction icon={<PackageCheck className="h-3.5 w-3.5" />} label={t('projectWorkflow.phase.DELIVERY')} onClick={() => onOperationClick(project.id, 'DELIVERY')} />
+        <WorkflowAction icon={<BarChart3 className="h-3.5 w-3.5" />} label={t('projectWorkflow.phase.PROFIT')} onClick={() => onOperationClick(project.id, 'PROFIT')} />
+      </div>}
+    </article>
   );
 };
+
+function WorkflowAction({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
+  return <button type="button" title={label} onClick={onClick} className="inline-flex min-w-0 items-center justify-center gap-1 rounded px-1.5 py-1 text-[10px] font-semibold text-[var(--color-text-sub)] hover:bg-[var(--color-bg)] hover:text-[var(--color-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]">{icon}<span className="truncate">{label}</span></button>;
+}

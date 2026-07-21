@@ -22,6 +22,8 @@ import { Badge } from '@/components/ui/Badge';
 import { useTranslationStore } from '@/store/translationStore';
 import { useTranslation } from '@/lib/localization';
 import { ProjectOperationModal } from '@/components/projects/ProjectOperationModal';
+import { ProjectWorkflowTab } from '@/lib/projectWorkflow';
+import { useProjectWorkflowOverviewSync } from '@/hooks/useProjectWorkflow';
 
 export type ExtendedViewType = BoardViewType | 'PART' | 'HISTORY';
 
@@ -45,19 +47,43 @@ export default function ProjectBoardPage() {
   const [selectedMonth, setSelectedMonth] = useState<number | 'ALL'>('ALL');
   const [activeTab, setActiveTab] = useState<ProjectSourceType>('INTERNAL_DEVELOPMENT');
   const [historyFilter, setHistoryFilter] = useState<'ALL' | 'APPROVAL' | 'COMPLETED' | 'AUDIT'>('ALL');
-  const [operationProjectId, setOperationProjectId] = useState<string>('');
+  const [workflowTarget, setWorkflowTarget] = useState<{ projectId: string; tab: ProjectWorkflowTab } | null>(null);
 
   const { settings } = useTranslationStore();
   const t = useTranslation(settings.uiLanguage);
+  const workflowActor = currentUser ? { id: currentUser.id, role: currentUser.role, departmentId: currentUser.departmentId } : null;
+  useProjectWorkflowOverviewSync(workflowActor);
 
-  const applyPreset = (preset: string) => {
-    if (preset === 'ASSIGNEE_VIEW') {
-      setViewType('DETAILED');
-      setGroupBy('ASSIGNEE');
-    } else if (preset === 'PRIORITY_VIEW') {
-      setViewType('DETAILED');
-      setGroupBy('PRIORITY');
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const projectId = params.get('workflow');
+    const requestedTab = params.get('tab') as ProjectWorkflowTab | null;
+    const tabs: ProjectWorkflowTab[] = ['OVERVIEW', 'ACTIVITY', 'ASSIGNMENTS', 'TIMELINE', 'QC', 'DELIVERY', 'DAILY', 'PROFIT'];
+    if (!projectId) return;
+    const timer = window.setTimeout(() => setWorkflowTarget({ projectId, tab: requestedTab && tabs.includes(requestedTab) ? requestedTab : 'OVERVIEW' }), 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  const updateWorkflowUrl = (projectId: string | null, tab?: ProjectWorkflowTab) => {
+    const url = new URL(window.location.href);
+    if (projectId) {
+      url.searchParams.set('workflow', projectId);
+      url.searchParams.set('tab', tab || 'OVERVIEW');
+    } else {
+      url.searchParams.delete('workflow');
+      url.searchParams.delete('tab');
     }
+    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+  };
+
+  const openWorkflow = (projectId: string, tab: ProjectWorkflowTab = 'OVERVIEW') => {
+    setWorkflowTarget({ projectId, tab });
+    updateWorkflowUrl(projectId, tab);
+  };
+
+  const closeWorkflow = () => {
+    setWorkflowTarget(null);
+    updateWorkflowUrl(null);
   };
 
   if (!currentUser) return <div className="py-10 text-center text-[var(--color-text-sub)]">{t('header.loginRequired')}</div>;
@@ -456,12 +482,17 @@ export default function ProjectBoardPage() {
           revisionRequests={revisionRequests}
           groupBy={groupBy}
           onProjectClick={setSelectedProjectId}
-          onOperationClick={setOperationProjectId}
+          onOperationClick={openWorkflow}
           onProjectMove={handleProjectMove}
         />
       )}
 
-      {operationProjectId && <ProjectOperationModal projectId={operationProjectId} onClose={() => setOperationProjectId('')} />}
+      {workflowTarget && <ProjectOperationModal
+        projectId={workflowTarget.projectId}
+        initialTab={workflowTarget.tab}
+        onTabChange={(tab) => { setWorkflowTarget((current) => current ? { ...current, tab } : current); updateWorkflowUrl(workflowTarget.projectId, tab); }}
+        onClose={closeWorkflow}
+      />}
 
       {dispatchProject && (
         <PmDispatchModal

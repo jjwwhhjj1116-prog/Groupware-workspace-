@@ -11,22 +11,24 @@ import { ProjectOperationActivityKind } from '@/types/models';
 import { ProjectQcPanel } from './ProjectQcPanel';
 import { ProjectDeliveryPanel } from './ProjectDeliveryPanel';
 import { ProjectProfitPanel } from './ProjectProfitPanel';
+import { ProjectWorkflowProgress } from './ProjectWorkflowProgress';
+import { ProjectWorkflowTab } from '@/lib/projectWorkflow';
+import { useProjectWorkflow } from '@/hooks/useProjectWorkflow';
 
-type Tab = 'OVERVIEW' | 'ACTIVITY' | 'ASSIGNMENTS' | 'TIMELINE' | 'QC' | 'DELIVERY' | 'DAILY' | 'PROFIT';
-type Props = { projectId: string; onClose: () => void };
+type Props = { projectId: string; initialTab?: ProjectWorkflowTab; onTabChange?: (tab: ProjectWorkflowTab) => void; onClose: () => void };
 
 const inputClass = 'w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-main)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]';
 const actionClass = 'inline-flex min-h-9 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-50';
 const dateOnly = (value?: string | null) => value ? value.slice(0, 10) : '';
 
-export function ProjectOperationModal({ projectId, onClose }: Props) {
+export function ProjectOperationModal({ projectId, initialTab = 'OVERVIEW', onTabChange, onClose }: Props) {
   const { currentUser, users } = useAuthStore();
   const project = useProjectStore((state) => state.projects.find((item) => item.id === projectId));
   const { settings } = useTranslationStore();
   const t = useTranslation(settings.uiLanguage);
   const { operations, loading, error, sync, addActivity, deleteActivity, updateMilestones, reviewStart } = useProjectOperationStore();
   const operation = operations.find((item) => item.projectId === projectId);
-  const [tab, setTab] = useState<Tab>('OVERVIEW');
+  const [tab, setTab] = useState<ProjectWorkflowTab>(initialTab);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [kind, setKind] = useState<ProjectOperationActivityKind>('MEETING');
@@ -40,6 +42,7 @@ export function ProjectOperationModal({ projectId, onClose }: Props) {
   const [actualDate, setActualDate] = useState<string | null>(null);
   const [reason, setReason] = useState('');
   const hasTimelineChanges = awardDate !== null || expectedDate !== null || actualDate !== null;
+  const workflow = useProjectWorkflow(project || { id: projectId, title: operation?.project.name || '', priority: 'NORMAL', status: 'INTAKE_RECEIVED', departmentId: operation?.project.departmentId || '' });
 
   const actor = currentUser ? { id: currentUser.id, role: currentUser.role, departmentId: currentUser.departmentId } : null;
   useEffect(() => { if (actor) void sync(actor); }, [currentUser?.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -75,7 +78,7 @@ export function ProjectOperationModal({ projectId, onClose }: Props) {
   };
 
   if (!currentUser) return null;
-  const tabs: Array<[Tab, string]> = [
+  const tabs: Array<[ProjectWorkflowTab, string]> = [
     ['OVERVIEW', t('projectOperation.tab.overview')],
     ['ACTIVITY', t('projectOperation.tab.activity')],
     ['ASSIGNMENTS', t('projectOperation.tab.assignments')],
@@ -98,8 +101,12 @@ export function ProjectOperationModal({ projectId, onClose }: Props) {
           <button type="button" aria-label={t('common.close')} onClick={onClose} className="rounded-md p-2 text-[var(--color-text-sub)] hover:bg-[var(--color-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"><X className="h-5 w-5" /></button>
         </header>
 
+        <div className="border-b border-[var(--color-border)] bg-[var(--color-bg)]/40 px-4 py-3 md:px-6">
+          <ProjectWorkflowProgress summary={workflow} onPhaseClick={(phase) => { setTab(phase.tab); onTabChange?.(phase.tab); }} />
+        </div>
+
         <div className="flex overflow-x-auto border-b border-[var(--color-border)] px-2 md:px-5" role="tablist">
-          {tabs.map(([value, label]) => <button key={value} type="button" role="tab" aria-selected={tab === value} onClick={() => setTab(value)} className={`whitespace-nowrap border-b-2 px-3 py-3 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-primary)] ${tab === value ? 'border-[var(--color-primary)] text-[var(--color-primary)]' : 'border-transparent text-[var(--color-text-sub)] hover:text-[var(--color-text-main)]'}`}>{label}</button>)}
+          {tabs.map(([value, label]) => <button key={value} type="button" role="tab" aria-selected={tab === value} onClick={() => { setTab(value); onTabChange?.(value); }} className={`whitespace-nowrap border-b-2 px-3 py-3 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-primary)] ${tab === value ? 'border-[var(--color-primary)] text-[var(--color-primary)]' : 'border-transparent text-[var(--color-text-sub)] hover:text-[var(--color-text-main)]'}`}>{label}</button>)}
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">

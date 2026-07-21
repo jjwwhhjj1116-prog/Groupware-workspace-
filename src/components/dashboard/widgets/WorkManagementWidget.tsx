@@ -7,6 +7,10 @@ import { Project } from '@/types/models';
 import { canViewProject } from '@/lib/permissions';
 import { useTranslationStore } from '@/store/translationStore';
 import { useTranslation } from '@/lib/localization';
+import Link from 'next/link';
+import { ArrowUpRight, CircleAlert } from 'lucide-react';
+import { getProjectWorkflowHref } from '@/lib/projectWorkflow';
+import { useProjectWorkflowIndex, useProjectWorkflowOverviewSync } from '@/hooks/useProjectWorkflow';
 
 export const WorkManagementWidget = () => {
   const { projects } = useProjectStore();
@@ -15,6 +19,8 @@ export const WorkManagementWidget = () => {
   const [activeTab, setActiveTab] = useState<'IN_PROGRESS' | 'QC_PENDING' | 'UPCOMING'>('IN_PROGRESS');
   const { settings } = useTranslationStore();
   const t = useTranslation(settings.uiLanguage);
+  const workflowByProject = useProjectWorkflowIndex(projects, tasks);
+  useProjectWorkflowOverviewSync(currentUser ? { id: currentUser.id, role: currentUser.role, departmentId: currentUser.departmentId } : null);
 
   if (!currentUser) return null;
 
@@ -31,8 +37,11 @@ export const WorkManagementWidget = () => {
     visibleProjects = visibleProjects.filter(p => userTaskProjectIds.has(p.id));
   }
 
-  const inProgress = visibleProjects.filter(p => ['IN_PROGRESS', 'INTAKE_RECEIVED', 'MANAGER_REVIEW', 'PM_ASSIGNED', 'SCHEDULE_DRAFTING', 'SCHEDULE_PENDING_APPROVAL'].includes(p.status));
-  const qcPending = visibleProjects.filter(p => p.status === 'QA_REVIEW');
+  const inProgress = visibleProjects.filter((project) => workflowByProject.get(project.id)?.phases.some((phase) => phase.state === 'ACTIVE' || phase.state === 'BLOCKED'));
+  const qcPending = visibleProjects.filter((project) => {
+    const qc = workflowByProject.get(project.id)?.phases.find((phase) => phase.id === 'QC');
+    return qc?.state === 'ACTIVE' || qc?.state === 'BLOCKED';
+  });
   const upcomingDelivery = visibleProjects.filter(p => {
     if (['COMPLETED', 'ARCHIVED'].includes(p.status)) return false;
     const targetDate = p.projectSourceType === 'INTERNAL_DEVELOPMENT' ? p.targetDate : p.deliveryDate;
@@ -90,12 +99,13 @@ export const WorkManagementWidget = () => {
           </div>
         ) : (
           <ul className="space-y-2">
-            {currentList.map((project: Project) => (
-              <li key={project.id} className="p-3 bg-[var(--color-bg)] rounded-md border border-[var(--color-border)] flex flex-col gap-2">
+            {currentList.map((project: Project) => {
+              const workflow = workflowByProject.get(project.id)!;
+              return <li key={project.id} className="p-3 bg-[var(--color-bg)] rounded-md border border-[var(--color-border)] flex flex-col gap-2">
                 <div className="flex justify-between items-start">
-                  <span className="font-semibold text-sm text-[var(--color-text-main)]">
-                    {project.title}
-                  </span>
+                  <Link href={getProjectWorkflowHref(project.id, workflow.currentTab)} className="min-w-0 rounded font-semibold text-sm text-[var(--color-text-main)] hover:text-[var(--color-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]">
+                    <span className="line-clamp-1">{project.title}</span>
+                  </Link>
                   <div className="flex gap-1">
                     <Badge variant={project.projectSourceType === 'INTERNAL_DEVELOPMENT' ? 'DEFAULT' : 'INFO'}>
                       {project.projectSourceType === 'INTERNAL_DEVELOPMENT' ? t('dashboard.projectType.internal') : t('dashboard.projectType.order')}
@@ -110,15 +120,22 @@ export const WorkManagementWidget = () => {
                 </div>
                 <div className="flex justify-between items-center text-xs text-[var(--color-text-sub)]">
                   <span>{project.projectSourceType === 'INTERNAL_DEVELOPMENT' ? t('dashboard.work.targetDate') : t('dashboard.work.deliveryDate')}: {project.projectSourceType === 'INTERNAL_DEVELOPMENT' ? project.targetDate || t('common.unset') : project.deliveryDate || t('common.unset')}</span>
-                  <span>{t('dashboard.work.progress')}: {project.progress || 0}%</span>
+                  <span>{t('projectWorkflow.progress')}: {workflow.completion}%</span>
                 </div>
-              </li>
-            ))}
+                <div className="flex items-center justify-between gap-2 border-t border-[var(--color-border)] pt-2 text-xs">
+                  <span className="font-semibold text-[var(--color-primary)]">{t(`projectWorkflow.phase.${workflow.currentPhase}`)}</span>
+                  <div className="flex items-center gap-2">
+                    {workflow.pendingApprovals > 0 && <span className="inline-flex items-center gap-1 text-amber-700"><CircleAlert className="h-3.5 w-3.5" />{t('projectWorkflow.pendingApprovals', { count: workflow.pendingApprovals.toString() })}</span>}
+                    <Link href={getProjectWorkflowHref(project.id, workflow.currentTab)} aria-label={t('projectWorkflow.openCurrent')} className="rounded p-1 text-[var(--color-text-sub)] hover:text-[var(--color-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"><ArrowUpRight className="h-4 w-4" /></Link>
+                  </div>
+                </div>
+              </li>;
+            })}
           </ul>
         )}
       </div>
-      <div className="px-4 py-2 border-t border-[var(--color-border)] bg-[var(--color-bg)]/30 text-xs text-gray-400 text-center">
-        {t('dashboard.work.deferredNote')}
+      <div className="px-4 py-2 border-t border-[var(--color-border)] bg-[var(--color-bg)]/30 text-xs text-[var(--color-text-sub)] text-center">
+        {t('projectWorkflow.widgetConnected')}
       </div>
     </div>
   );

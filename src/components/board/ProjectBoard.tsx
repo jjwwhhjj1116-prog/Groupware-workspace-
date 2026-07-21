@@ -5,6 +5,8 @@ import { GroupByOption } from './Board';
 import { getDeliveryUrgencyBucket, getProjectBoardColumn } from '@/lib/selectors';
 import { useTranslation } from '@/lib/localization';
 import { useTranslationStore } from '@/store/translationStore';
+import { ProjectWorkflowTab } from '@/lib/projectWorkflow';
+import { useProjectWorkflowIndex } from '@/hooks/useProjectWorkflow';
 
 interface Props {
   projects: Project[];
@@ -13,12 +15,13 @@ interface Props {
   groupBy: GroupByOption;
   onProjectClick: (projectId: string) => void;
   onProjectMove?: (projectId: string, sourceColId: string, targetColId: string) => void;
-  onOperationClick?: (projectId: string) => void;
+  onOperationClick?: (projectId: string, tab?: ProjectWorkflowTab) => void;
 }
 
 export const ProjectBoard: React.FC<Props> = ({ projects, tasks, revisionRequests, groupBy, onProjectClick, onProjectMove, onOperationClick }) => {
   const { settings } = useTranslationStore();
   const t = useTranslation(settings.uiLanguage);
+  const workflowByProject = useProjectWorkflowIndex(projects, tasks);
 
   const getColumns = () => {
     if (groupBy === 'PRIORITY') {
@@ -95,6 +98,7 @@ export const ProjectBoard: React.FC<Props> = ({ projects, tasks, revisionRequest
                   key={project.id} 
                   project={project} 
                   tasks={tasks}
+                  workflow={workflowByProject.get(project.id)!}
                   onClick={onProjectClick} 
                   onOperationClick={onOperationClick}
                   draggable={true}
