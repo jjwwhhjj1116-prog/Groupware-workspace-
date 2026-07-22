@@ -110,6 +110,21 @@
       "deputyApproverId": "user-1783597561693"
     },
     {
+      "id": "user-admin-yjw",
+      "employeeNumber": "YJW",
+      "name": "YJW",
+      "displayName": "CON-COST 관리자",
+      "email": "yjw@con-cost.com",
+      "companyId": "CON_COST",
+      "departmentId": "DEVELOP",
+      "role": "SUPER_ADMIN",
+      "systemRole": "SUPER_ADMIN",
+      "permissionLevel": 5,
+      "employmentStatus": "ACTIVE",
+      "isActive": true,
+      "organizationRank": "CEO"
+    },
+    {
       "id": "user-pm-structure-vn",
       "name": "[TEST] Structure PM",
       "displayName": "[TEST] Structure PM",
