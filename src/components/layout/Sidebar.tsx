@@ -12,7 +12,9 @@ import {
   Cloud,
   FileCheck2,
   FolderKanban,
+  Handshake,
   Home,
+  Landmark,
   LockKeyhole,
   Mail,
   MessageSquareText,
@@ -86,6 +88,8 @@ const railNavigation: RailItem[] = [
   { id: 'tasks', section: '할일', label: '할일', href: '/tasks/my', icon: CheckSquare2, roles: allRoles, minLevel: 2, description: '내 업무와 마감 항목' },
   { id: 'board', section: '게시판', label: '게시판', href: '/board', icon: MessageSquareText, roles: allRoles, description: '전사·본부별 소식' },
   { id: 'organization', section: '조직도', label: '조직도', href: '/organization', icon: Network, roles: allRoles, description: '조직과 담당자 검색' },
+  { id: 'sales', section: '영업', label: '영업', href: '/sales', icon: Handshake, roles: allRoles, minLevel: 2, description: '고객·기회·견적·계약 통합 관리' },
+  { id: 'finance', section: '재무', label: '재무', href: '/finance', icon: Landmark, roles: allRoles, minLevel: 2, description: '매출·매입·자금·결산 통합 관리' },
 ];
 
 const utilityNavigation: RailItem[] = [
@@ -146,6 +150,25 @@ const panelMenus: Record<string, NavigationItem[]> = {
     { id: 'organization-concost', label: 'CON-COST', href: '/organization?company=CON_COST', roles: allRoles },
     { id: 'organization-vietqs', label: 'VIETQS', href: '/organization?company=VIET_QS', roles: allRoles },
   ],
+  sales: [
+    { id: 'sales-home', label: '영업 대시보드', href: '/sales', icon: Handshake, roles: allRoles },
+    { id: 'sales-customers', label: '고객·주소록', href: '/sales?view=CUSTOMERS', roles: allRoles },
+    { id: 'sales-pipeline', label: '리드·영업기회', href: '/sales?view=PIPELINE', roles: allRoles },
+    { id: 'sales-quotes', label: '견적·제안', href: '/sales?view=QUOTES', roles: allRoles },
+    { id: 'sales-contracts', label: '계약·수주', href: '/sales?view=CONTRACTS', roles: allRoles },
+    { id: 'sales-business-cards', label: '명함 자동등록', href: '/sales/business-cards', roles: allRoles },
+    { id: 'sales-activities', label: '영업활동·후속조치', href: '/sales?view=ACTIVITIES', roles: allRoles },
+  ],
+  finance: [
+    { id: 'finance-home', label: '재무 대시보드', href: '/finance', icon: Landmark, roles: allRoles },
+    { id: 'finance-sales-purchases', label: '매출·매입', href: '/finance?view=SALES_PURCHASES', roles: allRoles },
+    { id: 'finance-tax-invoices', label: '세금계산서', href: '/finance?view=TAX_INVOICES', roles: allRoles },
+    { id: 'finance-cashflow', label: '수금·지급', href: '/finance?view=CASHFLOW', roles: allRoles },
+    { id: 'finance-budget', label: '예산·실적', href: '/finance?view=BUDGET', roles: allRoles },
+    { id: 'finance-expenses', label: '경비·법인카드', href: '/finance?view=EXPENSES', roles: allRoles },
+    { id: 'finance-treasury', label: '자금현황', href: '/finance?view=TREASURY', roles: allRoles },
+    { id: 'finance-closing', label: '결산·보고서', href: '/finance?view=CLOSING', roles: allRoles },
+  ],
   'ai-assistant': [
     { id: 'ai-assistant-home', label: 'AI 챗봇', href: '/ai-assistant', icon: Bot, roles: allRoles },
   ],
@@ -189,6 +212,8 @@ function getActiveRail(pathname: string, searchString: string) {
   if (pathname.startsWith('/tasks')) return 'tasks';
   if (pathname.startsWith('/board')) return 'board';
   if (pathname.startsWith('/organization')) return 'organization';
+  if (pathname.startsWith('/sales')) return 'sales';
+  if (pathname.startsWith('/finance')) return 'finance';
   if (pathname.startsWith('/ai-assistant')) return 'ai-assistant';
   if (['/settings/permissions', '/settings/personnel', '/settings/workspace', '/settings/data-quality', '/settings/bulk-edit', '/settings/import'].some((path) => pathname.startsWith(path))) return 'admin-settings';
   if (pathname.startsWith('/settings')) return 'settings';
@@ -245,11 +270,12 @@ export function Sidebar() {
   return (
     <>
       <div className="hidden w-[308px] shrink-0 xl:block" aria-hidden="true" />
-      <aside className="fixed inset-y-0 left-0 z-[var(--z-sidebar)] hidden w-[308px] xl:flex">
+      <aside className="fixed inset-y-0 left-0 z-[var(--z-sidebar)] hidden w-[308px] pt-[64px] xl:flex">
+        <Link href="/" aria-label="CON-COST 홈" className="absolute inset-x-0 top-0 z-10 flex h-[64px] items-center border-b border-[#efd8c4] bg-[#fffaf5] px-5 shadow-[0_8px_22px_rgba(86,52,24,.06)]">
+          <BrandLogo className="h-[34px] w-[178px] shrink-0" />
+          <ChevronDown className="ml-auto h-4 w-4 text-[#a98973]" />
+        </Link>
         <div className="flex w-[76px] shrink-0 flex-col border-r border-white/15 bg-[#ff6b00] text-white shadow-[8px_0_24px_rgba(125,48,0,.12)]">
-          <Link href="/" aria-label="CON-COST 홈" className="flex h-[64px] items-center justify-center border-b border-white/15">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/30 bg-white/15 text-lg font-black shadow-[inset_0_1px_0_rgba(255,255,255,.2)]">C</span>
-          </Link>
           <nav aria-label="글로벌 업무 메뉴" className="cc-scrollbar flex-1 overflow-y-auto px-1.5 py-2">
             <div className="space-y-1">
               {visibleRail.map((item) => {
@@ -281,10 +307,6 @@ export function Sidebar() {
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col border-r border-[#f0ddcd] bg-[#fff5eb] text-[#2f2118] shadow-[8px_0_30px_rgba(86,52,24,.07)]">
-          <div className="flex h-[64px] items-center justify-between border-b border-[#f0ddcd] px-4">
-            <BrandLogo className="h-[26px] w-[132px] shrink-0" />
-            <ChevronDown className="h-4 w-4 text-[#a98973]" />
-          </div>
           <div className="border-b border-[#f0ddcd] px-4 py-4">
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-[#ff6b00] shadow-[0_0_0_4px_rgba(255,107,0,.12)]" />

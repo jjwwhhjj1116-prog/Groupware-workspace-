@@ -32,6 +32,11 @@ export const PmDispatchModal: React.FC<Props> = ({ project, onClose, onSuccess }
 
   const pmUser = users.find(u => u.id === project.pmId);
   const activeUsers = users.filter(u => u.employmentStatus === 'ACTIVE');
+  const activeUserGroups = activeUsers.reduce<Record<string, typeof activeUsers>>((groups, user) => {
+    const team = user.teamName || user.subDepartmentName || user.departmentName || '기타';
+    groups[team] = [...(groups[team] || []), user];
+    return groups;
+  }, {});
 
   const rejectedRequest = requests
     .filter(r => r.projectId === project.id && r.type === 'SCHEDULE_APPROVAL' && r.status === 'REJECTED')
@@ -219,7 +224,7 @@ export const PmDispatchModal: React.FC<Props> = ({ project, onClose, onSuccess }
         orderIndex: i,
         approvalStatus: 'PENDING',
         approvalRequestId: newApprovalRequestId,
-        sourceType: project.projectSourceType === 'INTERNAL_DEVELOPMENT' ? 'INTERNAL_DEVELOPMENT_DISPATCH' : 'PM_DISPATCH',
+        sourceType: 'PM_DISPATCH',
         titleI18n: t.titleI18n
       });
     });
@@ -283,7 +288,7 @@ export const PmDispatchModal: React.FC<Props> = ({ project, onClose, onSuccess }
           <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100 flex gap-3">
             <Info className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
             <div className="text-sm">
-              <div className="font-bold text-blue-900 mb-1">[{project.projectSourceType === 'CLIENT_ORDER' ? t('board.dispatch.extOrder') : t('board.dispatch.internalDev')}] {project.title}</div>
+              <div className="font-bold text-blue-900 mb-1">{project.title}</div>
               <div className="text-blue-800 flex gap-4 mt-2">
                 <span><span className="opacity-70">{t('board.dispatch.pmInCharge')}</span> {pmUser?.name || t('common.unset')}</span>
                 <span><span className="opacity-70">{t('board.dispatch.finalDeadline')}</span> {project.targetDate || project.deliveryDate || t('common.unset')}</span>
@@ -340,10 +345,9 @@ export const PmDispatchModal: React.FC<Props> = ({ project, onClose, onSuccess }
                         className="w-full border rounded p-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                       >
                         <option value="">{t('board.dispatch.assigneeSelect')}</option>
-                        {activeUsers.map(u => (
-                          <option key={u.id} value={u.id}>{u.name} ({u.departmentId})</option>
-                        ))}
+                        {Object.entries(activeUserGroups).map(([team, teamUsers]) => <optgroup key={team} label={team}>{teamUsers.map(u => <option key={u.id} value={u.id}>{u.name} · {u.jobTitle || u.position || u.role}</option>)}</optgroup>)}
                       </select>
+                      {task.assigneeId && (() => { const selected = activeUsers.find((user) => user.id === task.assigneeId); return selected ? <div className="mt-2 flex items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-2"><span className="grid h-7 w-7 place-items-center rounded-full bg-[#2979a8] text-[10px] font-black text-white shadow-sm">{selected.name.slice(0, 1)}</span><span className="min-w-0"><strong className="block truncate text-[10px] text-[var(--color-text-main)]">{selected.name}</strong><span className="block truncate text-[9px] font-semibold text-[var(--color-text-sub)]">{selected.teamName || selected.subDepartmentName || selected.departmentName}</span></span></div> : null; })()}
                     </div>
 
                     <div>

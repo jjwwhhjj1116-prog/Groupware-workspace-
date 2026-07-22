@@ -17,31 +17,31 @@ interface Props {
   onProjectClick: (projectId: string) => void;
   onProjectMove?: (projectId: string, sourceColId: string, targetColId: string) => void;
   onOperationClick?: (projectId: string, tab?: ProjectWorkflowTab) => void;
+  onProjectAction?: (project: Project, action: 'START' | 'DUE' | 'COMPLETE' | 'REVISION') => void;
 }
 
-export const ProjectBoard: React.FC<Props> = ({ projects, tasks, revisionRequests, groupBy, onProjectClick, onProjectMove, onOperationClick }) => {
+export const ProjectBoard: React.FC<Props> = ({ projects, tasks, revisionRequests, groupBy, onProjectClick, onProjectMove, onOperationClick, onProjectAction }) => {
   const { settings } = useTranslationStore();
   const t = useTranslation(settings.uiLanguage);
   const workflowByProject = useProjectWorkflowIndex(projects, tasks);
 
   const getColumns = () => {
     if (groupBy === 'PRIORITY') {
-      const isInternal = projects.length > 0 && projects[0].projectSourceType === 'INTERNAL_DEVELOPMENT';
-      const label = isInternal ? t('goal') : t('delivery');
+      const label = t('delivery');
       return [
-        { id: 'OVERDUE', title: `🚨 ${t('overdue', { label })}`, accent: 'bg-rose-500' },
-        { id: 'WITHIN_1_WEEK', title: `🔴 ${t('dueIn', { label, time: '1w' })}`, accent: 'bg-red-500' },
-        { id: 'WITHIN_2_WEEKS', title: `🟠 ${t('dueIn', { label, time: '2w' })}`, accent: 'bg-amber-500' },
-        { id: 'WITHIN_1_MONTH', title: `🔵 ${t('dueIn', { label, time: '1m' })}`, accent: 'bg-blue-500' },
-        { id: 'UNSET', title: `⚪ ${t('unset')}`, accent: 'bg-slate-400' },
+        { id: 'OVERDUE', title: `🚨 ${t('overdue', { label })}`, accent: 'bg-rose-500', frame: 'border-rose-200/90' },
+        { id: 'WITHIN_1_WEEK', title: `🔴 ${t('dueIn', { label, time: '1w' })}`, accent: 'bg-red-500', frame: 'border-red-200/90' },
+        { id: 'WITHIN_2_WEEKS', title: `🟠 ${t('dueIn', { label, time: '2w' })}`, accent: 'bg-amber-500', frame: 'border-amber-200/90' },
+        { id: 'WITHIN_1_MONTH', title: `🔵 ${t('dueIn', { label, time: '1m' })}`, accent: 'bg-blue-500', frame: 'border-blue-200/90' },
+        { id: 'UNSET', title: `⚪ ${t('unset')}`, accent: 'bg-slate-400', frame: 'border-slate-200/90' },
       ];
     }
     // Default to Status groups
     return [
-      { id: 'PRE_WORK', title: t('preWork'), accent: 'bg-slate-400' },
-      { id: 'IN_PROGRESS', title: t('inProgress'), accent: 'bg-[#4e6fd8]' },
-      { id: 'COMPLETED', title: t('completed'), accent: 'bg-emerald-500' },
-      { id: 'REVISION', title: t('revision'), accent: 'bg-[#ff6b00]' },
+      { id: 'PRE_WORK', title: t('preWork'), accent: 'bg-slate-400', frame: 'border-slate-200/90' },
+      { id: 'IN_PROGRESS', title: t('inProgress'), accent: 'bg-sky-500', frame: 'border-sky-200/90' },
+      { id: 'COMPLETED', title: t('completed'), accent: 'bg-emerald-500', frame: 'border-emerald-200/90' },
+      { id: 'REVISION', title: t('revision'), accent: 'bg-[#ff7a2f]', frame: 'border-orange-200/90' },
     ];
   };
 
@@ -81,7 +81,7 @@ export const ProjectBoard: React.FC<Props> = ({ projects, tasks, revisionRequest
         return (
           <div 
             key={col.id} 
-            className="flex max-h-[calc(100vh-220px)] min-h-[250px] flex-col overflow-hidden rounded-[20px] border border-[var(--color-border)] bg-[var(--cc-surface-2)] shadow-[var(--cc-shadow-1)] transition hover:-translate-y-1 hover:shadow-[var(--cc-shadow-2)]"
+            className={`flex max-h-[calc(100vh-220px)] min-h-[250px] flex-col overflow-hidden rounded-[20px] border ${col.frame} bg-[var(--cc-surface-2)] shadow-[0_12px_30px_rgba(71,85,105,.09),inset_0_1px_0_rgba(255,255,255,.85)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(71,85,105,.14)]`}
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, col.id)}
             role="region"
@@ -102,6 +102,7 @@ export const ProjectBoard: React.FC<Props> = ({ projects, tasks, revisionRequest
                   workflow={workflowByProject.get(project.id)!}
                   onClick={onProjectClick} 
                   onOperationClick={onOperationClick}
+                  onProjectAction={onProjectAction}
                   draggable={true}
                   onDragStart={(e) => {
                     e.dataTransfer.setData('projectId', project.id);

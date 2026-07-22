@@ -69,6 +69,11 @@ export default function SchedulesPage() {
     }
     return true;
   });
+  const sortedVisibleUsers = [...visibleUsers].sort((a, b) => {
+    const teamA = a.teamName || a.subDepartmentName || a.departmentName || '';
+    const teamB = b.teamName || b.subDepartmentName || b.departmentName || '';
+    return teamA.localeCompare(teamB, 'ko') || getUserDisplayName(a).localeCompare(getUserDisplayName(b), 'ko');
+  });
 
   // Filter based on role and rules
   const visibleSchedules = schedules.filter(s => {
@@ -149,6 +154,11 @@ export default function SchedulesPage() {
     if (type === 'SUN') return 'bg-red-50/30';
     if (type === 'SAT') return 'bg-blue-50/30';
     return 'bg-[var(--color-surface)]';
+  };
+
+  const getAvatarTone = (id: string) => {
+    const tones = ['bg-[#2979a8]', 'bg-[#18806a]', 'bg-[#d07a28]', 'bg-[#7a5bb2]', 'bg-[#c14e68]', 'bg-[#59705f]'];
+    return tones[id.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0) % tones.length];
   };
 
   const getTaskBarClass = (t: TaskCard, d: number) => {
@@ -285,15 +295,14 @@ export default function SchedulesPage() {
                 </tr>
               </thead>
               <tbody>
-                {visibleUsers.map(user => {
+                {sortedVisibleUsers.map(user => {
                   const userSchedules = visibleSchedules.filter(s => s.userId === user.id);
                   const userTasks = tasks.filter(t => t.assigneeId === user.id && !t.isDeleted);
 
                   return (
                     <tr key={user.id} className="hover:bg-[var(--color-bg)]/50 transition-colors group">
                       <td className="sticky left-0 bg-[var(--color-surface)] group-hover:bg-[var(--color-bg)]/50 border-b border-r-2 p-3 text-sm font-bold text-[var(--color-text-main)] z-10 shadow-[1px_0_0_0_#e5e7eb]">
-                        {getUserDisplayName(user)}
-                        <div className="text-[10px] font-normal text-[var(--color-text-sub)]">{user.teamName || user.departmentName}</div>
+                        <div className="flex items-center gap-2.5"><span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 border-white text-[10px] font-black text-white shadow-sm ${getAvatarTone(user.id)}`}>{getUserDisplayName(user).slice(0, 1)}</span><div className="min-w-0"><div className="truncate">{getUserDisplayName(user)}</div><div className="truncate text-[10px] font-semibold text-[var(--color-text-sub)]">{user.teamName || user.subDepartmentName || user.departmentName}</div></div></div>
                       </td>
                       {daysArray.map(d => {
                         const daySchedules = userSchedules.filter(s => coversDate(s, d));
@@ -326,7 +335,7 @@ export default function SchedulesPage() {
                     </tr>
                   );
                 })}
-                {visibleUsers.length === 0 && <tr><td colSpan={daysArray.length + 1} className="h-44 border-b border-[var(--color-border)] bg-[var(--color-surface)] text-center"><strong className="block text-sm font-black text-[var(--color-text-main)]">표시할 팀 일정이 없습니다.</strong><span className="mt-1 block text-[11px] font-semibold text-[var(--color-text-sub)]">일정 없는 직원 포함을 선택하거나 PM 일정에서 배치를 등록해 주세요.</span></td></tr>}
+                {sortedVisibleUsers.length === 0 && <tr><td colSpan={daysArray.length + 1} className="h-44 border-b border-[var(--color-border)] bg-[var(--color-surface)] text-center"><strong className="block text-sm font-black text-[var(--color-text-main)]">표시할 팀 일정이 없습니다.</strong><span className="mt-1 block text-[11px] font-semibold text-[var(--color-text-sub)]">일정 없는 직원 포함을 선택하거나 PM 일정에서 배치를 등록해 주세요.</span></td></tr>}
               </tbody>
             </table>
           </div>
@@ -407,14 +416,14 @@ export default function SchedulesPage() {
 
         {activeTab === 'USER_DETAIL' && (
           <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {visibleUsers.map(user => {
+            {sortedVisibleUsers.map(user => {
               const userTasks = tasks.filter(t => t.assigneeId === user.id && !t.isDeleted && t.status !== 'DONE');
               const userSchedules = visibleSchedules.filter(s => s.userId === user.id);
               
               return (
                 <div key={user.id} className="bg-[var(--color-bg)] rounded-xl p-4 border border-[var(--color-border)] shadow-sm flex flex-col h-full">
                   <div className="flex items-center gap-3 mb-4 pb-3 border-b border-[var(--color-border)]">
-                    <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-black shadow-sm ${getAvatarTone(user.id)}`}>
                       {user.displayName?.[0] || user.name[0]}
                     </div>
                     <div>
