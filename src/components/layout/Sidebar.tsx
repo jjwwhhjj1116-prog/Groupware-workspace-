@@ -76,16 +76,22 @@ const scheduleNavigation: NavigationItem[] = [
 ];
 
 const railNavigation: RailItem[] = [
-  { id: 'workspace', section: 'WORKSPACE', label: 'HOME', href: '/', icon: Home, roles: allRoles, description: '오늘의 업무와 주요 현황' },
-  { id: 'mail', section: '전자메일', label: '메일', href: '/mail', icon: Mail, roles: allRoles, description: '업무 메일함과 중요 문서' },
-  { id: 'approvals', section: '전자결재', label: '결재', href: '/approvals', icon: FileCheck2, roles: allRoles, minLevel: 2, badge: '3', description: '받은 결재와 배포 문서' },
+  { id: 'workspace', section: 'WORKSPACE', label: 'WORKSPACE', href: '/', icon: Home, roles: allRoles, description: '오늘의 업무와 주요 현황' },
+  { id: 'mail', section: '전자메일', label: '전자메일', href: '/mail', icon: Mail, roles: allRoles, description: '업무 메일함과 중요 문서' },
+  { id: 'approvals', section: '전자결재', label: '전자결재', href: '/approvals', icon: FileCheck2, roles: allRoles, minLevel: 2, badge: '3', description: '받은 결재와 배포 문서' },
   { id: 'calendar', section: '캘린더', label: '캘린더', href: '/schedules', icon: CalendarDays, roles: allRoles, description: '개인 일정과 회의' },
   { id: 'projects', section: '프로젝트', label: '프로젝트', href: '/projects?department=FINISH', icon: FolderKanban, roles: allRoles, minLevel: 2, description: '접수부터 납품까지' },
-  { id: 'schedule-management', section: '일정관리', label: '일정', href: '/schedules?department=FINISH', icon: CalendarDays, roles: allRoles, minLevel: 2, description: '본부별 인력·프로젝트 일정' },
+  { id: 'schedule-management', section: '일정관리', label: '일정관리', href: '/schedules?department=FINISH', icon: CalendarDays, roles: allRoles, minLevel: 2, description: '본부별 인력·프로젝트 일정' },
   { id: 'drive', section: '드라이브', label: '드라이브', href: '/drive', icon: Cloud, roles: allRoles, description: '회사·프로젝트 자료' },
   { id: 'tasks', section: '할일', label: '할일', href: '/tasks/my', icon: CheckSquare2, roles: allRoles, minLevel: 2, description: '내 업무와 마감 항목' },
   { id: 'board', section: '게시판', label: '게시판', href: '/board', icon: MessageSquareText, roles: allRoles, description: '전사·본부별 소식' },
   { id: 'organization', section: '조직도', label: '조직도', href: '/organization', icon: Network, roles: allRoles, description: '조직과 담당자 검색' },
+];
+
+const utilityNavigation: RailItem[] = [
+  { id: 'ai-assistant', section: 'AI챗봇', label: 'AI챗봇', href: '/ai-assistant', icon: Bot, roles: allRoles, description: '업무 검색과 문서 작성 지원' },
+  { id: 'settings', section: '설정', label: '설정', href: '/settings', icon: Settings, roles: allRoles, description: '개인 환경과 워크스페이스 설정' },
+  { id: 'admin-settings', section: '관리자설정', label: '관리자설정', href: '/settings/permissions', icon: ShieldCheck, roles: ['SUPER_ADMIN', 'SYSTEM_ADMIN'], description: '인력·권한·데이터 운영 관리' },
 ];
 
 const panelMenus: Record<string, NavigationItem[]> = {
@@ -140,6 +146,19 @@ const panelMenus: Record<string, NavigationItem[]> = {
     { id: 'organization-concost', label: 'CON-COST', href: '/organization?company=CON_COST', roles: allRoles },
     { id: 'organization-vietqs', label: 'VIETQS', href: '/organization?company=VIET_QS', roles: allRoles },
   ],
+  'ai-assistant': [
+    { id: 'ai-assistant-home', label: 'AI 챗봇', href: '/ai-assistant', icon: Bot, roles: allRoles },
+  ],
+  settings: [
+    { id: 'settings-home', label: '개인 설정', href: '/settings', icon: Settings, roles: allRoles },
+    { id: 'settings-translation', label: '언어·번역 설정', href: '/settings/translation', roles: allRoles },
+  ],
+  'admin-settings': [
+    { id: 'admin-permissions', label: '접근등급·권한 관리', href: '/settings/permissions', icon: ShieldCheck, roles: ['SUPER_ADMIN', 'SYSTEM_ADMIN'] },
+    { id: 'admin-personnel', label: '인력현황 관리', href: '/settings/personnel', roles: ['SUPER_ADMIN', 'SYSTEM_ADMIN'] },
+    { id: 'admin-workspace', label: '워크스페이스 관리', href: '/settings/workspace', roles: ['SUPER_ADMIN', 'SYSTEM_ADMIN'] },
+    { id: 'admin-data-quality', label: '데이터 품질 관리', href: '/settings/data-quality', roles: ['SUPER_ADMIN', 'SYSTEM_ADMIN'] },
+  ],
 };
 
 function isAllowed(item: NavigationItem, role: Role, level: number) {
@@ -170,6 +189,9 @@ function getActiveRail(pathname: string, searchString: string) {
   if (pathname.startsWith('/tasks')) return 'tasks';
   if (pathname.startsWith('/board')) return 'board';
   if (pathname.startsWith('/organization')) return 'organization';
+  if (pathname.startsWith('/ai-assistant')) return 'ai-assistant';
+  if (['/settings/permissions', '/settings/personnel', '/settings/workspace', '/settings/data-quality', '/settings/bulk-edit', '/settings/import'].some((path) => pathname.startsWith(path))) return 'admin-settings';
+  if (pathname.startsWith('/settings')) return 'settings';
   return 'workspace';
 }
 
@@ -215,7 +237,8 @@ export function Sidebar() {
   const accessLevel = currentUser.permissionLevel || (currentUser.role === 'SUPER_ADMIN' ? 5 : currentUser.role === 'SYSTEM_ADMIN' || currentUser.role === 'DEPARTMENT_MANAGER' ? 4 : currentUser.role === 'PM' ? 3 : 2);
   const activeRailId = getActiveRail(pathname, searchString);
   const visibleRail = railNavigation.filter((item) => isAllowed(item, currentUser.role, accessLevel));
-  const activeRail = visibleRail.find((item) => item.id === activeRailId) || visibleRail[0];
+  const visibleUtilities = utilityNavigation.filter((item) => isAllowed(item, currentUser.role, accessLevel));
+  const activeRail = [...visibleRail, ...visibleUtilities].find((item) => item.id === activeRailId) || visibleRail[0];
   const panelItems = panelMenus[activeRail.id] || [];
   const mobile = railNavigation.filter((item) => ['workspace', 'approvals', 'projects', 'schedule-management', 'tasks'].includes(item.id));
 
@@ -235,7 +258,7 @@ export function Sidebar() {
                 return (
                   <Link key={item.id} href={item.href} title={item.section} aria-current={active ? 'page' : undefined} className={`relative flex min-h-[55px] flex-col items-center justify-center gap-1 rounded-[14px] border text-[9px] font-black transition-all ${active ? 'border-white/30 bg-white/20 text-white shadow-[0_7px_18px_rgba(134,48,0,.18),inset_0_1px_0_rgba(255,255,255,.18)]' : 'border-transparent text-white/72 hover:-translate-y-0.5 hover:border-white/15 hover:bg-white/10 hover:text-white'}`}>
                     <Icon className="h-[19px] w-[19px]" strokeWidth={active ? 2.5 : 2} />
-                    <span>{item.label}</span>
+                    <span className={item.id === 'workspace' ? 'text-[7px] tracking-[-.02em]' : ''}>{item.label}</span>
                     {item.badge && <span className="absolute right-1.5 top-1 rounded-full bg-white px-1.5 py-0.5 text-[8px] font-black text-[#d45300] shadow-sm">{item.badge}</span>}
                   </Link>
                 );
@@ -243,10 +266,17 @@ export function Sidebar() {
             </div>
           </nav>
           <div className="space-y-1 border-t border-white/15 px-1.5 py-2">
-            <Link href="/ai-assistant" title="AI 챗봇" className="flex h-10 items-center justify-center rounded-xl text-white/75 hover:bg-white/10 hover:text-white"><Bot className="h-5 w-5" /></Link>
-            <button type="button" onClick={toggleDarkMode} title="모드설정" className="flex h-10 w-full items-center justify-center rounded-xl text-white/75 hover:bg-white/10 hover:text-white">{isDarkMode ? <Sun className="h-5 w-5" /> : <MoonStar className="h-5 w-5" />}</button>
-            <Link href="/settings" title="설정" className="flex h-10 items-center justify-center rounded-xl text-white/75 hover:bg-white/10 hover:text-white"><Settings className="h-5 w-5" /></Link>
-            {['SUPER_ADMIN', 'SYSTEM_ADMIN'].includes(currentUser.role) && <Link href="/settings/permissions" title="관리자설정" className="flex h-10 items-center justify-center rounded-xl text-white/75 hover:bg-white/10 hover:text-white"><ShieldCheck className="h-5 w-5" /></Link>}
+            {visibleUtilities.filter((item) => item.id === 'ai-assistant').map((item) => {
+              const Icon = item.icon ?? Bot;
+              const active = item.id === activeRail.id;
+              return <Link key={item.id} href={item.href} title={item.section} aria-current={active ? 'page' : undefined} className={`flex min-h-[44px] flex-col items-center justify-center gap-0.5 rounded-xl text-[8px] font-black transition ${active ? 'bg-white/20 text-white shadow-[0_5px_14px_rgba(134,48,0,.16)]' : 'text-white/75 hover:bg-white/10 hover:text-white'}`}><Icon className="h-[18px] w-[18px]" /><span>{item.label}</span></Link>;
+            })}
+            <button type="button" onClick={toggleDarkMode} title={isDarkMode ? '라이트모드로 전환' : '다크모드로 전환'} aria-pressed={isDarkMode} className="flex min-h-[44px] w-full flex-col items-center justify-center gap-0.5 rounded-xl text-[8px] font-black text-white/75 transition hover:bg-white/10 hover:text-white">{isDarkMode ? <Sun className="h-[18px] w-[18px]" /> : <MoonStar className="h-[18px] w-[18px]" />}<span>모드설정</span></button>
+            {visibleUtilities.filter((item) => item.id !== 'ai-assistant').map((item) => {
+              const Icon = item.icon ?? Settings;
+              const active = item.id === activeRail.id;
+              return <Link key={item.id} href={item.href} title={item.section} aria-current={active ? 'page' : undefined} className={`flex min-h-[44px] flex-col items-center justify-center gap-0.5 rounded-xl text-[8px] font-black transition ${active ? 'bg-white/20 text-white shadow-[0_5px_14px_rgba(134,48,0,.16)]' : 'text-white/75 hover:bg-white/10 hover:text-white'}`}><Icon className="h-[18px] w-[18px]" /><span>{item.label}</span></Link>;
+            })}
           </div>
         </div>
 
