@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useAuthStore } from '@/store/authStore';
-import { LoginScreen } from './LoginScreen';
+import { LoginExperience } from './LoginExperience';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { SessionManager } from './SessionManager';
@@ -11,7 +11,7 @@ import { DataLoader } from '@/components/layout/DataLoader';
 export function AuthenticatedShell({ children }: { children: React.ReactNode }) {
   const currentUser = useAuthStore((state) => state.currentUser);
 
-  if (!currentUser) return <LoginScreen />;
+  if (!currentUser) return <LoginExperience />;
 
   return (
     <>

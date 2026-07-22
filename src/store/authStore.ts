@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { PersonnelCard, DataSourceMode } from '@/types/models';
 import { mockUsers } from '@/data/mockData';
+import { verifyStaticCredential } from '@/lib/staticAuth';
 
 interface AuthState {
   currentUser: PersonnelCard | null;
@@ -16,6 +17,8 @@ interface AuthState {
   loginWithCredentials: (identifier: string, password: string) => Promise<boolean>;
   loginError: string | null;
   isAuthenticating: boolean;
+  rememberLogin: boolean;
+  setRememberLogin: (rememberLogin: boolean) => void;
   clearLoginError: () => void;
   logout: () => void;
   addUser: (user: Omit<PersonnelCard, 'id'>) => void;
@@ -39,7 +42,9 @@ export const useAuthStore = create<AuthState>()(
   serverUser: null,
   loginError: null,
   isAuthenticating: false,
+  rememberLogin: false,
   lastActivity: Date.now(),
+  setRememberLogin: (rememberLogin) => set({ rememberLogin }),
   setAppMode: (mode) => set((state) => {
     // If switching to DAILY_WORK, ensure DEMO_SEED_DATA is deactivated
     if (mode === 'DAILY_WORK' && state.dataSourceMode === 'DEMO_SEED_DATA') {
@@ -85,7 +90,7 @@ export const useAuthStore = create<AuthState>()(
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ identifier, password }),
+          body: JSON.stringify({ email: identifier, identifier, password }),
         });
         if (!response.ok) throw new Error('AUTH_FAILED');
         const payload = await response.json();
@@ -98,8 +103,17 @@ export const useAuthStore = create<AuthState>()(
       }
     }
 
+    const users = useAuthStore.getState().users;
+    const staticUserId = await verifyStaticCredential(normalized, password);
+    if (staticUserId) {
+      const staticUser = users.find((candidate) => candidate.id === staticUserId);
+      if (staticUser && staticUser.employmentStatus !== 'INACTIVE') {
+        set({ currentUser: staticUser, isAuthenticating: false, lastActivity: Date.now() });
+        return true;
+      }
+    }
+
     if (process.env.NODE_ENV !== 'production') {
-      const users = useAuthStore.getState().users;
       const user = users.find((candidate) =>
         candidate.id.toLowerCase() === normalized ||
         candidate.employeeNumber?.toLowerCase() === normalized ||
@@ -134,7 +148,7 @@ export const useAuthStore = create<AuthState>()(
       const { apiClient } = await import('@/lib/apiClient');
       const data = await apiClient('/auth/session');
       set({ serverUser: data.user });
-    } catch (e) {
+    } catch {
       set({ serverUser: null });
     }
   }
@@ -142,7 +156,8 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'auth-storage',
       partialize: (state) => ({
-        currentUser: state.currentUser,
+        currentUser: state.rememberLogin ? state.currentUser : null,
+        rememberLogin: state.rememberLogin,
         users: state.users,
         appMode: state.appMode,
         dataSourceMode: state.dataSourceMode
