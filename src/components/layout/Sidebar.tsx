@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import {
   Bot,
   CalendarDays,
@@ -98,18 +98,25 @@ function isAllowed(item: NavigationItem, role: Role, level: number) {
   return (!item.roles || item.roles.includes(role)) && level >= (item.minLevel || 1);
 }
 
-function containsActivePath(item: NavigationItem, pathname: string): boolean {
-  if (item.href) {
-    const path = item.href.split('?')[0];
-    if (path === '/' ? pathname === '/' : pathname === path || pathname.startsWith(`${path}/`)) return true;
-  }
-  return item.children?.some((child) => containsActivePath(child, pathname)) ?? false;
+function isHrefActive(href: string, pathname: string, searchString: string): boolean {
+  const [path, queryString = ''] = href.split('?');
+  if (pathname !== path) return false;
+  if (!queryString) return !searchString;
+
+  const current = new URLSearchParams(searchString);
+  const expected = new URLSearchParams(queryString);
+  return Array.from(expected.entries()).every(([key, value]) => current.get(key) === value);
 }
 
-function NavigationNode({ item, depth, role, level, pathname }: { item: NavigationItem; depth: number; role: Role; level: number; pathname: string }) {
+function containsActivePath(item: NavigationItem, pathname: string, searchString: string): boolean {
+  if (item.href && isHrefActive(item.href, pathname, searchString)) return true;
+  return item.children?.some((child) => containsActivePath(child, pathname, searchString)) ?? false;
+}
+
+function NavigationNode({ item, depth, role, level, pathname, searchString }: { item: NavigationItem; depth: number; role: Role; level: number; pathname: string; searchString: string }) {
   const visibleChildren = item.children?.filter((child) => isAllowed(child, role, level));
   const hasChildren = Boolean(visibleChildren?.length);
-  const active = containsActivePath(item, pathname);
+  const active = containsActivePath(item, pathname, searchString);
   const [open, setOpen] = React.useState(active || depth === 0 && ['projects', 'schedule-management'].includes(item.id));
   const Icon = item.icon ?? CircleDot;
 
@@ -122,15 +129,15 @@ function NavigationNode({ item, depth, role, level, pathname }: { item: Navigati
           type="button"
           aria-expanded={open}
           onClick={() => setOpen((value) => !value)}
-          className={`group flex min-h-10 w-full items-center rounded-xl text-left font-bold transition-colors ${depth === 0 ? 'px-3 text-[13px]' : depth === 1 ? 'px-3 text-[12px]' : 'px-2.5 text-[12px]'} ${active ? 'bg-white/[.09] text-white' : 'text-slate-300 hover:bg-white/[.06] hover:text-white'}`}
+          className={`group flex min-h-10 w-full items-center rounded-xl text-left font-bold transition-colors ${depth === 0 ? 'px-3 text-[13px]' : depth === 1 ? 'px-3 text-[12px]' : 'px-2.5 text-[12px]'} ${active ? 'bg-black/[.12] text-white shadow-[inset_0_1px_0_rgba(255,255,255,.14)]' : 'text-white/85 hover:bg-white/[.14] hover:text-white'}`}
         >
-          <Icon className={`${depth === 0 ? 'mr-3 h-[18px] w-[18px]' : 'mr-2 h-3.5 w-3.5'} shrink-0 ${active ? 'text-[#ff8a3d]' : 'text-slate-500 group-hover:text-slate-300'}`} />
+          <Icon className={`${depth === 0 ? 'mr-3 h-[18px] w-[18px]' : 'mr-2 h-3.5 w-3.5'} shrink-0 ${active ? 'text-white' : 'text-white/55 group-hover:text-white'}`} />
           <span className="min-w-0 flex-1 truncate">{item.label}</span>
-          <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`} />
+          <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-white/55 transition-transform ${open ? 'rotate-180' : ''}`} />
         </button>
         {open && (
-          <div className={`${depth === 0 ? 'ml-[22px] border-l border-white/10 pl-2' : 'ml-3 border-l border-white/[.08] pl-2'} mt-1 space-y-0.5`}>
-            {visibleChildren?.map((child) => <NavigationNode key={child.id} item={child} depth={depth + 1} role={role} level={level} pathname={pathname} />)}
+          <div className={`${depth === 0 ? 'ml-[22px] border-l border-white/25 pl-2' : 'ml-3 border-l border-white/20 pl-2'} mt-1 space-y-0.5`}>
+            {visibleChildren?.map((child) => <NavigationNode key={child.id} item={child} depth={depth + 1} role={role} level={level} pathname={pathname} searchString={searchString} />)}
           </div>
         )}
       </div>
@@ -138,24 +145,24 @@ function NavigationNode({ item, depth, role, level, pathname }: { item: Navigati
   }
 
   if (!item.href) return null;
-  const itemPath = item.href.split('?')[0];
-  const exactActive = itemPath === '/' ? pathname === '/' : pathname === itemPath || pathname.startsWith(`${itemPath}/`);
+  const exactActive = isHrefActive(item.href, pathname, searchString);
   return (
     <Link
       href={item.href}
       aria-current={exactActive ? 'page' : undefined}
-      className={`group relative flex min-h-10 items-center rounded-xl font-bold ${depth === 0 ? 'px-3 text-[13px]' : depth === 1 ? 'px-3 text-[12px]' : 'px-2.5 text-[12px]'} ${exactActive ? 'bg-gradient-to-r from-[#4e6fd8]/35 to-[#4e6fd8]/10 text-white shadow-[inset_0_1px_0_rgba(255,255,255,.08)]' : 'text-slate-300 hover:bg-white/[.06] hover:text-white'}`}
+      className={`group relative flex min-h-10 items-center rounded-xl font-bold ${depth === 0 ? 'px-3 text-[13px]' : depth === 1 ? 'px-3 text-[12px]' : 'px-2.5 text-[12px]'} ${exactActive ? 'bg-white text-[#a94100] shadow-[0_8px_20px_rgba(130,48,0,.18),inset_0_1px_0_rgba(255,255,255,.8)]' : 'text-white/85 hover:bg-white/[.14] hover:text-white'}`}
     >
-      {exactActive && <span className="absolute inset-y-2 left-0 w-1 rounded-full bg-[#eb6300] shadow-[0_0_12px_rgba(235,99,0,.55)]" />}
-      <Icon className={`${depth === 0 ? 'mr-3 h-[18px] w-[18px]' : 'mr-2 h-3.5 w-3.5'} shrink-0 ${exactActive ? 'text-[#ff9b57]' : 'text-slate-500 group-hover:text-slate-300'}`} />
+      {exactActive && <span className="absolute inset-y-2 left-0 w-1 rounded-full bg-[#ff6b00]" />}
+      <Icon className={`${depth === 0 ? 'mr-3 h-[18px] w-[18px]' : 'mr-2 h-3.5 w-3.5'} shrink-0 ${exactActive ? 'text-[#ff6b00]' : 'text-white/55 group-hover:text-white'}`} />
       <span className="min-w-0 flex-1 truncate">{item.label}</span>
-      {item.badge && <span className={`ml-2 rounded-full px-1.5 py-0.5 text-[9px] font-black ${item.badge === '3' ? 'bg-[#eb6300] text-white' : 'border border-white/10 bg-white/[.08] text-slate-300'}`}>{item.badge}</span>}
+      {item.badge && <span className={`ml-2 rounded-full px-1.5 py-0.5 text-[9px] font-black ${item.badge === '3' ? exactActive ? 'bg-[#ff6b00] text-white' : 'bg-white text-[#b44800]' : exactActive ? 'bg-[#fff1e6] text-[#b44800]' : 'border border-white/25 bg-black/10 text-white'}`}>{item.badge}</span>}
     </Link>
   );
 }
 
 export function Sidebar() {
   const pathname = usePathname();
+  const searchString = useSearchParams().toString();
   const currentUser = useAuthStore((state) => state.currentUser);
   const { isDarkMode, toggleDarkMode } = useUiStore();
   if (!currentUser) return null;
@@ -166,48 +173,48 @@ export function Sidebar() {
   return (
     <>
       <div className="hidden w-[292px] shrink-0 xl:block" aria-hidden="true" />
-      <aside className="fixed inset-y-0 left-0 z-[var(--z-sidebar)] hidden w-[292px] flex-col border-r border-white/10 bg-[#172554] text-white shadow-[12px_0_34px_rgba(18,32,77,.13)] xl:flex">
-        <div className="flex h-[76px] items-center border-b border-white/10 px-5">
-          <div className="flex h-11 w-[174px] items-center rounded-2xl bg-white px-3 shadow-[0_8px_22px_rgba(3,10,30,.24)]"><BrandLogo /></div>
+      <aside className="fixed inset-y-0 left-0 z-[var(--z-sidebar)] hidden w-[292px] flex-col border-r border-white/20 bg-[#ff6b00] text-white shadow-[12px_0_34px_rgba(122,45,0,.18)] xl:flex">
+        <div className="flex h-[76px] items-center border-b border-white/20 px-6">
+          <BrandLogo className="h-[34px] w-[166px] shrink-0 [&_img]:brightness-0 [&_img]:invert" />
         </div>
 
         <div className="border-b border-white/10 px-5 py-4">
-          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[.06] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.08)]">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#5f7fe4] to-[#344d9a] text-sm font-black shadow-lg">{currentUser.name.slice(0, 1)}</span>
+          <div className="flex items-center gap-3 rounded-2xl border border-white/25 bg-black/[.10] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.14)]">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 text-sm font-black shadow-[0_6px_16px_rgba(110,40,0,.16)]">{currentUser.name.slice(0, 1)}</span>
             <span className="min-w-0 flex-1">
               <strong className="block truncate text-[13px]">{currentUser.displayName || currentUser.name}</strong>
-              <span className="block truncate text-[10px] font-semibold text-slate-400">{currentUser.departmentName || currentUser.teamName || '전사'} · {currentUser.role === 'SUPER_ADMIN' ? '최고관리자' : currentUser.jobTitle || currentUser.role}</span>
+              <span className="block truncate text-[10px] font-semibold text-white/70">{currentUser.departmentName || currentUser.teamName || '전사'} · {currentUser.role === 'SUPER_ADMIN' ? '최고관리자' : currentUser.jobTitle || currentUser.role}</span>
             </span>
-            <LockKeyhole className="h-4 w-4 text-[#ff9b57]" />
+            <LockKeyhole className="h-4 w-4 text-white/80" />
           </div>
         </div>
 
         <nav aria-label="주요 메뉴" className="custom-scrollbar flex-1 overflow-y-auto px-3 py-4">
-          <p className="mb-2 px-3 text-[9px] font-black uppercase tracking-[.2em] text-slate-500">Workspace</p>
+          <p className="mb-2 px-3 text-[9px] font-black uppercase tracking-[.2em] text-white/55">Workspace</p>
           <div className="space-y-0.5">
-            {navigation.map((item) => <NavigationNode key={item.id} item={item} depth={0} role={currentUser.role} level={accessLevel} pathname={pathname} />)}
+            {navigation.map((item) => <NavigationNode key={item.id} item={item} depth={0} role={currentUser.role} level={accessLevel} pathname={pathname} searchString={searchString} />)}
           </div>
 
-          <div className="my-4 h-px bg-white/10" />
-          <p className="mb-2 px-3 text-[9px] font-black uppercase tracking-[.2em] text-slate-500">System</p>
+          <div className="my-4 h-px bg-white/20" />
+          <p className="mb-2 px-3 text-[9px] font-black uppercase tracking-[.2em] text-white/55">System</p>
           <div className="space-y-0.5">
-            {utilityNavigation.map((item) => <NavigationNode key={item.id} item={item} depth={0} role={currentUser.role} level={accessLevel} pathname={pathname} />)}
-            <button type="button" onClick={toggleDarkMode} className="group flex min-h-10 w-full items-center rounded-xl px-3 text-[13px] font-bold text-slate-300 hover:bg-white/[.06] hover:text-white">
-              {isDarkMode ? <Sun className="mr-3 h-[18px] w-[18px] text-amber-300" /> : <MoonStar className="mr-3 h-[18px] w-[18px] text-slate-500" />}
+            {utilityNavigation.map((item) => <NavigationNode key={item.id} item={item} depth={0} role={currentUser.role} level={accessLevel} pathname={pathname} searchString={searchString} />)}
+            <button type="button" onClick={toggleDarkMode} className="group flex min-h-10 w-full items-center rounded-xl px-3 text-[13px] font-bold text-white/85 hover:bg-white/[.14] hover:text-white">
+              {isDarkMode ? <Sun className="mr-3 h-[18px] w-[18px] text-white" /> : <MoonStar className="mr-3 h-[18px] w-[18px] text-white/55" />}
               <span className="flex-1 text-left">모드설정</span>
-              <span className="text-[9px] font-black text-slate-500">{isDarkMode ? 'DARK' : 'LIGHT'}</span>
+              <span className="text-[9px] font-black text-white/55">{isDarkMode ? 'DARK' : 'LIGHT'}</span>
             </button>
           </div>
         </nav>
 
-        <div className="border-t border-white/10 px-5 py-3 text-[9px] font-bold tracking-[.12em] text-slate-600">CON-COST · VIETQS GROUPWARE</div>
+        <div className="border-t border-white/20 px-5 py-3 text-[9px] font-bold tracking-[.12em] text-white/55">CON-COST · VIETQS GROUPWARE</div>
       </aside>
 
       <nav aria-label="모바일 주요 메뉴" className="fixed inset-x-3 bottom-3 z-[var(--z-mobile-nav)] grid min-h-[66px] grid-cols-5 rounded-[20px] border border-white/10 bg-[#172554]/95 p-1.5 shadow-[0_18px_42px_rgba(6,15,44,.35)] backdrop-blur-xl xl:hidden">
         {mobile.map((item) => {
           const Icon = item.icon ?? CircleDot;
           const href = item.href || (item.id === 'projects' ? '/projects' : item.id === 'schedule-management' ? '/schedules' : '/');
-          const active = containsActivePath(item, pathname);
+          const active = containsActivePath(item, pathname, searchString);
           return (
             <Link key={item.id} href={href} className={`flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-1 text-[9px] font-black ${active ? 'bg-[#4e6fd8] text-white shadow-[0_6px_16px_rgba(78,111,216,.35)]' : 'text-slate-400 hover:bg-white/[.08] hover:text-white'}`}>
               <Icon className={`h-5 w-5 ${active ? 'text-white' : ''}`} />
