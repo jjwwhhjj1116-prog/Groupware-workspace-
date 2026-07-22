@@ -83,6 +83,26 @@ export const useAuthStore = create<AuthState>()(
       return false;
     }
 
+    // Static demo credentials must keep working even when an older persisted
+    // personnel snapshot does not yet contain the newly added account.
+    const staticUserId = await verifyStaticCredential(normalized, password);
+    if (staticUserId) {
+      const users = useAuthStore.getState().users;
+      const staticUser = users.find((candidate) => candidate.id === staticUserId)
+        ?? mockUsers.find((candidate) => candidate.id === staticUserId);
+      if (staticUser && staticUser.employmentStatus !== 'INACTIVE') {
+        set((state) => ({
+          currentUser: staticUser,
+          users: state.users.some((candidate) => candidate.id === staticUser.id)
+            ? state.users
+            : [...state.users, staticUser],
+          isAuthenticating: false,
+          lastActivity: Date.now(),
+        }));
+        return true;
+      }
+    }
+
     const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
     if (apiBase) {
       try {
@@ -104,14 +124,6 @@ export const useAuthStore = create<AuthState>()(
     }
 
     const users = useAuthStore.getState().users;
-    const staticUserId = await verifyStaticCredential(normalized, password);
-    if (staticUserId) {
-      const staticUser = users.find((candidate) => candidate.id === staticUserId);
-      if (staticUser && staticUser.employmentStatus !== 'INACTIVE') {
-        set({ currentUser: staticUser, isAuthenticating: false, lastActivity: Date.now() });
-        return true;
-      }
-    }
 
     if (process.env.NODE_ENV !== 'production') {
       const user = users.find((candidate) =>
