@@ -19,7 +19,7 @@ export function AuthenticatedShell({ children }: { children: React.ReactNode }) 
       <DataLoader />
       <div className="flex min-h-screen">
         <Sidebar />
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col pt-[64px]">
           <Header />
           <main className="cc-scrollbar flex-1 overflow-x-hidden overflow-y-auto bg-[var(--color-bg)]">
             <div className="page-shell">{children}</div>

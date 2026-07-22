@@ -1,5 +1,7 @@
 'use client';
 import React, { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Activity, CalendarRange, CheckCircle2, Clock3, UsersRound } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useScheduleStore } from '@/store/scheduleStore';
 import { useProjectStore } from '@/store/projectStore';
@@ -12,8 +14,12 @@ import { canViewSchedule, canViewEmployeeSchedule } from '@/lib/permissions';
 import { getProjectOverallProgress } from '@/lib/selectors';
 import { LeaveRegistrationModal } from '@/components/schedule/LeaveRegistrationModal';
 import { PmScheduleWorkbench } from '@/components/schedule/PmScheduleWorkbench';
+import { getTechnicalDepartmentLabel, getTechnicalDepartmentScope, matchesTechnicalDepartment } from '@/lib/departmentScope';
 
 export default function SchedulesPage() {
+  const searchParams = useSearchParams();
+  const departmentScope = getTechnicalDepartmentScope(searchParams.get('department'));
+  const departmentLabel = getTechnicalDepartmentLabel(departmentScope);
   const { currentUser, users } = useAuthStore();
   const { settings } = useTranslationStore();
   const t = useTranslation(settings.uiLanguage);
@@ -29,9 +35,14 @@ export default function SchedulesPage() {
 
   if (!currentUser) return <div className="py-10 text-center text-[var(--color-text-sub)]">{t('header.loginRequired')}</div>;
 
-  const visibleUsers = users.filter(u => {
+  const scopedUsers = users.filter(u => {
     if (!(u.employmentStatus === 'ACTIVE' || u.isActive)) return false;
     if (!canViewEmployeeSchedule(currentUser, u)) return false;
+    if (!matchesTechnicalDepartment(departmentScope, u)) return false;
+    return true;
+  });
+
+  const visibleUsers = scopedUsers.filter(u => {
     
     if (!showAllUsers) {
       if (u.id === 'u-ceo-hdm' || u.id === 'u-coo-lwh') return false;
@@ -69,6 +80,22 @@ export default function SchedulesPage() {
   const month = currentDate.getMonth();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const daysArray = Array.from({length: daysInMonth}, (_, i) => i + 1);
+  const monthStartTime = new Date(year, month, 1).setHours(0, 0, 0, 0);
+  const monthEndTime = new Date(year, month + 1, 0).setHours(23, 59, 59, 999);
+  const scopedProjects = projects.filter((project) => !project.isDeleted && project.archiveStatus !== 'ARCHIVED' && matchesTechnicalDepartment(departmentScope, project));
+  const scopedUserIds = new Set(scopedUsers.map((user) => user.id));
+  const monthTasks = tasks.filter((task) => {
+    if (task.isDeleted || !scopedUserIds.has(task.assigneeId || '')) return false;
+    const start = task.startDate ? new Date(task.startDate).getTime() : null;
+    const end = task.dueDate ? new Date(task.dueDate).setHours(23, 59, 59, 999) : start;
+    return start !== null && end !== null && start <= monthEndTime && end >= monthStartTime;
+  });
+  const scheduleStats = {
+    people: scopedUsers.length,
+    activeTasks: monthTasks.filter((task) => task.status !== 'DONE').length,
+    dueThisMonth: monthTasks.filter((task) => task.dueDate && new Date(task.dueDate).getFullYear() === year && new Date(task.dueDate).getMonth() === month).length,
+    completed: monthTasks.filter((task) => task.status === 'DONE').length,
+  };
 
   const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
   const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
@@ -154,38 +181,52 @@ export default function SchedulesPage() {
   };
 
   return (
-    <div className="w-full px-3 sm:px-6 space-y-6 md:space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col gap-3 bg-[var(--color-surface)] p-4 rounded-xl shadow-sm border xl:flex-row xl:items-center xl:justify-between">
-        <h1 className="text-xl font-bold text-[var(--color-text-main)]">{t('schedules.title')}</h1>
+    <div className="w-full space-y-6 md:space-y-8 animate-in fade-in duration-500">
+      <section className="overflow-hidden rounded-[24px] bg-[linear-gradient(120deg,#0f766e_0%,#155e75_48%,#273e7a_100%)] p-5 text-white shadow-[0_22px_55px_rgba(21,94,117,.20)] sm:p-7">
+        <div className="flex flex-col gap-6 2xl:flex-row 2xl:items-end 2xl:justify-between">
+          <div><div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[.2em] text-cyan-100"><CalendarRange className="h-4 w-4" /> Resource schedule</div><h1 className="mt-3 text-2xl font-black tracking-tight sm:text-[30px]">기술본부 일정관리 · {departmentLabel}</h1><p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-cyan-50/85">참고 일정표의 인력 행 × 날짜 열 구조에 프로젝트 일정, 할일, 휴가와 PM 승인 흐름을 연결했습니다.</p></div>
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+            {[
+              { label: '가용 인력', value: scheduleStats.people, icon: UsersRound },
+              { label: '진행 업무', value: scheduleStats.activeTasks, icon: Activity },
+              { label: '이번 달 마감', value: scheduleStats.dueThisMonth, icon: Clock3 },
+              { label: '완료 업무', value: scheduleStats.completed, icon: CheckCircle2 },
+            ].map((stat) => { const Icon = stat.icon; return <div key={stat.label} className="min-w-[126px] rounded-2xl border border-white/15 bg-white/12 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.12)] backdrop-blur-sm transition hover:-translate-y-1 hover:bg-white/18"><div className="flex items-center justify-between"><span className="text-[10px] font-black text-cyan-50/85">{stat.label}</span><Icon className="h-4 w-4 text-white/80" /></div><strong className="mt-2 block text-2xl font-black">{stat.value}</strong></div>; })}
+          </div>
+        </div>
+      </section>
+
+      <div className="cc-panel flex flex-col gap-4 p-4 xl:flex-row xl:items-center xl:justify-between sm:p-5">
+        <div><h2 className="text-lg font-black text-[var(--color-text-main)]">일정 실행 보드</h2><p className="mt-1 text-[11px] font-semibold text-[var(--color-text-sub)]">월간 배치부터 PM 일정 승인까지 보기 방식을 전환합니다.</p></div>
         
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           <button 
-            className={`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] px-4 py-2 rounded-lg text-sm font-bold ${activeTab === 'MONTHLY_MATRIX' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-[var(--color-text-sub)] hover:bg-gray-200'}`}
+            className={`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] rounded-xl px-4 py-2.5 text-xs font-black ${activeTab === 'MONTHLY_MATRIX' ? 'bg-[#273e7a] text-white shadow-[0_7px_16px_rgba(39,62,122,.22)]' : 'bg-[var(--cc-surface-2)] text-[var(--color-text-sub)] hover:bg-[var(--cc-surface-3)]'}`}
             onClick={() => setActiveTab('MONTHLY_MATRIX')}
           >
             {t('schedules.viewCalendar')}
           </button>
           <button 
-            className={`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] px-4 py-2 rounded-lg text-sm font-bold ${activeTab === 'PROJECT_SCHEDULE' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-[var(--color-text-sub)] hover:bg-gray-200'}`}
+            className={`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] rounded-xl px-4 py-2.5 text-xs font-black ${activeTab === 'PROJECT_SCHEDULE' ? 'bg-[#273e7a] text-white shadow-[0_7px_16px_rgba(39,62,122,.22)]' : 'bg-[var(--cc-surface-2)] text-[var(--color-text-sub)] hover:bg-[var(--cc-surface-3)]'}`}
             onClick={() => setActiveTab('PROJECT_SCHEDULE')}
           >
             {t('schedules.viewTimeline')}
           </button>
           <button 
-            className={`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] px-4 py-2 rounded-lg text-sm font-bold ${activeTab === 'USER_DETAIL' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-[var(--color-text-sub)] hover:bg-gray-200'}`}
+            className={`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] rounded-xl px-4 py-2.5 text-xs font-black ${activeTab === 'USER_DETAIL' ? 'bg-[#273e7a] text-white shadow-[0_7px_16px_rgba(39,62,122,.22)]' : 'bg-[var(--cc-surface-2)] text-[var(--color-text-sub)] hover:bg-[var(--cc-surface-3)]'}`}
             onClick={() => setActiveTab('USER_DETAIL')}
           >
             {t('schedules.viewWorkload')}
           </button>
           <button
-            className={`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] px-4 py-2 rounded-lg text-sm font-bold ${activeTab === 'PM_MANAGEMENT' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-[var(--color-text-sub)] hover:bg-gray-200'}`}
+            className={`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] rounded-xl px-4 py-2.5 text-xs font-black ${activeTab === 'PM_MANAGEMENT' ? 'bg-[#273e7a] text-white shadow-[0_7px_16px_rgba(39,62,122,.22)]' : 'bg-[var(--cc-surface-2)] text-[var(--color-text-sub)] hover:bg-[var(--cc-surface-3)]'}`}
             onClick={() => setActiveTab('PM_MANAGEMENT')}
           >
             {t('pmSchedule.tab')}
           </button>
           
           <button 
-            className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] col-span-2 px-4 py-2 rounded-lg text-sm font-bold bg-green-600 text-white hover:bg-green-700 shadow-sm sm:ml-4"
+            className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] col-span-2 rounded-xl bg-[#ff6b00] px-4 py-2.5 text-xs font-black text-white shadow-[0_7px_16px_rgba(235,99,0,.20)] hover:-translate-y-0.5 hover:bg-[#e85f00] sm:ml-2"
             onClick={() => setShowLeaveModal(true)}
           >
             {t('schedules.btnLeave')}
@@ -193,7 +234,7 @@ export default function SchedulesPage() {
         </div>
       </div>
 
-      {activeTab !== 'PM_MANAGEMENT' && <div className="bg-[var(--color-surface)] rounded-xl shadow-sm border p-4 space-y-4">
+      {activeTab !== 'PM_MANAGEMENT' && <div className="cc-panel space-y-4 p-4 sm:p-5">
         <div className="flex justify-between items-center">
           <div className="flex gap-2">
             <button onClick={prevMonth} aria-label={t('schedules.prevMonth')} className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] p-2 bg-gray-100 rounded hover:bg-gray-200 text-sm font-medium transition-colors">&lt;</button>
@@ -225,7 +266,7 @@ export default function SchedulesPage() {
 
         {activeTab === 'MONTHLY_MATRIX' && (
           <div className="overflow-x-auto pb-4 custom-scrollbar">
-            <table className="w-full border-collapse min-w-[1200px]">
+            <table className="w-full min-w-[1200px] border-separate border-spacing-0 [&_td]:border-[var(--color-border)] [&_th]:border-[var(--color-border)]">
               <thead className="sticky top-0 z-20">
                 <tr>
                   <th className="sticky left-0 bg-[var(--color-surface)] border-b-2 border-r-2 border-[var(--color-border)] p-3 text-sm font-bold text-[var(--color-text-main)] min-w-[140px] z-30 shadow-[1px_0_0_0_#e5e7eb]">
@@ -285,6 +326,7 @@ export default function SchedulesPage() {
                     </tr>
                   );
                 })}
+                {visibleUsers.length === 0 && <tr><td colSpan={daysArray.length + 1} className="h-44 border-b border-[var(--color-border)] bg-[var(--color-surface)] text-center"><strong className="block text-sm font-black text-[var(--color-text-main)]">표시할 팀 일정이 없습니다.</strong><span className="mt-1 block text-[11px] font-semibold text-[var(--color-text-sub)]">일정 없는 직원 포함을 선택하거나 PM 일정에서 배치를 등록해 주세요.</span></td></tr>}
               </tbody>
             </table>
           </div>
@@ -292,7 +334,7 @@ export default function SchedulesPage() {
 
         {activeTab === 'PROJECT_SCHEDULE' && (
           <div className="overflow-x-auto pb-4 custom-scrollbar">
-            <table className="w-full border-collapse min-w-[1000px]">
+            <table className="w-full min-w-[1000px] border-separate border-spacing-0 [&_td]:border-[var(--color-border)] [&_th]:border-[var(--color-border)]">
               <thead className="sticky top-0 z-20">
                 <tr>
                   <th className="sticky left-0 bg-[var(--color-surface)] border-b-2 border-r-2 p-3 text-sm font-bold text-[var(--color-text-main)] min-w-[240px] z-30 shadow-[1px_0_0_0_#e5e7eb]">{t('schedules.timeline.colProject')}</th>
@@ -304,7 +346,7 @@ export default function SchedulesPage() {
                 </tr>
               </thead>
               <tbody>
-                {projects.filter(p => !p.isDeleted && p.archiveStatus !== 'ARCHIVED').map(project => {
+                {scopedProjects.map(project => {
                   const pm = users.find(u => u.id === project.pmId);
                   const progress = getProjectOverallProgress(project, tasks);
                   
@@ -357,6 +399,7 @@ export default function SchedulesPage() {
                     </tr>
                   );
                 })}
+                {scopedProjects.length === 0 && <tr><td colSpan={daysArray.length + 1} className="h-44 border-b border-[var(--color-border)] bg-[var(--color-surface)] text-center"><strong className="block text-sm font-black text-[var(--color-text-main)]">프로젝트 일정이 없습니다.</strong><span className="mt-1 block text-[11px] font-semibold text-[var(--color-text-sub)]">프로젝트 접수 후 PM 일정이 승인되면 타임라인에 자동 표시됩니다.</span></td></tr>}
               </tbody>
             </table>
           </div>

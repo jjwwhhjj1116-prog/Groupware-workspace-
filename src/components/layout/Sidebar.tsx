@@ -12,7 +12,7 @@ import {
   Cloud,
   FileCheck2,
   FolderKanban,
-  LayoutDashboard,
+  Home,
   LockKeyhole,
   Mail,
   MessageSquareText,
@@ -38,61 +38,109 @@ type NavigationItem = {
   children?: NavigationItem[];
 };
 
+type RailItem = NavigationItem & { href: string; section: string; description: string };
+
 const allRoles: Role[] = ['SUPER_ADMIN', 'SYSTEM_ADMIN', 'DEPARTMENT_MANAGER', 'PM', 'WORKER', 'EVALUATION_ADMIN'];
 const leaders: Role[] = ['SUPER_ADMIN', 'SYSTEM_ADMIN', 'DEPARTMENT_MANAGER', 'PM'];
 
-const navigation: NavigationItem[] = [
-  { id: 'workspace', label: 'WORKSPACE', href: '/', icon: LayoutDashboard, roles: allRoles },
-  { id: 'mail', label: '전자메일', href: '/mail', icon: Mail, roles: allRoles },
-  { id: 'approvals', label: '전자결재', href: '/approvals', icon: FileCheck2, roles: allRoles, minLevel: 2, badge: '3' },
-  { id: 'calendar', label: '캘린더', href: '/schedules', icon: CalendarDays, roles: allRoles },
+const projectNavigation: NavigationItem[] = [
   {
-    id: 'projects', label: '프로젝트', icon: FolderKanban, roles: allRoles, minLevel: 2,
+    id: 'project-management', label: '프로젝트 관리', icon: FolderKanban, roles: allRoles, minLevel: 3,
     children: [
-      {
-        id: 'project-management', label: '프로젝트 관리', roles: allRoles, minLevel: 3,
-        children: [
-          { id: 'estimate-requests', label: '견적 의뢰관리', href: '/projects/intake/estimate', roles: leaders },
-          { id: 'estimate-sheets', label: '견적서 관리', href: '/projects/intake/estimates', roles: leaders },
-          { id: 'estimate-db', label: 'DB관리', href: '/projects/intake/database', roles: leaders },
-        ],
-      },
-      { id: 'project-intake', label: '프로젝트 접수', href: '/projects/intake', roles: leaders, minLevel: 3 },
-      {
-        id: 'technical-projects', label: '기술본부 프로젝트', roles: allRoles,
-        children: [
-          { id: 'finish-projects', label: '마감', href: '/projects?department=FINISH', roles: allRoles },
-          { id: 'structure-projects', label: '구조&토목&조경', href: '/projects?department=STRUCTURE', roles: allRoles },
-          { id: 'claim-projects', label: '클레임', href: '/conflicts', roles: leaders },
-        ],
-      },
+      { id: 'estimate-requests', label: '견적 의뢰관리', href: '/projects/intake/estimate', roles: leaders },
+      { id: 'estimate-sheets', label: '견적서 관리', href: '/projects/intake/estimates', roles: leaders },
+      { id: 'estimate-db', label: 'DB관리', href: '/projects/intake/database', roles: leaders },
     ],
   },
+  { id: 'project-intake', label: '프로젝트 접수', href: '/projects/intake', icon: FileCheck2, roles: leaders, minLevel: 3 },
   {
-    id: 'schedule-management', label: '일정관리', icon: CalendarDays, roles: allRoles, minLevel: 2,
+    id: 'technical-projects', label: '기술본부 프로젝트', icon: FolderKanban, roles: allRoles,
     children: [
-      { id: 'management-support-schedule', label: '경영지원본부', href: '/schedules?division=SUPPORT', roles: allRoles },
-      {
-        id: 'technical-schedule', label: '기술본부', roles: allRoles,
-        children: [
-          { id: 'finish-schedule', label: '마감', href: '/schedules?department=FINISH', roles: allRoles },
-          { id: 'structure-schedule', label: '구조&토목&조경', href: '/schedules?department=STRUCTURE', roles: allRoles },
-          { id: 'claim-schedule', label: '클레임', href: '/conflicts', roles: leaders },
-        ],
-      },
+      { id: 'finish-projects', label: '마감', href: '/projects?department=FINISH', roles: allRoles },
+      { id: 'structure-projects', label: '구조·토목·조경', href: '/projects?department=STRUCTURE', roles: allRoles },
+      { id: 'claim-projects', label: '클레임', href: '/conflicts', roles: leaders },
     ],
   },
-  { id: 'drive', label: '드라이브', href: '/drive', icon: Cloud, roles: allRoles },
-  { id: 'tasks', label: '할일', href: '/tasks/my', icon: CheckSquare2, roles: allRoles, minLevel: 2 },
-  { id: 'board', label: '게시판', href: '/board', icon: MessageSquareText, roles: allRoles },
-  { id: 'organization', label: '조직도', href: '/organization', icon: Network, roles: allRoles },
 ];
 
-const utilityNavigation: NavigationItem[] = [
-  { id: 'ai', label: 'AI 챗봇', href: '/ai-assistant', icon: Bot, roles: allRoles, badge: 'BETA' },
-  { id: 'settings', label: '설정', href: '/settings', icon: Settings, roles: allRoles },
-  { id: 'admin', label: '관리자설정', href: '/settings/permissions', icon: ShieldCheck, roles: ['SUPER_ADMIN', 'SYSTEM_ADMIN'], minLevel: 5, badge: 'ADMIN' },
+const scheduleNavigation: NavigationItem[] = [
+  { id: 'management-support-schedule', label: '경영지원본부', href: '/schedules?division=SUPPORT', icon: CalendarDays, roles: allRoles },
+  {
+    id: 'technical-schedule', label: '기술본부', icon: CalendarDays, roles: allRoles,
+    children: [
+      { id: 'finish-schedule', label: '마감', href: '/schedules?department=FINISH', roles: allRoles },
+      { id: 'structure-schedule', label: '구조·토목·조경', href: '/schedules?department=STRUCTURE', roles: allRoles },
+      { id: 'claim-schedule', label: '클레임', href: '/conflicts', roles: leaders },
+    ],
+  },
 ];
+
+const railNavigation: RailItem[] = [
+  { id: 'workspace', section: 'WORKSPACE', label: 'HOME', href: '/', icon: Home, roles: allRoles, description: '오늘의 업무와 주요 현황' },
+  { id: 'mail', section: '전자메일', label: '메일', href: '/mail', icon: Mail, roles: allRoles, description: '업무 메일함과 중요 문서' },
+  { id: 'approvals', section: '전자결재', label: '결재', href: '/approvals', icon: FileCheck2, roles: allRoles, minLevel: 2, badge: '3', description: '받은 결재와 배포 문서' },
+  { id: 'calendar', section: '캘린더', label: '캘린더', href: '/schedules', icon: CalendarDays, roles: allRoles, description: '개인 일정과 회의' },
+  { id: 'projects', section: '프로젝트', label: '프로젝트', href: '/projects?department=FINISH', icon: FolderKanban, roles: allRoles, minLevel: 2, description: '접수부터 납품까지' },
+  { id: 'schedule-management', section: '일정관리', label: '일정', href: '/schedules?department=FINISH', icon: CalendarDays, roles: allRoles, minLevel: 2, description: '본부별 인력·프로젝트 일정' },
+  { id: 'drive', section: '드라이브', label: '드라이브', href: '/drive', icon: Cloud, roles: allRoles, description: '회사·프로젝트 자료' },
+  { id: 'tasks', section: '할일', label: '할일', href: '/tasks/my', icon: CheckSquare2, roles: allRoles, minLevel: 2, description: '내 업무와 마감 항목' },
+  { id: 'board', section: '게시판', label: '게시판', href: '/board', icon: MessageSquareText, roles: allRoles, description: '전사·본부별 소식' },
+  { id: 'organization', section: '조직도', label: '조직도', href: '/organization', icon: Network, roles: allRoles, description: '조직과 담당자 검색' },
+];
+
+const panelMenus: Record<string, NavigationItem[]> = {
+  workspace: [
+    { id: 'workspace-home', label: '통합 대시보드', href: '/', icon: Home, roles: allRoles },
+    { id: 'workspace-approval', label: '결재 대기', href: '/approvals', icon: FileCheck2, roles: allRoles },
+    { id: 'workspace-tasks', label: '오늘 할일', href: '/tasks/my', icon: CheckSquare2, roles: allRoles },
+    { id: 'workspace-schedule', label: '이번 달 일정', href: '/schedules', icon: CalendarDays, roles: allRoles },
+  ],
+  mail: [
+    { id: 'mail-all', label: '전체메일', href: '/mail', icon: Mail, roles: allRoles },
+    { id: 'mail-inbox', label: '받은편지함', href: '/mail?box=INBOX', roles: allRoles },
+    { id: 'mail-sent', label: '보낸편지함', href: '/mail?box=SENT', roles: allRoles },
+    { id: 'mail-starred', label: '중요 메일', href: '/mail?box=STARRED', roles: allRoles },
+    { id: 'mail-project', label: '프로젝트 메일', href: '/mail?box=PROJECT', roles: allRoles },
+  ],
+  approvals: [
+    { id: 'approval-home', label: '결재 홈', href: '/approvals', icon: FileCheck2, roles: allRoles },
+    { id: 'approval-received', label: '받은결재함', href: '/approvals?box=RECEIVED', roles: allRoles },
+    { id: 'approval-sent', label: '보낸결재함', href: '/approvals?box=SENT', roles: allRoles },
+    { id: 'approval-consensus', label: '협의결재함', href: '/approvals?box=CONSENSUS', roles: allRoles },
+    { id: 'approval-distributed', label: '배포문서함', href: '/approvals?box=DISTRIBUTED', roles: allRoles },
+  ],
+  calendar: [
+    { id: 'calendar-all', label: '통합 캘린더', href: '/schedules', icon: CalendarDays, roles: allRoles },
+    { id: 'calendar-personal', label: '내 일정', href: '/schedules?view=PERSONAL', roles: allRoles },
+    { id: 'calendar-meeting', label: '회의·외근', href: '/schedules?view=MEETING', roles: allRoles },
+    { id: 'calendar-leave', label: '휴가 일정', href: '/schedules?view=LEAVE', roles: allRoles },
+  ],
+  projects: projectNavigation,
+  'schedule-management': scheduleNavigation,
+  drive: [
+    { id: 'drive-home', label: '드라이브 홈', href: '/drive', icon: Cloud, roles: allRoles },
+    { id: 'drive-company', label: '회사 자료', href: '/drive?folder=COMPANY', roles: allRoles },
+    { id: 'drive-project', label: '프로젝트 자료', href: '/drive?folder=PROJECT', roles: allRoles },
+    { id: 'drive-recent', label: '최근 사용', href: '/drive?folder=RECENT', roles: allRoles },
+  ],
+  tasks: [
+    { id: 'tasks-mine', label: '내 할일', href: '/tasks/my', icon: CheckSquare2, roles: allRoles },
+    { id: 'tasks-today', label: '오늘 마감', href: '/tasks/my?filter=TODAY', roles: allRoles },
+    { id: 'tasks-review', label: '검토 대기', href: '/tasks/my?filter=REVIEW', roles: allRoles },
+    { id: 'tasks-done', label: '완료한 일', href: '/tasks/my?filter=DONE', roles: allRoles },
+  ],
+  board: [
+    { id: 'board-all', label: '전체 게시판', href: '/board', icon: MessageSquareText, roles: allRoles },
+    { id: 'board-notice', label: '전사 공지', href: '/board?category=NOTICE', roles: allRoles },
+    { id: 'board-tech', label: '기술본부', href: '/board?category=TECH', roles: allRoles },
+    { id: 'board-support', label: '경영지원본부', href: '/board?category=SUPPORT', roles: allRoles },
+  ],
+  organization: [
+    { id: 'organization-chart', label: '조직도', href: '/organization', icon: Network, roles: allRoles },
+    { id: 'organization-concost', label: 'CON-COST', href: '/organization?company=CON_COST', roles: allRoles },
+    { id: 'organization-vietqs', label: 'VIETQS', href: '/organization?company=VIET_QS', roles: allRoles },
+  ],
+};
 
 function isAllowed(item: NavigationItem, role: Role, level: number) {
   return (!item.roles || item.roles.includes(role)) && level >= (item.minLevel || 1);
@@ -102,7 +150,6 @@ function isHrefActive(href: string, pathname: string, searchString: string): boo
   const [path, queryString = ''] = href.split('?');
   if (pathname !== path) return false;
   if (!queryString) return !searchString;
-
   const current = new URLSearchParams(searchString);
   const expected = new URLSearchParams(queryString);
   return Array.from(expected.entries()).every(([key, value]) => current.get(key) === value);
@@ -113,33 +160,35 @@ function containsActivePath(item: NavigationItem, pathname: string, searchString
   return item.children?.some((child) => containsActivePath(child, pathname, searchString)) ?? false;
 }
 
-function NavigationNode({ item, depth, role, level, pathname, searchString }: { item: NavigationItem; depth: number; role: Role; level: number; pathname: string; searchString: string }) {
-  const visibleChildren = item.children?.filter((child) => isAllowed(child, role, level));
-  const hasChildren = Boolean(visibleChildren?.length);
-  const active = containsActivePath(item, pathname, searchString);
-  const [open, setOpen] = React.useState(active || depth === 0 && ['projects', 'schedule-management'].includes(item.id));
-  const Icon = item.icon ?? CircleDot;
+function getActiveRail(pathname: string, searchString: string) {
+  const params = new URLSearchParams(searchString);
+  if (pathname === '/schedules') return params.has('department') || params.has('division') ? 'schedule-management' : 'calendar';
+  if (pathname.startsWith('/projects') || pathname === '/conflicts') return 'projects';
+  if (pathname.startsWith('/mail')) return 'mail';
+  if (pathname.startsWith('/approvals')) return 'approvals';
+  if (pathname.startsWith('/drive')) return 'drive';
+  if (pathname.startsWith('/tasks')) return 'tasks';
+  if (pathname.startsWith('/board')) return 'board';
+  if (pathname.startsWith('/organization')) return 'organization';
+  return 'workspace';
+}
 
+function PanelNode({ item, depth, role, level, pathname, searchString }: { item: NavigationItem; depth: number; role: Role; level: number; pathname: string; searchString: string }) {
+  const visibleChildren = item.children?.filter((child) => isAllowed(child, role, level));
+  const active = containsActivePath(item, pathname, searchString);
+  const [open, setOpen] = React.useState(active || depth === 0);
+  const Icon = item.icon ?? CircleDot;
   if (!isAllowed(item, role, level)) return null;
 
-  if (hasChildren) {
+  if (visibleChildren?.length) {
     return (
-      <div className={depth === 0 ? 'mt-1' : ''}>
-        <button
-          type="button"
-          aria-expanded={open}
-          onClick={() => setOpen((value) => !value)}
-          className={`group flex min-h-10 w-full items-center rounded-xl text-left font-bold transition-colors ${depth === 0 ? 'px-3 text-[13px]' : depth === 1 ? 'px-3 text-[12px]' : 'px-2.5 text-[12px]'} ${active ? 'bg-black/[.12] text-white shadow-[inset_0_1px_0_rgba(255,255,255,.14)]' : 'text-white/85 hover:bg-white/[.14] hover:text-white'}`}
-        >
-          <Icon className={`${depth === 0 ? 'mr-3 h-[18px] w-[18px]' : 'mr-2 h-3.5 w-3.5'} shrink-0 ${active ? 'text-white' : 'text-white/55 group-hover:text-white'}`} />
+      <div>
+        <button type="button" aria-expanded={open} onClick={() => setOpen((value) => !value)} className={`flex min-h-10 w-full items-center rounded-xl px-3 text-left text-[12px] font-black transition ${active ? 'bg-[#ffead5] text-[#a94100]' : 'text-[#4c3526] hover:bg-white/75'}`}>
+          <Icon className={`mr-2.5 h-4 w-4 ${active ? 'text-[#eb6300]' : 'text-[#a98973]'}`} />
           <span className="min-w-0 flex-1 truncate">{item.label}</span>
-          <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-white/55 transition-transform ${open ? 'rotate-180' : ''}`} />
+          <ChevronDown className={`h-3.5 w-3.5 text-[#a98973] transition-transform ${open ? 'rotate-180' : ''}`} />
         </button>
-        {open && (
-          <div className={`${depth === 0 ? 'ml-[22px] border-l border-white/25 pl-2' : 'ml-3 border-l border-white/20 pl-2'} mt-1 space-y-0.5`}>
-            {visibleChildren?.map((child) => <NavigationNode key={child.id} item={child} depth={depth + 1} role={role} level={level} pathname={pathname} searchString={searchString} />)}
-          </div>
-        )}
+        {open && <div className="ml-5 mt-1 space-y-0.5 border-l border-[#f1d7c1] pl-2">{visibleChildren.map((child) => <PanelNode key={child.id} item={child} depth={depth + 1} role={role} level={level} pathname={pathname} searchString={searchString} />)}</div>}
       </div>
     );
   }
@@ -147,15 +196,11 @@ function NavigationNode({ item, depth, role, level, pathname, searchString }: { 
   if (!item.href) return null;
   const exactActive = isHrefActive(item.href, pathname, searchString);
   return (
-    <Link
-      href={item.href}
-      aria-current={exactActive ? 'page' : undefined}
-      className={`group relative flex min-h-10 items-center rounded-xl font-bold ${depth === 0 ? 'px-3 text-[13px]' : depth === 1 ? 'px-3 text-[12px]' : 'px-2.5 text-[12px]'} ${exactActive ? 'bg-white text-[#a94100] shadow-[0_8px_20px_rgba(130,48,0,.18),inset_0_1px_0_rgba(255,255,255,.8)]' : 'text-white/85 hover:bg-white/[.14] hover:text-white'}`}
-    >
+    <Link href={item.href} aria-current={exactActive ? 'page' : undefined} className={`group relative flex min-h-10 items-center rounded-xl px-3 text-[12px] font-bold transition ${exactActive ? 'bg-white text-[#bd4b00] shadow-[0_7px_20px_rgba(129,65,18,.12)] ring-1 ring-[#f2d6bf]' : 'text-[#684d3b] hover:bg-white/70 hover:text-[#a94100]'}`}>
       {exactActive && <span className="absolute inset-y-2 left-0 w-1 rounded-full bg-[#ff6b00]" />}
-      <Icon className={`${depth === 0 ? 'mr-3 h-[18px] w-[18px]' : 'mr-2 h-3.5 w-3.5'} shrink-0 ${exactActive ? 'text-[#ff6b00]' : 'text-white/55 group-hover:text-white'}`} />
+      <Icon className={`mr-2.5 h-4 w-4 ${exactActive ? 'text-[#ff6b00]' : 'text-[#b79a85] group-hover:text-[#eb6300]'}`} />
       <span className="min-w-0 flex-1 truncate">{item.label}</span>
-      {item.badge && <span className={`ml-2 rounded-full px-1.5 py-0.5 text-[9px] font-black ${item.badge === '3' ? exactActive ? 'bg-[#ff6b00] text-white' : 'bg-white text-[#b44800]' : exactActive ? 'bg-[#fff1e6] text-[#b44800]' : 'border border-white/25 bg-black/10 text-white'}`}>{item.badge}</span>}
+      {item.badge && <span className="rounded-full bg-[#ff6b00] px-1.5 py-0.5 text-[9px] font-black text-white">{item.badge}</span>}
     </Link>
   );
 }
@@ -166,61 +211,76 @@ export function Sidebar() {
   const currentUser = useAuthStore((state) => state.currentUser);
   const { isDarkMode, toggleDarkMode } = useUiStore();
   if (!currentUser) return null;
-  const accessLevel = currentUser.permissionLevel || (currentUser.role === 'SUPER_ADMIN' ? 5 : currentUser.role === 'SYSTEM_ADMIN' || currentUser.role === 'DEPARTMENT_MANAGER' ? 4 : currentUser.role === 'PM' ? 3 : 2);
 
-  const mobile = [navigation[0], navigation[2], navigation[4], navigation[5], navigation[7]];
+  const accessLevel = currentUser.permissionLevel || (currentUser.role === 'SUPER_ADMIN' ? 5 : currentUser.role === 'SYSTEM_ADMIN' || currentUser.role === 'DEPARTMENT_MANAGER' ? 4 : currentUser.role === 'PM' ? 3 : 2);
+  const activeRailId = getActiveRail(pathname, searchString);
+  const visibleRail = railNavigation.filter((item) => isAllowed(item, currentUser.role, accessLevel));
+  const activeRail = visibleRail.find((item) => item.id === activeRailId) || visibleRail[0];
+  const panelItems = panelMenus[activeRail.id] || [];
+  const mobile = railNavigation.filter((item) => ['workspace', 'approvals', 'projects', 'schedule-management', 'tasks'].includes(item.id));
 
   return (
     <>
-      <div className="hidden w-[292px] shrink-0 xl:block" aria-hidden="true" />
-      <aside className="fixed inset-y-0 left-0 z-[var(--z-sidebar)] hidden w-[292px] flex-col border-r border-white/20 bg-[#ff6b00] text-white shadow-[12px_0_34px_rgba(122,45,0,.18)] xl:flex">
-        <div className="flex h-[76px] items-center border-b border-white/20 px-6">
-          <BrandLogo className="h-[34px] w-[166px] shrink-0 [&_img]:brightness-0 [&_img]:invert" />
-        </div>
-
-        <div className="border-b border-white/10 px-5 py-4">
-          <div className="flex items-center gap-3 rounded-2xl border border-white/25 bg-black/[.10] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.14)]">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 text-sm font-black shadow-[0_6px_16px_rgba(110,40,0,.16)]">{currentUser.name.slice(0, 1)}</span>
-            <span className="min-w-0 flex-1">
-              <strong className="block truncate text-[13px]">{currentUser.displayName || currentUser.name}</strong>
-              <span className="block truncate text-[10px] font-semibold text-white/70">{currentUser.departmentName || currentUser.teamName || '전사'} · {currentUser.role === 'SUPER_ADMIN' ? '최고관리자' : currentUser.jobTitle || currentUser.role}</span>
-            </span>
-            <LockKeyhole className="h-4 w-4 text-white/80" />
+      <div className="hidden w-[308px] shrink-0 xl:block" aria-hidden="true" />
+      <aside className="fixed inset-y-0 left-0 z-[var(--z-sidebar)] hidden w-[308px] xl:flex">
+        <div className="flex w-[76px] shrink-0 flex-col border-r border-white/15 bg-[#ff6b00] text-white shadow-[8px_0_24px_rgba(125,48,0,.12)]">
+          <Link href="/" aria-label="CON-COST 홈" className="flex h-[64px] items-center justify-center border-b border-white/15">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/30 bg-white/15 text-lg font-black shadow-[inset_0_1px_0_rgba(255,255,255,.2)]">C</span>
+          </Link>
+          <nav aria-label="글로벌 업무 메뉴" className="cc-scrollbar flex-1 overflow-y-auto px-1.5 py-2">
+            <div className="space-y-1">
+              {visibleRail.map((item) => {
+                const Icon = item.icon ?? CircleDot;
+                const active = item.id === activeRail.id;
+                return (
+                  <Link key={item.id} href={item.href} title={item.section} aria-current={active ? 'page' : undefined} className={`relative flex min-h-[55px] flex-col items-center justify-center gap-1 rounded-[14px] border text-[9px] font-black transition-all ${active ? 'border-white/30 bg-white/20 text-white shadow-[0_7px_18px_rgba(134,48,0,.18),inset_0_1px_0_rgba(255,255,255,.18)]' : 'border-transparent text-white/72 hover:-translate-y-0.5 hover:border-white/15 hover:bg-white/10 hover:text-white'}`}>
+                    <Icon className="h-[19px] w-[19px]" strokeWidth={active ? 2.5 : 2} />
+                    <span>{item.label}</span>
+                    {item.badge && <span className="absolute right-1.5 top-1 rounded-full bg-white px-1.5 py-0.5 text-[8px] font-black text-[#d45300] shadow-sm">{item.badge}</span>}
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
+          <div className="space-y-1 border-t border-white/15 px-1.5 py-2">
+            <Link href="/ai-assistant" title="AI 챗봇" className="flex h-10 items-center justify-center rounded-xl text-white/75 hover:bg-white/10 hover:text-white"><Bot className="h-5 w-5" /></Link>
+            <button type="button" onClick={toggleDarkMode} title="모드설정" className="flex h-10 w-full items-center justify-center rounded-xl text-white/75 hover:bg-white/10 hover:text-white">{isDarkMode ? <Sun className="h-5 w-5" /> : <MoonStar className="h-5 w-5" />}</button>
+            <Link href="/settings" title="설정" className="flex h-10 items-center justify-center rounded-xl text-white/75 hover:bg-white/10 hover:text-white"><Settings className="h-5 w-5" /></Link>
+            {['SUPER_ADMIN', 'SYSTEM_ADMIN'].includes(currentUser.role) && <Link href="/settings/permissions" title="관리자설정" className="flex h-10 items-center justify-center rounded-xl text-white/75 hover:bg-white/10 hover:text-white"><ShieldCheck className="h-5 w-5" /></Link>}
           </div>
         </div>
 
-        <nav aria-label="주요 메뉴" className="custom-scrollbar flex-1 overflow-y-auto px-3 py-4">
-          <p className="mb-2 px-3 text-[9px] font-black uppercase tracking-[.2em] text-white/55">Workspace</p>
-          <div className="space-y-0.5">
-            {navigation.map((item) => <NavigationNode key={item.id} item={item} depth={0} role={currentUser.role} level={accessLevel} pathname={pathname} searchString={searchString} />)}
+        <div className="flex min-w-0 flex-1 flex-col border-r border-[#f0ddcd] bg-[#fff5eb] text-[#2f2118] shadow-[8px_0_30px_rgba(86,52,24,.07)]">
+          <div className="flex h-[64px] items-center justify-between border-b border-[#f0ddcd] px-4">
+            <BrandLogo className="h-[26px] w-[132px] shrink-0" />
+            <ChevronDown className="h-4 w-4 text-[#a98973]" />
           </div>
-
-          <div className="my-4 h-px bg-white/20" />
-          <p className="mb-2 px-3 text-[9px] font-black uppercase tracking-[.2em] text-white/55">System</p>
-          <div className="space-y-0.5">
-            {utilityNavigation.map((item) => <NavigationNode key={item.id} item={item} depth={0} role={currentUser.role} level={accessLevel} pathname={pathname} searchString={searchString} />)}
-            <button type="button" onClick={toggleDarkMode} className="group flex min-h-10 w-full items-center rounded-xl px-3 text-[13px] font-bold text-white/85 hover:bg-white/[.14] hover:text-white">
-              {isDarkMode ? <Sun className="mr-3 h-[18px] w-[18px] text-white" /> : <MoonStar className="mr-3 h-[18px] w-[18px] text-white/55" />}
-              <span className="flex-1 text-left">모드설정</span>
-              <span className="text-[9px] font-black text-white/55">{isDarkMode ? 'DARK' : 'LIGHT'}</span>
-            </button>
+          <div className="border-b border-[#f0ddcd] px-4 py-4">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-[#ff6b00] shadow-[0_0_0_4px_rgba(255,107,0,.12)]" />
+              <h2 className="text-[15px] font-black tracking-tight">{activeRail.section}</h2>
+            </div>
+            <p className="mt-1.5 text-[10px] font-semibold text-[#9a755c]">{activeRail.description}</p>
           </div>
-        </nav>
-
-        <div className="border-t border-white/20 px-5 py-3 text-[9px] font-bold tracking-[.12em] text-white/55">CON-COST · VIETQS GROUPWARE</div>
+          <nav aria-label={`${activeRail.section} 채널`} className="cc-scrollbar flex-1 overflow-y-auto p-3">
+            <p className="mb-2 px-3 text-[9px] font-black uppercase tracking-[.18em] text-[#b5957e]">Channels</p>
+            <div className="space-y-1">{panelItems.map((item) => <PanelNode key={item.id} item={item} depth={0} role={currentUser.role} level={accessLevel} pathname={pathname} searchString={searchString} />)}</div>
+          </nav>
+          <div className="border-t border-[#f0ddcd] p-3">
+            <div className="flex items-center gap-2.5 rounded-2xl border border-[#efd5c0] bg-white/70 p-2.5 shadow-sm">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#ffead5] text-xs font-black text-[#bd4b00]">{currentUser.name.slice(0, 1)}</span>
+              <span className="min-w-0 flex-1"><strong className="block truncate text-[11px] font-black">{currentUser.displayName || currentUser.name}</strong><span className="block truncate text-[9px] font-semibold text-[#9a755c]">{currentUser.departmentName || currentUser.teamName || '전사'} · {currentUser.role === 'SUPER_ADMIN' ? '최고관리자' : currentUser.jobTitle || currentUser.role}</span></span>
+              <LockKeyhole className="h-3.5 w-3.5 text-[#eb6300]" />
+            </div>
+          </div>
+        </div>
       </aside>
 
       <nav aria-label="모바일 주요 메뉴" className="fixed inset-x-3 bottom-3 z-[var(--z-mobile-nav)] grid min-h-[66px] grid-cols-5 rounded-[20px] border border-white/10 bg-[#172554]/95 p-1.5 shadow-[0_18px_42px_rgba(6,15,44,.35)] backdrop-blur-xl xl:hidden">
         {mobile.map((item) => {
           const Icon = item.icon ?? CircleDot;
-          const href = item.href || (item.id === 'projects' ? '/projects' : item.id === 'schedule-management' ? '/schedules' : '/');
-          const active = containsActivePath(item, pathname, searchString);
-          return (
-            <Link key={item.id} href={href} className={`flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-1 text-[9px] font-black ${active ? 'bg-[#4e6fd8] text-white shadow-[0_6px_16px_rgba(78,111,216,.35)]' : 'text-slate-400 hover:bg-white/[.08] hover:text-white'}`}>
-              <Icon className={`h-5 w-5 ${active ? 'text-white' : ''}`} />
-              <span className="max-w-full truncate">{item.label.replace('WORKSPACE', '홈').replace('일정관리', '일정')}</span>
-            </Link>
-          );
+          const active = item.id === activeRail.id;
+          return <Link key={item.id} href={item.href} className={`flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-1 text-[9px] font-black ${active ? 'bg-[#ff6b00] text-white shadow-[0_6px_16px_rgba(235,99,0,.32)]' : 'text-slate-400 hover:bg-white/[.08] hover:text-white'}`}><Icon className="h-5 w-5" /><span className="max-w-full truncate">{item.label}</span></Link>;
         })}
       </nav>
     </>

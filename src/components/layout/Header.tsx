@@ -2,7 +2,8 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Bell, ChevronDown, LogOut, Menu, MoonStar, Search, Settings2, ShieldCheck, Sun } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { Bell, ChevronDown, ChevronsRight, LogOut, Menu, MoonStar, Search, Settings2, ShieldCheck, Sun } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useTranslationStore } from '@/store/translationStore';
 import { useUiStore } from '@/store/uiStore';
@@ -19,6 +20,7 @@ const roleLabels: Record<string, string> = {
 };
 
 export function Header() {
+  const pathname = usePathname();
   const { currentUser, logout, appMode, setAppMode } = useAuthStore();
   const { settings, updateSettings } = useTranslationStore();
   const { isDarkMode, toggleDarkMode } = useUiStore();
@@ -31,13 +33,19 @@ export function Header() {
   if (!currentUser) return null;
   const isAdmin = ['SUPER_ADMIN', 'SYSTEM_ADMIN'].includes(currentUser.role);
   const scopeLabel = currentUser.role === 'SUPER_ADMIN' ? '전사' : currentUser.departmentName || currentUser.teamName || '소속부서';
+  const sectionLabel = pathname.startsWith('/projects') ? '프로젝트' : pathname.startsWith('/schedules') ? '일정관리' : pathname.startsWith('/approvals') ? '전자결재' : pathname.startsWith('/mail') ? '전자메일' : pathname.startsWith('/tasks') ? '할일' : pathname.startsWith('/drive') ? '드라이브' : pathname.startsWith('/board') ? '게시판' : pathname.startsWith('/organization') ? '조직도' : pathname.startsWith('/settings') ? '설정' : 'WORKSPACE';
 
   return (
-    <header className="sticky top-0 z-[var(--z-header)] flex h-[76px] min-w-0 items-center border-b border-[var(--color-border)] bg-[color:var(--color-surface)]/92 px-4 shadow-[0_8px_24px_rgba(25,45,91,.04)] backdrop-blur-xl sm:px-6">
+    <header className="fixed left-0 right-0 top-0 z-[var(--z-header)] flex h-[64px] min-w-0 items-center border-b border-[var(--color-border)] bg-[color:var(--color-surface)]/95 px-4 shadow-[0_5px_18px_rgba(25,45,91,.06)] backdrop-blur-xl sm:px-6 xl:left-[308px]">
       <button type="button" aria-label="메뉴 열기" className="mr-3 rounded-xl border border-[var(--color-border)] bg-[var(--cc-surface-2)] p-2.5 text-[var(--color-text-sub)] xl:hidden"><Menu className="h-5 w-5" /></button>
       <div className="mr-4 h-9 w-[132px] shrink-0 xl:hidden"><BrandLogo /></div>
 
-      <label className="hidden min-h-11 w-full max-w-[460px] items-center rounded-2xl border border-[var(--color-border)] bg-[var(--cc-surface-2)] px-4 text-[var(--color-text-sub)] focus-within:border-[#4e6fd8] focus-within:ring-4 focus-within:ring-[#4e6fd8]/10 md:flex">
+      <div className="mr-5 hidden min-w-[132px] items-center gap-2 xl:flex">
+        <ChevronsRight className="h-4 w-4 text-[#ff6b00]" />
+        <strong className="text-[13px] font-black tracking-tight text-[var(--color-text-main)]">{sectionLabel}</strong>
+      </div>
+
+      <label className="hidden min-h-10 w-full max-w-[410px] items-center rounded-xl border border-[var(--color-border)] bg-[var(--cc-surface-2)] px-3.5 text-[var(--color-text-sub)] focus-within:border-[#ff8a3d] focus-within:ring-4 focus-within:ring-[#ff8a3d]/10 md:flex">
         <Search className="mr-3 h-4 w-4" />
         <input className="w-full bg-transparent text-sm font-semibold text-[var(--color-text-main)] outline-none" placeholder="프로젝트, 문서, 담당자 통합검색" aria-label="통합검색" />
         <kbd className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-[9px] font-black text-[var(--color-text-sub)]">⌘ K</kbd>

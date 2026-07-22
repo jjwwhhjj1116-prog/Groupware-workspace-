@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useProjectStore } from '@/store/projectStore';
 import { useTaskStore } from '@/store/taskStore';
 import { useAuthStore } from '@/store/authStore';
@@ -17,17 +18,21 @@ import { useAuditStore } from '@/store/auditStore';
 import { TaskStatus, ProjectSourceType, Project, ApprovalRequest } from '@/types/models';
 import { DetailedLineStage, getProjectBoardColumn } from '@/lib/selectors';
 import { canViewProject, canViewTask, canEditProject } from '@/lib/permissions';
-import { FileText, ArrowLeft, ChevronRight, History, Wrench, Code2, Briefcase } from 'lucide-react';
+import { FileText, ArrowLeft, ChevronRight, History, Wrench, Code2, Briefcase, Activity, AlertTriangle, CheckCircle2, Clock3, Layers3 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { useTranslationStore } from '@/store/translationStore';
 import { useTranslation } from '@/lib/localization';
 import { ProjectOperationModal } from '@/components/projects/ProjectOperationModal';
 import { ProjectWorkflowTab } from '@/lib/projectWorkflow';
 import { useProjectWorkflowOverviewSync } from '@/hooks/useProjectWorkflow';
+import { getTechnicalDepartmentLabel, getTechnicalDepartmentScope, matchesTechnicalDepartment } from '@/lib/departmentScope';
 
 export type ExtendedViewType = BoardViewType | 'PART' | 'HISTORY';
 
 export default function ProjectBoardPage() {
+  const searchParams = useSearchParams();
+  const departmentScope = getTechnicalDepartmentScope(searchParams.get('department'));
+  const departmentLabel = getTechnicalDepartmentLabel(departmentScope);
   const projects = useProjectStore(state => state.projects);
   const revisionRequests = useProjectStore(state => state.revisionRequests);
   const postDeliveryWorkRequests = useProjectStore(state => state.postDeliveryWorkRequests);
@@ -45,7 +50,7 @@ export default function ProjectBoardPage() {
   const [dispatchProject, setDispatchProject] = useState<Project | null>(null);
   const [selectedApprovalRequest, setSelectedApprovalRequest] = useState<ApprovalRequest | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<number | 'ALL'>('ALL');
-  const [activeTab, setActiveTab] = useState<ProjectSourceType>('INTERNAL_DEVELOPMENT');
+  const [activeTab, setActiveTab] = useState<ProjectSourceType>('CLIENT_ORDER');
   const [historyFilter, setHistoryFilter] = useState<'ALL' | 'APPROVAL' | 'COMPLETED' | 'AUDIT'>('ALL');
   const [workflowTarget, setWorkflowTarget] = useState<{ projectId: string; tab: ProjectWorkflowTab } | null>(null);
 
@@ -89,6 +94,7 @@ export default function ProjectBoardPage() {
   if (!currentUser) return <div className="py-10 text-center text-[var(--color-text-sub)]">{t('header.loginRequired')}</div>;
 
   const accessibleProjects = projects.filter(p => {
+    if (!matchesTechnicalDepartment(departmentScope, p)) return false;
     if (canViewProject(currentUser, p)) return true;
     if (currentUser.role === 'WORKER') {
       return tasks.some(t => t.projectId === p.id && t.assigneeId === currentUser.id && !t.isDeleted);
@@ -135,6 +141,19 @@ export default function ProjectBoardPage() {
   };
 
   const selectedProject = projects.find(p => p.id === selectedProjectId);
+  const now = new Date();
+  const projectStats = {
+    total: accessibleProjects.filter((project) => !project.isDeleted && project.archiveStatus !== 'ARCHIVED').length,
+    active: accessibleProjects.filter((project) => ['IN_PROGRESS', 'QA_REVIEW', 'SCHEDULE_APPROVED'].includes(project.status)).length,
+    dueSoon: accessibleProjects.filter((project) => {
+      const due = project.deliveryDate || project.dueDate;
+      if (!due || ['COMPLETED', 'ARCHIVED'].includes(project.status)) return false;
+      const diff = new Date(due).getTime() - now.getTime();
+      return diff >= 0 && diff <= 1000 * 60 * 60 * 24 * 14;
+    }).length,
+    completed: accessibleProjects.filter((project) => project.status === 'COMPLETED').length,
+    urgent: accessibleProjects.filter((project) => project.priority === 'URGENT' && project.status !== 'COMPLETED').length,
+  };
 
   const handleProjectMove = (projectId: string, sourceColId: string, targetColId: string) => {
     const project = projects.find(p => p.id === projectId);
@@ -168,8 +187,31 @@ export default function ProjectBoardPage() {
 
   return (
     <div className="w-full mx-auto space-y-6 md:space-y-8 animate-in fade-in duration-500">
+      {!selectedProjectId && (
+        <section className="overflow-hidden rounded-[24px] bg-[linear-gradient(120deg,#172554_0%,#273e7a_56%,#4e6fd8_100%)] p-5 text-white shadow-[0_22px_55px_rgba(39,62,122,.22)] sm:p-7">
+          <div className="flex flex-col gap-6 2xl:flex-row 2xl:items-end 2xl:justify-between">
+            <div>
+              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[.2em] text-blue-200"><Layers3 className="h-4 w-4" /> Technical HQ workspace</div>
+              <h1 className="mt-3 text-2xl font-black tracking-tight sm:text-[30px]">기술본부 프로젝트 · {departmentLabel}</h1>
+              <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-blue-100/85">견적·접수부터 PM 배정, 일정 승인, 작업·QC·납품까지 OFFDAY2의 전체 흐름을 한 화면에서 관리합니다.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-5">
+              {[
+                { label: '전체', value: projectStats.total, icon: Layers3, tone: 'bg-white/14' },
+                { label: '진행 중', value: projectStats.active, icon: Activity, tone: 'bg-cyan-400/16' },
+                { label: '14일 내 납품', value: projectStats.dueSoon, icon: Clock3, tone: 'bg-amber-400/18' },
+                { label: '완료', value: projectStats.completed, icon: CheckCircle2, tone: 'bg-emerald-400/18' },
+                { label: '긴급', value: projectStats.urgent, icon: AlertTriangle, tone: 'bg-rose-400/18' },
+              ].map((stat) => {
+                const Icon = stat.icon;
+                return <div key={stat.label} className={`min-w-[116px] rounded-2xl border border-white/15 ${stat.tone} p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.12)] backdrop-blur-sm transition hover:-translate-y-1 hover:bg-white/20`}><div className="flex items-center justify-between"><span className="text-[10px] font-black text-blue-100">{stat.label}</span><Icon className="h-4 w-4 text-white/80" /></div><strong className="mt-2 block text-2xl font-black">{stat.value}</strong></div>;
+              })}
+            </div>
+          </div>
+        </section>
+      )}
       {/* Unified Header matching Dashboard */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="cc-panel flex flex-col justify-between gap-4 p-4 md:flex-row md:items-center sm:p-5">
         <div>
           {selectedProject ? (
             <div className="flex items-center gap-2">
@@ -196,16 +238,16 @@ export default function ProjectBoardPage() {
             </div>
           ) : (
             <>
-              <h1 className="text-2xl font-bold text-[var(--color-text-main)] tracking-tight">{t('projects.title')}</h1>
+              <h1 className="text-xl font-black text-[var(--color-text-main)] tracking-tight">프로젝트 실행 보드</h1>
               <p className="text-[var(--color-text-sub)] text-sm mt-1 font-medium">
-                {t('projects.subtitle', { dept: currentUser.departmentName || t('header.dept.hq') })}
+                {departmentLabel} · 상태, 담당 PM, 납품일 기준으로 빠르게 확인합니다.
               </p>
             </>
           )}
         </div>
 
         {!selectedProjectId && (
-          <div className="flex bg-gray-100/80 p-1 rounded-md border border-[var(--color-border)]">
+          <div className="flex rounded-xl border border-[var(--color-border)] bg-[var(--cc-surface-2)] p-1">
             <button
               onClick={() => setActiveTab('INTERNAL_DEVELOPMENT')}
               className={`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] flex items-center gap-2 px-4 py-1.5 text-sm font-semibold rounded-[4px] transition-colors ${activeTab === 'INTERNAL_DEVELOPMENT' ? 'bg-[var(--color-surface)] text-[var(--color-primary)] shadow-sm border border-[var(--color-border)]/50' : 'text-[var(--color-text-sub)] hover:text-[var(--color-text-main)]'}`}

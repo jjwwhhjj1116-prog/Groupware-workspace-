@@ -55,7 +55,8 @@ export const ProjectSummaryCard: React.FC<Props> = ({ project, tasks, onClick, d
     <article
       draggable={draggable}
       onDragStart={(e) => onDragStart && onDragStart(e, project.id)}
-      className="bg-[var(--color-surface)] p-4 rounded-[var(--radius-card)] shadow-sm border border-[var(--color-border)] hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-700 hover:-translate-y-1 transition-all duration-200 space-y-3 group"
+      className="cc-tactile-card group space-y-3 p-4"
+      data-interactive="true"
     >
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center gap-2">
