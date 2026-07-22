@@ -8,6 +8,9 @@ import { useScheduleStore } from '@/store/scheduleStore';
 import { useConflictStore } from '@/store/conflictStore';
 import { useProcessTemplateStore } from '@/store/processTemplateStore';
 import { useAuditStore } from '@/store/auditStore';
+import { useProjectStore } from '@/store/projectStore';
+import { useAuthStore } from '@/store/authStore';
+import { canApproveRequest } from '@/lib/permissions';
 
 interface ApprovalState {
   requests: ApprovalRequest[];
@@ -83,6 +86,31 @@ export const useApprovalStore = create<ApprovalState>()(persist((set) => ({
   },
   updateApprovalStatus: (id, status, reviewerId, comment, alternativeType) => set((state) => {
     const request = state.requests.find(r => r.id === id);
+    if (!request) return state;
+
+    const terminalStatuses = new Set(['APPROVED', 'REJECTED']);
+    if (terminalStatuses.has(request.status)) return state;
+
+    const reviewer = useAuthStore.getState().currentUser;
+    const project = request.projectId
+      ? useProjectStore.getState().projects.find((item) => item.id === request.projectId)
+      : undefined;
+    const canReviewProjectSchedule = request.type === 'SCHEDULE_APPROVAL' &&
+      (status === 'APPROVED' || status === 'REJECTED') &&
+      (reviewer?.role === 'SUPER_ADMIN' || (
+        reviewer?.role === 'DEPARTMENT_MANAGER' &&
+        reviewer.departmentId === project?.departmentId &&
+        (!request.managerId || request.managerId === reviewer.id)
+      ));
+    const hasReviewPermission = request.type === 'SCHEDULE_APPROVAL' &&
+      (status === 'APPROVED' || status === 'REJECTED')
+      ? canReviewProjectSchedule
+      : reviewer ? canApproveRequest(reviewer, request) : false;
+
+    if (!reviewer || reviewer.id !== reviewerId || !hasReviewPermission) {
+      console.warn('Permission denied: cannot review approval request');
+      return state;
+    }
     
     // Audit Log
     useAuditStore.getState().addLog({
@@ -93,7 +121,7 @@ export const useApprovalStore = create<ApprovalState>()(persist((set) => ({
       message: `Approval Request ${id} status changed to ${status} by User ${reviewerId}. Comment: ${comment || 'N/A'}`
     });
 
-    if (request && (status === 'APPROVED' || status === 'REJECTED')) {
+    if (status === 'APPROVED' || status === 'REJECTED') {
       // Send Notification to requester
       useNotificationStore.getState().addNotification({
         userId: request.requestedBy,
@@ -103,6 +131,27 @@ export const useApprovalStore = create<ApprovalState>()(persist((set) => ({
         priority: status === 'REJECTED' ? 'HIGH' : 'NORMAL',
         relatedApprovalId: request.id
       });
+
+      if (request.type === 'SCHEDULE_APPROVAL' && request.projectId) {
+        const taskStore = useTaskStore.getState();
+        const scheduleStore = useScheduleStore.getState();
+        const scheduleTasks = taskStore.tasks.filter((task) =>
+          task.projectId === request.projectId && task.approvalRequestId === request.id
+        );
+
+        if (status === 'APPROVED') {
+          scheduleTasks.forEach((task) => {
+            const approvedTask = { ...task, approvalStatus: 'APPROVED' as const };
+            taskStore.updateTask(task.id, { approvalStatus: 'APPROVED' });
+            scheduleStore.upsertTaskSchedule(approvedTask, reviewerId);
+          });
+          useProjectStore.getState().updateProjectStatus(request.projectId, 'IN_PROGRESS');
+        } else {
+          scheduleTasks.forEach((task) => taskStore.updateTask(task.id, { approvalStatus: 'REJECTED' }));
+          scheduleStore.removeTaskSchedules(scheduleTasks.map((task) => task.id));
+          useProjectStore.getState().updateProjectStatus(request.projectId, 'SCHEDULE_REJECTED');
+        }
+      }
 
       if (status === 'APPROVED' && request.taskId) {
         const taskStore = useTaskStore.getState();

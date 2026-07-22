@@ -67,8 +67,10 @@ export default function IntakePage() {
       description: newDesc,
       priority: newPriority,
       departmentId: currentUser.departmentId,
+      managerId: currentUser.role === 'DEPARTMENT_MANAGER' ? currentUser.id : currentUser.managerId,
       startDate: newStartDate || undefined,
       projectSourceType: activeTab === 'PROJECT_INTAKE' ? 'INTERNAL_DEVELOPMENT' : activeTab,
+      source: 'LOCAL_OPERATION',
     };
 
     if (activeTab === 'CLIENT_ORDER') {

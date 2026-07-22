@@ -28,6 +28,7 @@ import { BrandLogo } from '@/components/ui/BrandLogo';
 import { useAuthStore } from '@/store/authStore';
 import { useUiStore } from '@/store/uiStore';
 import type { Role } from '@/types/models';
+import { canAccessNavigation, getNavigationAccessLevel } from '@/lib/navigationAccess';
 
 type NavigationItem = {
   id: string;
@@ -184,10 +185,6 @@ const panelMenus: Record<string, NavigationItem[]> = {
   ],
 };
 
-function isAllowed(item: NavigationItem, role: Role, level: number) {
-  return (!item.roles || item.roles.includes(role)) && level >= (item.minLevel || 1);
-}
-
 function isHrefActive(href: string, pathname: string, searchString: string): boolean {
   const [path, queryString = ''] = href.split('?');
   if (pathname !== path) return false;
@@ -221,11 +218,11 @@ function getActiveRail(pathname: string, searchString: string) {
 }
 
 function PanelNode({ item, depth, role, level, pathname, searchString }: { item: NavigationItem; depth: number; role: Role; level: number; pathname: string; searchString: string }) {
-  const visibleChildren = item.children?.filter((child) => isAllowed(child, role, level));
+  const visibleChildren = item.children?.filter((child) => canAccessNavigation(child, role, level));
   const active = containsActivePath(item, pathname, searchString);
   const [open, setOpen] = React.useState(active || depth === 0);
   const Icon = item.icon ?? CircleDot;
-  if (!isAllowed(item, role, level)) return null;
+  if (!canAccessNavigation(item, role, level)) return null;
 
   if (visibleChildren?.length) {
     return (
@@ -259,10 +256,10 @@ export function Sidebar() {
   const { isDarkMode, toggleDarkMode } = useUiStore();
   if (!currentUser) return null;
 
-  const accessLevel = currentUser.permissionLevel || (currentUser.role === 'SUPER_ADMIN' ? 5 : currentUser.role === 'SYSTEM_ADMIN' || currentUser.role === 'DEPARTMENT_MANAGER' ? 4 : currentUser.role === 'PM' ? 3 : 2);
+  const accessLevel = getNavigationAccessLevel(currentUser);
   const activeRailId = getActiveRail(pathname, searchString);
-  const visibleRail = railNavigation.filter((item) => isAllowed(item, currentUser.role, accessLevel));
-  const visibleUtilities = utilityNavigation.filter((item) => isAllowed(item, currentUser.role, accessLevel));
+  const visibleRail = railNavigation.filter((item) => canAccessNavigation(item, currentUser.role, accessLevel));
+  const visibleUtilities = utilityNavigation.filter((item) => canAccessNavigation(item, currentUser.role, accessLevel));
   const activeRail = [...visibleRail, ...visibleUtilities].find((item) => item.id === activeRailId) || visibleRail[0];
   const panelItems = panelMenus[activeRail.id] || [];
   const mobile = railNavigation.filter((item) => ['workspace', 'approvals', 'projects', 'schedule-management', 'tasks'].includes(item.id));

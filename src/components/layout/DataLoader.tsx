@@ -13,6 +13,7 @@ import { mockUsers } from '@/data/mockData';
 import { fullProjects, fullTasks, fullSchedules } from '@/data/fullScheduleSeed';
 import { defaultProcessTemplates, defaultProcessStages, defaultProcessTasks } from '@/data/processTemplateSeed';
 import { useProcessTemplateStore } from '@/store/processTemplateStore';
+import { mergeLocalOperationData } from '@/lib/operationOverlay';
 
 export function DataLoader() {
   const dataSourceMode = useAuthStore(state => state.dataSourceMode);
@@ -63,13 +64,25 @@ export function DataLoader() {
     switch (dataSourceMode) {
       case 'JSON_OPERATION_DATA':
         if (operationData && operationData.data) {
-          const operationProjects = operationData.data.projects || [];
-          replaceProjects(withPersistedEstimateProjects(operationProjects));
-          replaceTasks(operationData.data.tasks || []);
+          const merged = mergeLocalOperationData({
+            projects: operationData.data.projects || [],
+            tasks: operationData.data.tasks || [],
+            schedules: operationData.data.personalSchedules || [],
+            requests: operationData.data.approvalRequests || [],
+            notifications: operationData.data.notifications || [],
+          }, {
+            projects: useProjectStore.getState().projects,
+            tasks: useTaskStore.getState().tasks,
+            schedules: useScheduleStore.getState().schedules,
+            requests: useApprovalStore.getState().requests,
+            notifications: useNotificationStore.getState().notifications,
+          });
+          replaceProjects(merged.projects);
+          replaceTasks(merged.tasks);
           replaceUsers(operationData.data.personnel || []);
-          replaceSchedules(operationData.data.personalSchedules || []);
-          replaceRequests(operationData.data.approvalRequests || []);
-          replaceNotifications(operationData.data.notifications || []);
+          replaceSchedules(merged.schedules);
+          replaceRequests(merged.requests);
+          replaceNotifications(merged.notifications);
           replaceSettings(operationData.data.settings || []);
         } else {
           // EMPTY fallback as per requirements: "JSON 운영 데이터가 없으면 ... 조용히 demo fallback되지 않고 empty state가 되게 한다."

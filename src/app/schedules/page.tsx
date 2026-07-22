@@ -10,11 +10,16 @@ import { TaskCard } from '@/types/models';
 import { PersonalSchedule } from '@/types/models'; // Added explicit import since we split them for multiline replace
 import { getUserDisplayName, useTranslation } from '@/lib/localization';
 import { useTranslationStore } from '@/store/translationStore';
-import { canViewSchedule, canViewEmployeeSchedule } from '@/lib/permissions';
+import { canViewProject, canViewSchedule, canViewEmployeeSchedule } from '@/lib/permissions';
 import { getProjectOverallProgress } from '@/lib/selectors';
 import { LeaveRegistrationModal } from '@/components/schedule/LeaveRegistrationModal';
 import { PmScheduleWorkbench } from '@/components/schedule/PmScheduleWorkbench';
 import { getTechnicalDepartmentLabel, getTechnicalDepartmentScope, matchesTechnicalDepartment } from '@/lib/departmentScope';
+
+const getScheduleDayTime = (value: string) => {
+  const [year, month, day] = value.substring(0, 10).split('-').map(Number);
+  return new Date(year, month - 1, day).getTime();
+};
 
 export default function SchedulesPage() {
   const searchParams = useSearchParams();
@@ -26,6 +31,7 @@ export default function SchedulesPage() {
   const { schedules } = useScheduleStore();
   const { projects } = useProjectStore();
   const { tasks } = useTaskStore();
+  const approvedTasks = tasks.filter((task) => task.approvalStatus === 'APPROVED' && !task.isDeleted);
   
   const [activeTab, setActiveTab] = useState<'MONTHLY_MATRIX' | 'PROJECT_SCHEDULE' | 'USER_DETAIL' | 'PM_MANAGEMENT'>('MONTHLY_MATRIX');
   
@@ -52,13 +58,13 @@ export default function SchedulesPage() {
       
       const hasSchedules = schedules.some(s => {
         if (s.userId !== u.id) return false;
-        const sStart = new Date(s.startDateTime).getTime();
-        const sEnd = new Date(s.endDateTime).getTime();
+        const sStart = getScheduleDayTime(s.startDateTime);
+        const sEnd = getScheduleDayTime(s.endDateTime);
         return (sStart <= monthEnd && sEnd >= monthStart);
       });
 
-      const hasTasks = tasks.some(t => {
-        if (t.assigneeId !== u.id || t.isDeleted) return false;
+      const hasTasks = approvedTasks.some(t => {
+        if (t.assigneeId !== u.id) return false;
         if (!t.startDate || !t.dueDate) return false;
         const tStart = new Date(t.startDate).getTime();
         const tEnd = new Date(t.dueDate).setHours(23,59,59,999);
@@ -80,6 +86,9 @@ export default function SchedulesPage() {
     const targetUser = users.find(u => u.id === s.userId);
     return canViewSchedule(currentUser, s, targetUser);
   });
+  const officialTaskIds = new Set(
+    visibleSchedules.map((schedule) => schedule.relatedTaskId).filter((id): id is string => Boolean(id))
+  );
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -87,10 +96,15 @@ export default function SchedulesPage() {
   const daysArray = Array.from({length: daysInMonth}, (_, i) => i + 1);
   const monthStartTime = new Date(year, month, 1).setHours(0, 0, 0, 0);
   const monthEndTime = new Date(year, month + 1, 0).setHours(23, 59, 59, 999);
-  const scopedProjects = projects.filter((project) => !project.isDeleted && project.archiveStatus !== 'ARCHIVED' && matchesTechnicalDepartment(departmentScope, project));
+  const scopedProjects = projects.filter((project) =>
+    !project.isDeleted &&
+    project.archiveStatus !== 'ARCHIVED' &&
+    canViewProject(currentUser, project) &&
+    matchesTechnicalDepartment(departmentScope, project)
+  );
   const scopedUserIds = new Set(scopedUsers.map((user) => user.id));
-  const monthTasks = tasks.filter((task) => {
-    if (task.isDeleted || !scopedUserIds.has(task.assigneeId || '')) return false;
+  const monthTasks = approvedTasks.filter((task) => {
+    if (!scopedUserIds.has(task.assigneeId || '')) return false;
     const start = task.startDate ? new Date(task.startDate).getTime() : null;
     const end = task.dueDate ? new Date(task.dueDate).setHours(23, 59, 59, 999) : start;
     return start !== null && end !== null && start <= monthEndTime && end >= monthStartTime;
@@ -107,8 +121,8 @@ export default function SchedulesPage() {
 
   const coversDate = (s: PersonalSchedule, d: number) => {
     const targetDate = new Date(year, month, d).setHours(0,0,0,0);
-    const start = new Date(s.startDateTime).setHours(0,0,0,0);
-    const end = new Date(s.endDateTime).setHours(0,0,0,0);
+    const start = getScheduleDayTime(s.startDateTime);
+    const end = getScheduleDayTime(s.endDateTime);
     return targetDate >= start && targetDate <= end;
   };
 
@@ -297,7 +311,7 @@ export default function SchedulesPage() {
               <tbody>
                 {sortedVisibleUsers.map(user => {
                   const userSchedules = visibleSchedules.filter(s => s.userId === user.id);
-                  const userTasks = tasks.filter(t => t.assigneeId === user.id && !t.isDeleted);
+                  const userTasks = approvedTasks.filter(t => t.assigneeId === user.id && !officialTaskIds.has(t.id));
 
                   return (
                     <tr key={user.id} className="hover:bg-[var(--color-bg)]/50 transition-colors group">
@@ -417,7 +431,7 @@ export default function SchedulesPage() {
         {activeTab === 'USER_DETAIL' && (
           <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {sortedVisibleUsers.map(user => {
-              const userTasks = tasks.filter(t => t.assigneeId === user.id && !t.isDeleted && t.status !== 'DONE');
+              const userTasks = approvedTasks.filter(t => t.assigneeId === user.id && t.status !== 'DONE');
               const userSchedules = visibleSchedules.filter(s => s.userId === user.id);
               
               return (

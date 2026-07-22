@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Project, TaskCard, LanguageCode } from '@/types/models';
 import { useAuthStore } from '@/store/authStore';
 import { useTaskStore } from '@/store/taskStore';
@@ -9,7 +9,7 @@ import { useAuditStore } from '@/store/auditStore';
 import { useScheduleStore } from '@/store/scheduleStore';
 import { useTranslationStore } from '@/store/translationStore';
 import { useTranslation } from '@/lib/localization';
-import { X, Plus, Trash2, AlertCircle, Languages, RefreshCw, AlertTriangle, Info } from 'lucide-react';
+import { X, Plus, Trash2, Languages, RefreshCw, AlertTriangle, Info } from 'lucide-react';
 import { detectLanguage } from '@/lib/translation/detector';
 import { executeTranslation } from '@/lib/translation/providers';
 
@@ -85,20 +85,22 @@ export const PmDispatchModal: React.FC<Props> = ({ project, onClose, onSuccess }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleUpdateTask = (index: number, field: keyof TaskCard, value: any) => {
-    const newTasks = [...tasks];
-    newTasks[index] = { ...newTasks[index], [field]: value };
-    
-    if (field === 'title') {
-      const detected = detectLanguage(value as string);
-      if (detected === 'ko' || detected === 'vi') {
-        const i18n = newTasks[index].titleI18n || { originalLanguage: detected, originalText: value, translations: {} };
-        i18n.originalLanguage = detected;
-        i18n.originalText = value;
-        newTasks[index].titleI18n = i18n;
+    setTasks((currentTasks) => {
+      const newTasks = [...currentTasks];
+      newTasks[index] = { ...newTasks[index], [field]: value };
+
+      if (field === 'title') {
+        const detected = detectLanguage(value as string);
+        if (detected === 'ko' || detected === 'vi') {
+          const i18n = newTasks[index].titleI18n || { originalLanguage: detected, originalText: value, translations: {} };
+          i18n.originalLanguage = detected;
+          i18n.originalText = value;
+          newTasks[index].titleI18n = i18n;
+        }
       }
-    }
-    
-    setTasks(newTasks);
+
+      return newTasks;
+    });
   };
 
   const handleTranslate = async (index: number) => {

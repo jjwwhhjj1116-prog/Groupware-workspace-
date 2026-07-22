@@ -1,5 +1,5 @@
 import React from 'react';
-import { TaskCard, PersonnelCard, ProjectWorkPart } from '@/types/models';
+import { TaskCard, PersonnelCard } from '@/types/models';
 import { getProjectWorkParts, getPartTaskCards, getPartProgress, getPartEmployees, calculateTaskProgress } from '@/lib/selectors';
 import { TaskDetailModal } from './TaskDetailModal';
 import { useAuthStore } from '@/store/authStore';
@@ -11,7 +11,7 @@ import { useAuditStore } from '@/store/auditStore';
 import { useScheduleStore } from '@/store/scheduleStore';
 import { useTranslationStore } from '@/store/translationStore';
 import { useTranslation } from '@/lib/localization';
-import { CheckCircle, XCircle, AlertCircle, AlertTriangle, Info, Calendar } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, AlertTriangle, Calendar } from 'lucide-react';
 
 interface ProjectPartBoardProps {
   projectId: string;
@@ -61,18 +61,12 @@ export const ProjectPartBoard: React.FC<ProjectPartBoardProps> = ({ projectId, t
   const handleApproveSchedule = () => {
     if (!window.confirm(t('board.part.confirmApprove'))) return;
     
-    updateProjectStatus(projectId, 'IN_PROGRESS');
-    
-    useTaskStore.setState(state => ({
-      tasks: state.tasks.map(t => t.projectId === projectId && t.approvalStatus === 'PENDING' ? { ...t, approvalStatus: 'APPROVED' } : t)
-    }));
-
     const req = requests.find(r => r.projectId === projectId && r.type === 'SCHEDULE_APPROVAL' && r.status === 'PENDING');
     if (req) {
       updateApprovalStatus(req.id, 'APPROVED', currentUser?.id || '');
     }
 
-    if (project?.pmId) {
+    if (project?.pmId && project.pmId !== req?.requestedBy) {
       addNotification({
         userId: project.pmId,
         type: 'SYSTEM',
@@ -96,18 +90,12 @@ export const ProjectPartBoard: React.FC<ProjectPartBoardProps> = ({ projectId, t
     const reason = window.prompt(t('board.part.promptReject'));
     if (reason === null) return;
     
-    updateProjectStatus(projectId, 'SCHEDULE_REJECTED');
-
-    useTaskStore.setState(state => ({
-      tasks: state.tasks.map(t => t.projectId === projectId && t.approvalStatus === 'PENDING' ? { ...t, approvalStatus: 'REJECTED' } : t)
-    }));
-
     const req = requests.find(r => r.projectId === projectId && r.type === 'SCHEDULE_APPROVAL' && r.status === 'PENDING');
     if (req) {
       updateApprovalStatus(req.id, 'REJECTED', currentUser?.id || '', reason);
     }
 
-    if (project?.pmId) {
+    if (project?.pmId && project.pmId !== req?.requestedBy) {
       addNotification({
         userId: project.pmId,
         type: 'SYSTEM',
