@@ -1,10 +1,10 @@
-const XLSX = require('xlsx');
 const fs = require('fs');
 const path = require('path');
+const { readWorkbook, sheetRows } = require('./exceljsRows');
 
-const workbook = XLSX.readFile('(구조팀) VN 스케줄표_2026.07.01(1).xlsx');
-const sheet2026 = workbook.Sheets['2026★'];
-const rows = XLSX.utils.sheet_to_json(sheet2026, { header: 1 });
+(async () => {
+const workbook = await readWorkbook('(구조팀) VN 스케줄표_2026.07.01(1).xlsx');
+const rows = sheetRows(workbook.getWorksheet('2026★'));
 
 function excelDateToISO(serial) {
   if (typeof serial !== 'number') return null;
@@ -248,3 +248,4 @@ export const sampleAuditLogs = [];
 
 fs.writeFileSync(path.join(__dirname, '../src/data/workspaceScheduleSeed.ts'), outputTS);
 console.log("Successfully generated src/data/workspaceScheduleSeed.ts");
+})().catch((error) => { console.error(error); process.exitCode = 1; });

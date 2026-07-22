@@ -1,13 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Project, PersonnelCard, ProjectSourceType } from '@/types/models';
+import React, { useEffect, useState } from 'react';
+import { Project, ProjectSourceType } from '@/types/models';
 import { useAuthStore } from '@/store/authStore';
 import { getUserDisplayName, useTranslation } from '@/lib/localization';
 import { useProjectStore } from '@/store/projectStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import { useTranslationStore } from '@/store/translationStore';
-import { mockUsers } from '@/data/mockData';
+import { EstimateRequestWorkbench } from '@/components/intake/EstimateRequestWorkbench';
+import { ProjectIntakeWorkbench } from '@/components/intake/ProjectIntakeWorkbench';
+
+type IntakeTab = ProjectSourceType | 'PROJECT_INTAKE';
 
 export default function IntakePage() {
   const { currentUser, users } = useAuthStore();
@@ -16,7 +19,7 @@ export default function IntakePage() {
   const { projects, addProject, assignPM, updateProjectField } = useProjectStore();
   const { addNotification } = useNotificationStore();
   
-  const [activeTab, setActiveTab] = useState<ProjectSourceType>('INTERNAL_DEVELOPMENT');
+  const [activeTab, setActiveTab] = useState<IntakeTab>('INTERNAL_DEVELOPMENT');
   const [showForm, setShowForm] = useState(false);
   
   const [newTitle, setNewTitle] = useState('');
@@ -27,9 +30,21 @@ export default function IntakePage() {
   const [newTargetDate, setNewTargetDate] = useState('');
   const [newClientName, setNewClientName] = useState(''); // for requester
 
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.has('intakeId')) {
+        setActiveTab('PROJECT_INTAKE');
+      } else if (params.has('requestId')) {
+        setActiveTab('CLIENT_ORDER');
+      }
+    }, 0);
+    return () => window.clearTimeout(timeout);
+  }, []);
+
   // Authorization Check
   if (!currentUser) return <div className="py-10 text-center text-[var(--color-text-sub)]">{t('header.loginRequired')}</div>;
-  if (currentUser.role !== 'SUPER_ADMIN' && currentUser.role !== 'DEPARTMENT_MANAGER') {
+  if (!['SUPER_ADMIN', 'SYSTEM_ADMIN', 'DEPARTMENT_MANAGER', 'PM'].includes(currentUser.role)) {
     return <div className="py-10 text-center text-[var(--color-danger)] font-bold">{t('intake.noPermission')}</div>;
   }
 
@@ -52,8 +67,10 @@ export default function IntakePage() {
       description: newDesc,
       priority: newPriority,
       departmentId: currentUser.departmentId,
+      managerId: currentUser.role === 'DEPARTMENT_MANAGER' ? currentUser.id : currentUser.managerId,
       startDate: newStartDate || undefined,
-      projectSourceType: activeTab,
+      projectSourceType: activeTab === 'PROJECT_INTAKE' ? 'INTERNAL_DEVELOPMENT' : activeTab,
+      source: 'LOCAL_OPERATION',
     };
 
     if (activeTab === 'CLIENT_ORDER') {
@@ -91,13 +108,13 @@ export default function IntakePage() {
   };
 
   return (
-    <div className="w-full px-6 mx-auto space-y-6 md:space-y-8 animate-in fade-in duration-500">
+    <div className="w-full min-w-0 mx-auto space-y-6 md:space-y-8 animate-in fade-in duration-500">
       
       {/* Tabs */}
-      <div className="flex gap-4 mb-4 mt-8">
+      <div className="grid grid-cols-1 gap-2 mb-4 sm:grid-cols-3 sm:gap-3 lg:flex lg:gap-4">
         <button
           onClick={() => { setActiveTab('INTERNAL_DEVELOPMENT'); setShowForm(false); }}
-          className={`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] px-4 py-2 font-medium rounded-md transition-colors ${
+          className={`w-full px-3 py-2 text-sm font-medium rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] lg:w-auto lg:px-4 ${
             activeTab === 'INTERNAL_DEVELOPMENT'
               ? 'bg-blue-600 text-white shadow-md'
               : 'bg-[var(--color-bg-sub)] text-[var(--color-text-sub)] hover:bg-gray-200'
@@ -107,7 +124,7 @@ export default function IntakePage() {
         </button>
         <button
           onClick={() => { setActiveTab('CLIENT_ORDER'); setShowForm(false); }}
-          className={`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] px-4 py-2 font-medium rounded-md transition-colors ${
+          className={`w-full px-3 py-2 text-sm font-medium rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] lg:w-auto lg:px-4 ${
             activeTab === 'CLIENT_ORDER'
               ? 'bg-[var(--color-primary)] text-[var(--color-surface)] shadow-md'
               : 'bg-[var(--color-bg-sub)] text-[var(--color-text-sub)] hover:bg-gray-200'
@@ -115,8 +132,24 @@ export default function IntakePage() {
         >
           {t('orderProjectManagement')}
         </button>
+        <button
+          onClick={() => { setActiveTab('PROJECT_INTAKE'); setShowForm(false); }}
+          className={`w-full px-3 py-2 text-sm font-medium rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] lg:w-auto lg:px-4 ${
+            activeTab === 'PROJECT_INTAKE'
+              ? 'bg-emerald-600 text-white shadow-md'
+              : 'bg-[var(--color-bg-sub)] text-[var(--color-text-sub)] hover:bg-gray-200'
+          }`}
+        >
+          {t('projectIntake.tab')}
+        </button>
       </div>
 
+      {activeTab === 'PROJECT_INTAKE' ? (
+        <ProjectIntakeWorkbench currentUser={currentUser} t={t} />
+      ) : isClient ? (
+        <EstimateRequestWorkbench currentUser={currentUser} users={users} t={t} />
+      ) : (
+      <>
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-[var(--color-text-main)]">
           {isClient ? t('orderProjectManagement') : t('devTaskListManagement')}
@@ -269,6 +302,8 @@ export default function IntakePage() {
           </tbody>
         </table>
       </div>
+      </>
+      )}
     </div>
   );
 }

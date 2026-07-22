@@ -5,6 +5,9 @@ import { GroupByOption } from './Board';
 import { getDeliveryUrgencyBucket, getProjectBoardColumn } from '@/lib/selectors';
 import { useTranslation } from '@/lib/localization';
 import { useTranslationStore } from '@/store/translationStore';
+import { ProjectWorkflowTab } from '@/lib/projectWorkflow';
+import { useProjectWorkflowIndex } from '@/hooks/useProjectWorkflow';
+import { FolderOpen } from 'lucide-react';
 
 interface Props {
   projects: Project[];
@@ -13,30 +16,32 @@ interface Props {
   groupBy: GroupByOption;
   onProjectClick: (projectId: string) => void;
   onProjectMove?: (projectId: string, sourceColId: string, targetColId: string) => void;
+  onOperationClick?: (projectId: string, tab?: ProjectWorkflowTab) => void;
+  onProjectAction?: (project: Project, action: 'START' | 'DUE' | 'COMPLETE' | 'REVISION') => void;
 }
 
-export const ProjectBoard: React.FC<Props> = ({ projects, tasks, revisionRequests, groupBy, onProjectClick, onProjectMove }) => {
+export const ProjectBoard: React.FC<Props> = ({ projects, tasks, revisionRequests, groupBy, onProjectClick, onProjectMove, onOperationClick, onProjectAction }) => {
   const { settings } = useTranslationStore();
   const t = useTranslation(settings.uiLanguage);
+  const workflowByProject = useProjectWorkflowIndex(projects, tasks);
 
   const getColumns = () => {
     if (groupBy === 'PRIORITY') {
-      const isInternal = projects.length > 0 && projects[0].projectSourceType === 'INTERNAL_DEVELOPMENT';
-      const label = isInternal ? t('goal') : t('delivery');
+      const label = t('delivery');
       return [
-        { id: 'OVERDUE', title: `🚨 ${t('overdue', { label })}` },
-        { id: 'WITHIN_1_WEEK', title: `🔴 ${t('dueIn', { label, time: '1w' })}` },
-        { id: 'WITHIN_2_WEEKS', title: `🟠 ${t('dueIn', { label, time: '2w' })}` },
-        { id: 'WITHIN_1_MONTH', title: `🔵 ${t('dueIn', { label, time: '1m' })}` },
-        { id: 'UNSET', title: `⚪ ${t('unset')}` },
+        { id: 'OVERDUE', title: `🚨 ${t('overdue', { label })}`, accent: 'bg-rose-500', frame: 'border-rose-200/90' },
+        { id: 'WITHIN_1_WEEK', title: `🔴 ${t('dueIn', { label, time: '1w' })}`, accent: 'bg-red-500', frame: 'border-red-200/90' },
+        { id: 'WITHIN_2_WEEKS', title: `🟠 ${t('dueIn', { label, time: '2w' })}`, accent: 'bg-amber-500', frame: 'border-amber-200/90' },
+        { id: 'WITHIN_1_MONTH', title: `🔵 ${t('dueIn', { label, time: '1m' })}`, accent: 'bg-blue-500', frame: 'border-blue-200/90' },
+        { id: 'UNSET', title: `⚪ ${t('unset')}`, accent: 'bg-slate-400', frame: 'border-slate-200/90' },
       ];
     }
     // Default to Status groups
     return [
-      { id: 'PRE_WORK', title: t('preWork') },
-      { id: 'IN_PROGRESS', title: t('inProgress') },
-      { id: 'COMPLETED', title: t('completed') },
-      { id: 'REVISION', title: t('revision') },
+      { id: 'PRE_WORK', title: t('preWork'), accent: 'bg-slate-400', frame: 'border-slate-200/90' },
+      { id: 'IN_PROGRESS', title: t('inProgress'), accent: 'bg-sky-500', frame: 'border-sky-200/90' },
+      { id: 'COMPLETED', title: t('completed'), accent: 'bg-emerald-500', frame: 'border-emerald-200/90' },
+      { id: 'REVISION', title: t('revision'), accent: 'bg-[#ff7a2f]', frame: 'border-orange-200/90' },
     ];
   };
 
@@ -57,7 +62,7 @@ export const ProjectBoard: React.FC<Props> = ({ projects, tasks, revisionRequest
 
   return (
     <div 
-      className={`grid gap-6 pb-6 p-2 grid-cols-1 md:grid-cols-2 ${columns.length === 5 ? 'lg:grid-cols-3 xl:grid-cols-5' : 'lg:grid-cols-4'}`}
+      className={`grid grid-cols-1 gap-4 pb-6 md:grid-cols-2 ${columns.length === 5 ? 'lg:grid-cols-3 xl:grid-cols-5' : 'lg:grid-cols-4'}`}
     >
       {columns.map(col => {
         const colProjects = projects.filter(p => {
@@ -76,15 +81,15 @@ export const ProjectBoard: React.FC<Props> = ({ projects, tasks, revisionRequest
         return (
           <div 
             key={col.id} 
-            className="bg-[var(--color-bg)]/50 rounded-[var(--radius-card)] flex flex-col max-h-[calc(100vh-200px)] border border-[var(--color-border)] shadow-sm overflow-hidden"
+            className={`flex max-h-[calc(100vh-220px)] min-h-[250px] flex-col overflow-hidden rounded-[20px] border ${col.frame} bg-[var(--cc-surface-2)] shadow-[0_12px_30px_rgba(71,85,105,.09),inset_0_1px_0_rgba(255,255,255,.85)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(71,85,105,.14)]`}
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, col.id)}
             role="region"
             aria-label={col.title}
           >
-            <div className="p-4 border-b border-[var(--color-border)] flex justify-between items-center bg-[var(--color-surface)]">
-              <h2 className="font-bold text-[15px] text-[var(--color-text-main)] tracking-tight">{col.title}</h2>
-              <span className="bg-gray-100 border border-[var(--color-border)] text-[var(--color-text-sub)] px-2.5 py-0.5 rounded-full text-[11px] font-bold">
+            <div className="flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+              <h2 className="flex items-center gap-2 font-black text-[14px] tracking-tight text-[var(--color-text-main)]"><span className={`h-5 w-1 rounded-full ${col.accent}`} />{col.title}</h2>
+              <span className="rounded-full border border-[var(--color-border)] bg-[var(--cc-surface-2)] px-2.5 py-0.5 text-[10px] font-black text-[var(--color-text-sub)]">
                 {colProjects.length}
               </span>
             </div>
@@ -94,7 +99,10 @@ export const ProjectBoard: React.FC<Props> = ({ projects, tasks, revisionRequest
                   key={project.id} 
                   project={project} 
                   tasks={tasks}
+                  workflow={workflowByProject.get(project.id)!}
                   onClick={onProjectClick} 
+                  onOperationClick={onOperationClick}
+                  onProjectAction={onProjectAction}
                   draggable={true}
                   onDragStart={(e) => {
                     e.dataTransfer.setData('projectId', project.id);
@@ -103,8 +111,10 @@ export const ProjectBoard: React.FC<Props> = ({ projects, tasks, revisionRequest
                 />
               ))}
               {colProjects.length === 0 && (
-                <div className="p-4 text-center text-sm text-[var(--color-text-sub)] border-2 border-dashed border-[var(--color-border)] rounded-lg">
-                  {t('board.project.noProject')}
+                <div className="flex min-h-[158px] flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)]/65 p-5 text-center text-[var(--color-text-sub)]">
+                  <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--cc-surface-3)]"><FolderOpen className="h-5 w-5 opacity-60" /></span>
+                  <strong className="text-xs font-black text-[var(--color-text-main)]">{t('board.project.noProject')}</strong>
+                  <span className="mt-1.5 text-[10px] font-semibold leading-4">프로젝트가 이 단계로 이동하면<br />카드로 표시됩니다.</span>
                 </div>
               )}
             </div>

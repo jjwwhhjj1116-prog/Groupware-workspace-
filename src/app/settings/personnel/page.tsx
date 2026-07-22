@@ -247,6 +247,21 @@ export default function PersonnelManagementPage() {
                 </select>
               </div>
               <div>
+                <label className="block text-xs font-bold text-[var(--color-text-main)] mb-1">접근 제한등급</label>
+                <select
+                  value={editingUser.permissionLevel || (editingUser.role === 'SUPER_ADMIN' ? 5 : editingUser.role === 'DEPARTMENT_MANAGER' || editingUser.role === 'SYSTEM_ADMIN' ? 4 : editingUser.role === 'PM' ? 3 : 2)}
+                  onChange={e => setEditingUser({...editingUser, permissionLevel: Number(e.target.value)})}
+                  className="w-full border border-[var(--color-border-strong)] bg-[var(--color-surface)] rounded-lg p-2.5 text-sm outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                >
+                  <option value={5}>L5 · 최고관리자 (전사/관리자설정)</option>
+                  <option value={4}>L4 · 본부관리자 (소속 본부 전체)</option>
+                  <option value={3}>L3 · PM (담당 프로젝트/팀)</option>
+                  <option value={2}>L2 · 실무자 (배정 업무/개인)</option>
+                  <option value={1}>L1 · 제한열람 (공지/조직도)</option>
+                </select>
+                <p className="mt-1.5 text-[10px] font-semibold text-[var(--color-text-sub)]">등급은 메뉴와 데이터 범위의 상한으로 적용됩니다.</p>
+              </div>
+              <div>
                 <label className="block text-xs font-bold text-[var(--color-text-main)] mb-1">{t('settings.personnel.thStatus')}</label>
                 <select 
                   value={editingUser.employmentStatus || (editingUser.isActive ? 'ACTIVE' : 'INACTIVE')} 

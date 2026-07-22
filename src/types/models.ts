@@ -78,6 +78,431 @@ export type ProjectSourceType = 'CLIENT_ORDER' | 'INTERNAL_DEVELOPMENT';
 
 export type DataSourceMode = 'JSON_OPERATION_DATA' | 'EXCEL_IMPORT_DATA' | 'DEMO_SEED_DATA' | 'EMPTY';
 
+export type EstimateRequestStatus =
+  | 'REQUEST_MEMO'
+  | 'ESTIMATE_DRAFTING'
+  | 'WAITING'
+  | 'WON'
+  | 'LOST'
+  | 'CANCELLED'
+  | 'ON_HOLD'
+  | 'OTHER';
+
+export type CommercialDecisionType = 'WON' | 'LOST' | 'CANCELLED' | 'ON_HOLD';
+
+export interface CommercialDecision {
+  id: string;
+  estimateRequestId: string;
+  estimateSheetId?: string | null;
+  estimateSubmissionId?: string | null;
+  projectId?: string | null;
+  idempotencyKey: string;
+  decision: CommercialDecisionType;
+  reason?: string | null;
+  agreedAmount?: string | null;
+  agreedScope?: string | null;
+  agreedSchedule?: string | null;
+  startCondition?: string | null;
+  decidedAt: string;
+  decidedBy: UserId;
+  createdAt: string;
+}
+
+export type ProjectIntakeStatus = 'DRAFT' | 'REVIEWED' | 'ACCEPTED';
+export type ProjectIntakeMaterialStatus = 'NOT_RECEIVED' | 'PARTIAL' | 'RECEIVED' | 'CONFIRMED';
+
+export interface ProjectIntakeContact {
+  id: string;
+  name: string;
+  role: string;
+  department: string;
+  telephone: string;
+  mobile: string;
+  email: string;
+}
+
+export interface ProjectIntakeMaterial {
+  id: string;
+  category: string;
+  label: string;
+  memo: string;
+  status: ProjectIntakeMaterialStatus;
+  comment: string;
+  confirmedBy: string;
+  originalName: string;
+  size: number | null;
+  mimeType: string;
+  storageKey: string;
+}
+
+export interface ProjectIntakeSecretReference {
+  id: string;
+  label: string;
+  provider: string;
+  reference: string;
+  note: string;
+}
+
+export interface ProjectIntakeDraft {
+  projectName: string;
+  projectNo: string;
+  company: string;
+  client: string;
+  usage: string;
+  area: string;
+  buildings: string;
+  floors: string;
+  basementFloors: string;
+  groundFloors: string;
+  bidDate: string;
+  unitPrice: string;
+  businessTypes: string[];
+  scopes: string[];
+  contacts: ProjectIntakeContact[];
+  materials: ProjectIntakeMaterial[];
+  expectedStartDate: string;
+  firstDelivery: string;
+  secondDelivery: string;
+  thirdDelivery: string;
+  finalDelivery: string;
+  workContent: string;
+  notes: string;
+  request: string;
+  secretReferences: ProjectIntakeSecretReference[];
+  source: {
+    estimateRequestId: string;
+    requestNo: string;
+    estimateId: string | null;
+    estimateSheetId: string | null;
+    estimateSubmissionId: string | null;
+    estimateDocumentHash: string | null;
+    commercialDecisionId: string;
+    projectId: string;
+  };
+  commercial: {
+    agreedAmount: string | null;
+    agreedScope: string | null;
+    agreedSchedule: string | null;
+    startCondition: string | null;
+  };
+}
+
+export interface ProjectIntakeHistory {
+  id: string;
+  projectIntakeId: string;
+  action: string;
+  fromStatus?: ProjectIntakeStatus | null;
+  toStatus?: ProjectIntakeStatus | null;
+  changesJson?: string | null;
+  actorId: UserId;
+  createdAt: string;
+}
+
+export interface ProjectIntake {
+  id: string;
+  estimateRequestId: string;
+  commercialDecisionId: string;
+  projectId: string;
+  status: ProjectIntakeStatus;
+  projectNo: string;
+  sourceSnapshotJson: string;
+  draftJson?: string | null;
+  draft?: ProjectIntakeDraft;
+  reviewNote?: string | null;
+  reviewedBy?: UserId | null;
+  reviewedAt?: string | null;
+  acceptedBy?: UserId | null;
+  acceptedAt?: string | null;
+  version: number;
+  createdBy: UserId;
+  updatedBy: UserId;
+  createdAt: string;
+  updatedAt: string;
+  histories?: ProjectIntakeHistory[];
+  commercialDecision?: CommercialDecision;
+  project?: CommercialDecisionProject;
+  estimateRequest?: EstimateRequest;
+  completeness?: { missing: string[] };
+  permissions?: { canEdit: boolean; canReview: boolean };
+}
+
+export interface CommercialDecisionInput {
+  decision: CommercialDecisionType;
+  reason?: string | null;
+  agreedAmount?: string | null;
+  agreedScope?: string | null;
+  agreedSchedule?: string | null;
+  startCondition?: string | null;
+}
+
+export interface CommercialDecisionProject {
+  id: string;
+  companyId: string;
+  name: string;
+  status: string;
+  managerId: string;
+  pmId: string;
+  orderIndex: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type EstimateRequestActivityKind = 'CONSULTATION' | 'CALL' | 'EMAIL' | 'NOTE';
+
+export interface EstimateRequestActivity {
+  id: string;
+  estimateRequestId: string;
+  kind: EstimateRequestActivityKind;
+  content: string;
+  occurredAt: string;
+  createdBy: UserId;
+  createdAt: string;
+}
+
+export interface EstimateRequestAttachment {
+  id: string;
+  estimateRequestId: string;
+  category: string;
+  label: string;
+  originalName: string;
+  size: number;
+  mimeType?: string | null;
+  memo?: string | null;
+  storageKey?: string | null;
+  status: 'REGISTERED';
+  createdBy: UserId;
+  createdAt: string;
+}
+
+export interface EstimateRequestHistory {
+  id: string;
+  estimateRequestId: string;
+  action: string;
+  fromStatus?: EstimateRequestStatus | null;
+  toStatus?: EstimateRequestStatus | null;
+  changes?: string | null;
+  actorId: UserId;
+  createdAt: string;
+}
+
+export interface EstimateRequest {
+  id: string;
+  requestNo: string;
+  status: EstimateRequestStatus;
+  projectName: string;
+  company?: string | null;
+  client?: string | null;
+  contact?: string | null;
+  contactDepartment?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  ownerId?: UserId | null;
+  departmentId: DepartmentId;
+  requestDate: string;
+  memo?: string | null;
+  rawMemo?: string | null;
+  firstDelivery?: string | null;
+  secondDelivery?: string | null;
+  thirdDelivery?: string | null;
+  finalDelivery?: string | null;
+  expectedStartDate?: string | null;
+  areaPy?: string | null;
+  floors?: string | null;
+  scope?: string | null;
+  usage?: string | null;
+  buildingCount?: string | null;
+  unitWork?: string | null;
+  bidDate?: string | null;
+  estimateType?: string | null;
+  estimateId?: string | null;
+  projectId?: string | null;
+  version: number;
+  createdBy: UserId;
+  updatedBy: UserId;
+  createdAt: string;
+  updatedAt: string;
+  activities: EstimateRequestActivity[];
+  attachments: EstimateRequestAttachment[];
+  histories: EstimateRequestHistory[];
+  commercialDecisions?: CommercialDecision[];
+  projectIntake?: ProjectIntake | null;
+}
+
+export interface CommercialDecisionResult {
+  request: EstimateRequest;
+  decision: CommercialDecision;
+  intake: ProjectIntake | null;
+  project: CommercialDecisionProject | null;
+  idempotent: boolean;
+}
+
+export type EstimateTemplateType = '개산견적' | '공내역서' | '설계예가' | '공사비검증';
+export type EstimateSheetStatus = 'DRAFT' | 'SUBMITTED' | 'SENT';
+export type EstimateSubmissionStatus = 'SUBMITTED' | 'SENT';
+
+export interface EstimateSheetCellState {
+  value?: string | number | null;
+  formula?: string;
+  userFormula?: boolean;
+}
+
+export interface EstimateSheetState {
+  type: EstimateTemplateType;
+  cells: Record<string, EstimateSheetCellState>;
+  maxRow: number;
+  maxCol: number;
+  rowHeights: number[];
+  colWidths: number[];
+  merges: [number, number, number, number][];
+}
+
+export interface EstimateTemplateRecord {
+  id: string;
+  type: EstimateTemplateType;
+  sheetName: string;
+  version: number;
+  sourceHash: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EstimateSheetVersion {
+  id: string;
+  estimateSheetId: string;
+  version: number;
+  templateVersion: number;
+  templateHash: string;
+  state: EstimateSheetState;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface EstimateSheetExport {
+  id: string;
+  estimateSheetId: string;
+  version: number;
+  format: 'XLSX' | 'PDF';
+  fileName: string;
+  actorId: string;
+  createdAt: string;
+}
+
+export interface EstimateSubmissionSummary {
+  requestNo: string;
+  projectName: string;
+  company: string;
+  serviceDescription: string;
+  total: string;
+  templateType: EstimateTemplateType;
+  version: number;
+}
+
+export interface EstimateSubmission {
+  id: string;
+  estimateSheetId: string;
+  version: number;
+  status: EstimateSubmissionStatus;
+  submittedAt: string;
+  submittedBy: string;
+  sentAt?: string | null;
+  sentBy?: string | null;
+  recipient?: string | null;
+  deliveryChannel?: string | null;
+  documentHash: string;
+  summary: EstimateSubmissionSummary;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EstimateSubmissionListItem extends EstimateSubmission {
+  estimateRequestId: string;
+  requestNo: string;
+  projectName: string;
+  company?: string | null;
+  ownerId?: string | null;
+  departmentId: string;
+  requestStatus: EstimateRequestStatus;
+  templateType: EstimateTemplateType;
+  decisionReady: boolean;
+}
+
+export interface EstimateSheet {
+  id: string;
+  estimateRequestId: string;
+  templateId: string;
+  templateType: EstimateTemplateType;
+  status: EstimateSheetStatus;
+  currentVersion: number;
+  createdBy: string;
+  updatedBy: string;
+  createdAt: string;
+  updatedAt: string;
+  template: EstimateTemplateRecord;
+  versions: EstimateSheetVersion[];
+  exports: EstimateSheetExport[];
+  submissions: EstimateSubmission[];
+}
+
+export type EstimateDbSection = 'PJ' | 'PROGRESS' | 'MEP_CONTRACT';
+export type EstimateDbTargetType = 'ORDER' | 'SALES' | 'DEPOSIT';
+export type EstimateDbValue = string | number | boolean | null;
+export type EstimateDbPayload = Record<string, EstimateDbValue>;
+
+export interface EstimateDbRecord {
+  id: string;
+  section: EstimateDbSection;
+  projectId?: string | null;
+  sourceRecordId?: string | null;
+  pjNo?: string | null;
+  year?: number | null;
+  sortOrder: number;
+  schemaVersion: number;
+  data: EstimateDbPayload;
+  version: number;
+  createdBy: string;
+  updatedBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EstimateDbVendor {
+  id: string;
+  normalizedName: string;
+  normalizedTrade: string;
+  data: EstimateDbPayload;
+  version: number;
+  createdBy: string;
+  updatedBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EstimateDbMonthlyTarget {
+  id: string;
+  type: EstimateDbTargetType;
+  year: number;
+  month: number;
+  amount: string;
+  version: number;
+  updatedBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EstimateDbAnnualPoint {
+  month: number;
+  amount: string;
+}
+
+export interface EstimateDbAnnualReport {
+  year: number;
+  order: EstimateDbAnnualPoint[];
+  sales: EstimateDbAnnualPoint[];
+  deposit: EstimateDbAnnualPoint[];
+  targets: Array<Pick<EstimateDbMonthlyTarget, 'type' | 'month' | 'amount' | 'version'>>;
+}
+
 export type DeliveryLifecycle =
   | "UNSCHEDULED"
   | "UPCOMING"
@@ -91,6 +516,469 @@ export type DeliveryLifecycle =
   | "POST_DELIVERY_WORK_REQUESTED"
   | "POST_DELIVERY_WORK_IN_PROGRESS"
   | "REOPENED";
+
+export type ProjectPmScheduleStatus =
+  | 'PENDING_ASSIGNMENT'
+  | 'PM_ASSIGNED'
+  | 'DRAFT_REQUESTED'
+  | 'DRAFTING'
+  | 'SUBMITTED'
+  | 'REJECTED'
+  | 'APPROVED';
+
+export interface PmAssignment {
+  primaryPmId: UserId | '';
+  finishPmId: UserId | '';
+  structurePmId: UserId | '';
+  bimPmId: UserId | '';
+  civilPmId: UserId | '';
+}
+
+export interface PmRequestTargets {
+  pmIds: UserId[];
+  teamLeaderIds: UserId[];
+}
+
+export interface PmScheduleRow {
+  id: string;
+  assigneeId: UserId;
+  departmentId: DepartmentId | '';
+  category: 'STRUCTURE' | 'FINISH' | 'BIM' | 'CIVIL' | 'OTHER';
+  scope: string;
+  people: number;
+  workDays: number;
+  totalDays: number;
+  startDate: string;
+  endDate: string;
+}
+
+export interface PmSchedulePlan {
+  id: 'plan1' | 'plan2';
+  title: string;
+  rows: PmScheduleRow[];
+}
+
+export interface ProjectPmScheduleHistory {
+  id: string;
+  projectPmScheduleId: string;
+  action: string;
+  fromStatus: string;
+  toStatus: string;
+  detailsJson: string;
+  actorId: UserId;
+  createdAt: string;
+}
+
+export interface ProjectPmSchedule {
+  id: string;
+  projectId: string;
+  status: ProjectPmScheduleStatus;
+  assignment: PmAssignment;
+  requestTargets: PmRequestTargets;
+  requestMemo: string;
+  plan1: PmSchedulePlan;
+  plan2: PmSchedulePlan;
+  selectedProposal?: 'plan1' | 'plan2' | null;
+  approvedPlan?: 'plan1' | 'plan2' | null;
+  rejectReason?: string | null;
+  requestedBy?: UserId | null;
+  requestedAt?: string | null;
+  submittedBy?: UserId | null;
+  submittedAt?: string | null;
+  approvedBy?: UserId | null;
+  approvedAt?: string | null;
+  version: number;
+  createdBy: UserId;
+  updatedBy: UserId;
+  createdAt: string;
+  updatedAt: string;
+  completeness: { missing: string[] };
+  permissions: { canView: boolean; canAssign: boolean; canEdit: boolean; canReview: boolean };
+  histories: ProjectPmScheduleHistory[];
+  project: {
+    id: string;
+    name: string;
+    status: string;
+    departmentId: DepartmentId;
+    managerId: UserId;
+    pmId: UserId;
+  };
+}
+
+export interface PmScheduleConflict {
+  assigneeId: UserId;
+  projectId: string;
+  projectName: string;
+  candidateRowId: string;
+  conflictingRowId: string;
+  startDate: string;
+  endDate: string;
+}
+
+export type ProjectOperationActivityKind = 'MEETING' | 'CALL' | 'EMAIL' | 'AWARD' | 'START_APPROVAL' | 'COMPLETION_CHANGED' | 'COMPLETED' | 'NOTE';
+export type ProjectStartApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface ProjectOperationActivity {
+  id: string;
+  projectOperationId: string;
+  kind: ProjectOperationActivityKind;
+  occurredAt: string;
+  title: string;
+  body: string;
+  metadata: Record<string, string | number | boolean | null>;
+  createdBy: UserId;
+  createdAt: string;
+}
+
+export interface ProjectOperation {
+  id: string;
+  projectId: string;
+  awardDate?: string | null;
+  expectedCompletionDate?: string | null;
+  actualCompletionDate?: string | null;
+  startApprovalStatus: ProjectStartApprovalStatus;
+  startApprovedBy?: UserId | null;
+  startApprovedAt?: string | null;
+  version: number;
+  createdBy: UserId;
+  updatedBy: UserId;
+  createdAt: string;
+  updatedAt: string;
+  project: {
+    id: string;
+    name: string;
+    status: string;
+    departmentId: DepartmentId;
+    managerId: UserId;
+    pmId: UserId;
+    manager?: PersonnelCard;
+    pm?: PersonnelCard;
+  };
+  activities: ProjectOperationActivity[];
+  assignments: { assignment: Partial<PmAssignment>; rows: PmScheduleRow[] };
+  sourceTrace: {
+    canonicalProjectId: string;
+    projectIntakeId?: string | null;
+    estimateRequestId?: string | null;
+    requestNo?: string | null;
+    commercialDecisionId?: string | null;
+  };
+  permissions: { canView: boolean; canEdit: boolean; canApprove: boolean };
+}
+
+export type ProjectQcItemStatus = 'PENDING' | 'PARTIAL' | 'CONFIRMED' | 'SENT';
+
+export interface ProjectQcCheck {
+  target: string;
+  done: boolean;
+  na: boolean;
+  checkedBy: string;
+  checkedAt: string;
+}
+
+export interface ProjectQcAttachment {
+  id: string;
+  projectQcItemId: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  storageKey?: string | null;
+  checksum?: string | null;
+  createdBy: UserId;
+  createdAt: string;
+}
+
+export interface ProjectQcHistory {
+  id: string;
+  projectQcChecklistId: string;
+  projectQcItemId?: string | null;
+  action: string;
+  details: Record<string, unknown>;
+  actorId: UserId;
+  createdAt: string;
+}
+
+export interface ProjectQcItem {
+  id: string;
+  projectQcChecklistId: string;
+  group: string;
+  middleCategory?: string | null;
+  subCategory?: string | null;
+  trade: string;
+  serialNo: string;
+  item: string;
+  method: string;
+  targets: string[];
+  checks: ProjectQcCheck[];
+  status: ProjectQcItemStatus;
+  comment: string;
+  objection: Record<string, unknown>;
+  eliminated: boolean;
+  sentAt?: string | null;
+  sentBy?: UserId | null;
+  createdBy: UserId;
+  updatedBy: UserId;
+  createdAt: string;
+  updatedAt: string;
+  attachments: ProjectQcAttachment[];
+  histories: ProjectQcHistory[];
+}
+
+export interface ProjectQcChecklist {
+  id: string;
+  projectId: string;
+  status: 'OPEN' | 'IN_PROGRESS' | 'COMPLETED';
+  version: number;
+  createdBy: UserId;
+  updatedBy: UserId;
+  createdAt: string;
+  updatedAt: string;
+  project: { id: string; name: string; status: string; departmentId: DepartmentId; managerId: UserId; pmId: UserId };
+  items: ProjectQcItem[];
+  histories: ProjectQcHistory[];
+  permissions: { canView: boolean; canEdit: boolean; canSend: boolean };
+}
+
+export interface ProjectQcTerm {
+  id: string;
+  term: string;
+  definition: string;
+  createdBy: UserId;
+  updatedBy: UserId;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type DeliveryRoundKind = 'DELIVERY' | 'REDELIVERY';
+export type DeliveryRecordType = 'CLIENT_DELIVERY' | 'REVISION_REQUEST' | 'INTERNAL_REVIEW' | 'APPROVED' | 'OTHER';
+export type DailyReportStage = 'MORNING_DRAFT' | 'FINAL' | 'OVERTIME' | 'DELAY';
+export type ApprovalStatus = 'NOT_REQUIRED' | 'PENDING' | 'APPROVED';
+
+export interface ProjectDeliveryFile {
+  id: string;
+  projectDeliveryRoundId: string;
+  logicalFileKey: string;
+  version: number;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  storageKey?: string | null;
+  checksum?: string | null;
+  memo: string;
+  createdBy: UserId;
+  createdAt: string;
+}
+
+export interface ProjectDeliveryRound {
+  id: string;
+  projectDeliveryWorkspaceId: string;
+  roundNo: number;
+  kind: DeliveryRoundKind;
+  parentRoundId?: string | null;
+  label: string;
+  deliveryDate: string;
+  memo: string;
+  status: string;
+  createdBy: UserId;
+  createdAt: string;
+  files: ProjectDeliveryFile[];
+}
+
+export interface ProjectDeliveryRecord {
+  id: string;
+  projectDeliveryWorkspaceId: string;
+  occurredAt: string;
+  type: DeliveryRecordType;
+  memo: string;
+  writerId: UserId;
+  createdAt: string;
+}
+
+export interface ProjectDownloadRequest {
+  id: string;
+  projectDeliveryWorkspaceId: string;
+  targetFile: string;
+  reason: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  requestedBy: UserId;
+  requestedAt: string;
+  reviewedBy?: UserId | null;
+  reviewedAt?: string | null;
+  reviewNote?: string | null;
+}
+
+export interface ProjectDailyReport {
+  id: string;
+  projectDeliveryWorkspaceId: string;
+  scheduleRowId?: string | null;
+  reportDate: string;
+  stage: DailyReportStage;
+  planMemo: string;
+  resultMemo: string;
+  progressRate: number;
+  delayReason: string;
+  overtimeReason: string;
+  pmStatus: ApprovalStatus;
+  managerStatus: ApprovalStatus;
+  executiveStatus: ApprovalStatus;
+  createdBy: UserId;
+  updatedBy: UserId;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProjectDeliveryHistory {
+  id: string;
+  projectDeliveryWorkspaceId: string;
+  entityType: string;
+  entityId?: string | null;
+  action: string;
+  details: Record<string, unknown>;
+  actorId: UserId;
+  createdAt: string;
+}
+
+export interface ProjectDeliveryWorkspace {
+  id: string;
+  projectId: string;
+  status: 'OPEN' | 'IN_PROGRESS' | 'DELIVERING' | 'COMPLETED';
+  progressRate: number;
+  currentStage?: string | null;
+  version: number;
+  createdBy: UserId;
+  updatedBy: UserId;
+  createdAt: string;
+  updatedAt: string;
+  project: { id: string; name: string; status: string; departmentId: DepartmentId; managerId: UserId; pmId: UserId };
+  assignments: { rows: PmScheduleRow[] };
+  rounds: ProjectDeliveryRound[];
+  records: ProjectDeliveryRecord[];
+  downloadRequests: ProjectDownloadRequest[];
+  dailyReports: ProjectDailyReport[];
+  histories: ProjectDeliveryHistory[];
+  permissions: {
+    canView: boolean;
+    canManageDelivery: boolean;
+    canWriteDaily: boolean;
+    canApproveDownload: boolean;
+    canApprovePm: boolean;
+    canApproveManager: boolean;
+    canApproveExecutive: boolean;
+  };
+}
+
+export type ProfitCategory = 'STRUCTURE' | 'FINISH' | 'CIVIL' | 'MECHANICAL' | 'ELECTRICAL' | 'OUTSOURCING' | 'AS';
+export type ProfitLaborCategory = 'STRUCTURE' | 'FINISH' | 'CIVIL';
+export type ProfitOtherCostCategory = 'MECHANICAL' | 'ELECTRICAL' | 'OUTSOURCING' | 'AS';
+export type ProfitGrade = 'DIRECTOR' | 'MANAGER' | 'TEAM_LEADER' | 'PART_LEADER' | 'PRINCIPAL' | 'RESPONSIBLE' | 'SENIOR' | 'PROFESSIONAL' | 'VIETNAM';
+
+export interface UnitPriceEntry {
+  id?: string;
+  unitPriceTableId?: string;
+  grade: ProfitGrade;
+  unitPrice: string;
+  createdAt?: string;
+}
+
+export interface UnitPriceTable {
+  id: string;
+  version: number;
+  effectiveDate: string;
+  active: boolean;
+  createdBy: UserId;
+  createdAt: string;
+  entries: UnitPriceEntry[];
+}
+
+export interface ProfitContractAmount {
+  id?: string;
+  projectProfitAnalysisId?: string;
+  category: ProfitCategory;
+  amount: string;
+  sourceType: 'COMMERCIAL_DECISION' | 'MANUAL';
+  sourceRef?: string | null;
+}
+
+export interface ProjectProfitMember {
+  id: string;
+  projectProfitRoundId?: string;
+  personnelId?: UserId | null;
+  sourceScheduleRowId?: string | null;
+  category: ProfitLaborCategory;
+  grade: ProfitGrade;
+  name: string;
+  workDates: string[];
+  days: number;
+  unitPrice?: string;
+  cost: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ProjectProfitOtherCost {
+  id?: string;
+  projectProfitRoundId?: string;
+  category: ProfitOtherCostCategory;
+  amount: string;
+  sourceType: 'ESTIMATE_DATABASE' | 'MANUAL';
+  sourceRef?: string | null;
+}
+
+export interface ProjectProfitRound {
+  id: string;
+  projectProfitAnalysisId?: string;
+  roundNo: number;
+  startDate?: string | null;
+  endDate?: string | null;
+  members: ProjectProfitMember[];
+  otherCosts: ProjectProfitOtherCost[];
+}
+
+export interface ProjectProfitSummaryCategory {
+  category: ProfitCategory;
+  contractAmount: string;
+  roundCosts: string[];
+  totalCost: string;
+}
+
+export interface ProjectProfitSummary {
+  formula: string;
+  contractTotal: string;
+  costTotal: string;
+  result: string;
+  roundTotals: Array<{ roundNo: number; amount: string }>;
+  byCategory: ProjectProfitSummaryCategory[];
+}
+
+export interface ProjectProfitHistory {
+  id: string;
+  projectProfitAnalysisId: string;
+  action: string;
+  details: Record<string, unknown>;
+  actorId: UserId;
+  createdAt: string;
+}
+
+export interface ProjectProfitAnalysis {
+  id: string;
+  projectId: string;
+  status: 'OPEN' | 'ANALYZED';
+  unitPriceTableId?: string | null;
+  sourceCommercialDecisionId?: string | null;
+  version: number;
+  createdBy: UserId;
+  updatedBy: UserId;
+  createdAt: string;
+  updatedAt: string;
+  project: { id: string; name: string; status: string; departmentId: DepartmentId; managerId: UserId; pmId: UserId };
+  unitPriceTable?: UnitPriceTable | null;
+  contractAmounts: ProfitContractAmount[];
+  rounds: ProjectProfitRound[];
+  histories: ProjectProfitHistory[];
+  sourceTrace: { canonicalProjectId: string; commercialDecisionId?: string | null; agreedAmount?: string | null; unitPriceTableId?: string | null; unitPriceTableVersion?: number | null };
+  summary: ProjectProfitSummary;
+  permissions: { canView: boolean; canEdit: boolean; canViewUnitPrices: boolean; canManageUnitPrices: boolean };
+}
 
 export interface Project {
   id: string;

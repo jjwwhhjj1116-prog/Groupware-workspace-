@@ -41,3 +41,6 @@ next-env.d.ts
 /server/node_modules/
 /server/dist/
 /server/.env
+
+# Local HR source files contain personal data and must never be bundled or committed.
+/private-data/

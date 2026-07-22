@@ -13,6 +13,10 @@ interface AuthState {
   lastActivity: number;
   updateLastActivity: () => void;
   loginAs: (userId: string) => void;
+  loginWithCredentials: (identifier: string, password: string) => Promise<boolean>;
+  loginError: string | null;
+  isAuthenticating: boolean;
+  clearLoginError: () => void;
   logout: () => void;
   addUser: (user: Omit<PersonnelCard, 'id'>) => void;
   updateUser: (userId: string, updates: Partial<PersonnelCard>) => void;
@@ -28,11 +32,13 @@ interface AuthState {
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
-      currentUser: mockUsers[0], // Default to Super Admin
+      currentUser: null,
   users: mockUsers,
   appMode: 'DAILY_WORK',
   dataSourceMode: 'JSON_OPERATION_DATA',
   serverUser: null,
+  loginError: null,
+  isAuthenticating: false,
   lastActivity: Date.now(),
   setAppMode: (mode) => set((state) => {
     // If switching to DAILY_WORK, ensure DEMO_SEED_DATA is deactivated
@@ -50,7 +56,7 @@ export const useAuthStore = create<AuthState>()(
   }),
   updateLastActivity: () => set({ lastActivity: Date.now() }),
   loginAs: (userId: string) => {
-    const user = mockUsers.find(u => u.id === userId);
+    const user = useAuthStore.getState().users.find(u => u.id === userId);
     if (user) {
       // If switching to a user who is not admin, force DAILY_WORK mode
       if (!['SUPER_ADMIN', 'SYSTEM_ADMIN'].includes(user.role)) {
@@ -60,6 +66,56 @@ export const useAuthStore = create<AuthState>()(
       }
     }
   },
+  loginWithCredentials: async (identifier, password) => {
+    const normalized = identifier.trim().toLowerCase();
+    set({ isAuthenticating: true, loginError: null });
+
+    if (!normalized || password.length < 8) {
+      set({
+        isAuthenticating: false,
+        loginError: '사번 또는 업무 이메일과 8자 이상의 비밀번호를 입력해 주세요.',
+      });
+      return false;
+    }
+
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
+    if (apiBase) {
+      try {
+        const response = await fetch(`${apiBase.replace(/\/$/, '')}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ identifier, password }),
+        });
+        if (!response.ok) throw new Error('AUTH_FAILED');
+        const payload = await response.json();
+        const user = payload.user as PersonnelCard;
+        set({ currentUser: user, serverUser: user, isAuthenticating: false, lastActivity: Date.now() });
+        return true;
+      } catch {
+        set({ isAuthenticating: false, loginError: '계정 정보가 올바르지 않거나 인증 서버에 연결할 수 없습니다.' });
+        return false;
+      }
+    }
+
+    if (process.env.NODE_ENV !== 'production') {
+      const users = useAuthStore.getState().users;
+      const user = users.find((candidate) =>
+        candidate.id.toLowerCase() === normalized ||
+        candidate.employeeNumber?.toLowerCase() === normalized ||
+        candidate.email?.toLowerCase() === normalized ||
+        candidate.name.toLowerCase() === normalized
+      );
+      if (user && password === 'Concost!2026' && user.employmentStatus !== 'INACTIVE') {
+        set({ currentUser: user, isAuthenticating: false, lastActivity: Date.now() });
+        return true;
+      }
+    }
+
+    set({ isAuthenticating: false, loginError: '계정 정보가 올바르지 않습니다.' });
+    return false;
+  },
+  clearLoginError: () => set({ loginError: null }),
   logout: () => set({ currentUser: null, appMode: 'DAILY_WORK', lastActivity: Date.now() }),
   addUser: (user) => set((state) => ({
     users: [...state.users, { ...user, id: `user-${Date.now()}` }]
@@ -87,6 +143,7 @@ export const useAuthStore = create<AuthState>()(
       name: 'auth-storage',
       partialize: (state) => ({
         currentUser: state.currentUser,
+        users: state.users,
         appMode: state.appMode,
         dataSourceMode: state.dataSourceMode
       }),

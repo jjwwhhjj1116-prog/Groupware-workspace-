@@ -16,8 +16,8 @@ const eslintConfig = defineConfig([
     "scratch/**",
     "scripts/**",
     "analyze.js",
-    "server/dist/**",
-    "server/node_modules/**",
+    "server/**",
+    "dist/**",
     "qa/**"
   ]),
 ]);

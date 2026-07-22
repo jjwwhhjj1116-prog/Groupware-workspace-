@@ -1,6 +1,6 @@
-const xlsx = require('xlsx');
 const fs = require('fs');
 const path = require('path');
+const { readWorkbook, sheetRows } = require('./exceljsRows');
 
 const FILE_PATH = './(구조팀) VN 스케줄표_2026.07.01(1).xlsx';
 const OUTPUT_PATH = './src/data/fullScheduleSeed.ts';
@@ -10,10 +10,10 @@ if (!fs.existsSync(FILE_PATH)) {
     process.exit(1);
 }
 
-const workbook = xlsx.readFile(FILE_PATH);
-const mainSheetName = workbook.SheetNames.find(name => name.includes('2026'));
-const sheet = workbook.Sheets[mainSheetName];
-const data = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: null });
+(async () => {
+const workbook = await readWorkbook(FILE_PATH);
+const mainSheetName = workbook.worksheets.map((sheet) => sheet.name).find(name => name.includes('2026'));
+const data = sheetRows(workbook.getWorksheet(mainSheetName));
 
 function parseExcelDate(serial) {
     if (typeof serial === 'string') return null;
@@ -214,3 +214,4 @@ export const fullSchedules: PersonalSchedule[] = ${JSON.stringify(generatedSched
 fs.writeFileSync(OUTPUT_PATH, outputStr, 'utf8');
 console.log(`Generated ${projectsArr.length} projects, ${generatedTasks.length} tasks, and ${generatedSchedules.length} personal schedules.`);
 console.log('Saved to', OUTPUT_PATH);
+})().catch((error) => { console.error(error); process.exitCode = 1; });

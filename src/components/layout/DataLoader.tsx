@@ -13,6 +13,7 @@ import { mockUsers } from '@/data/mockData';
 import { fullProjects, fullTasks, fullSchedules } from '@/data/fullScheduleSeed';
 import { defaultProcessTemplates, defaultProcessStages, defaultProcessTasks } from '@/data/processTemplateSeed';
 import { useProcessTemplateStore } from '@/store/processTemplateStore';
+import { mergeLocalOperationData } from '@/lib/operationOverlay';
 
 export function DataLoader() {
   const dataSourceMode = useAuthStore(state => state.dataSourceMode);
@@ -38,7 +39,8 @@ export function DataLoader() {
   const replaceNotifications = useNotificationStore(state => state.replaceNotifications);
   const resetNotifications = useNotificationStore(state => state.resetNotifications);
 
-  const processTemplateStore = useProcessTemplateStore();
+  const processTemplates = useProcessTemplateStore(state => state.templates);
+  const loadInitialProcessData = useProcessTemplateStore(state => state.loadInitialData);
 
   // We only run the loader when dataSourceMode changes.
   // To avoid infinite loops or overwriting user interactions constantly, we load once per mode change.
@@ -47,16 +49,40 @@ export function DataLoader() {
   useEffect(() => {
     if (prevMode.current === dataSourceMode) return;
     prevMode.current = dataSourceMode;
+    const withPersistedEstimateProjects = (baseProjects: typeof fullProjects) => {
+      const persisted = useProjectStore.getState().projects.filter(
+        project => project.source === 'ESTIMATE_REQUEST'
+      );
+      return [
+        ...baseProjects,
+        ...persisted.filter(
+          localProject => !baseProjects.some(project => project.id === localProject.id)
+        ),
+      ];
+    };
 
     switch (dataSourceMode) {
       case 'JSON_OPERATION_DATA':
         if (operationData && operationData.data) {
-          replaceProjects(operationData.data.projects || []);
-          replaceTasks(operationData.data.tasks || []);
+          const merged = mergeLocalOperationData({
+            projects: operationData.data.projects || [],
+            tasks: operationData.data.tasks || [],
+            schedules: operationData.data.personalSchedules || [],
+            requests: operationData.data.approvalRequests || [],
+            notifications: operationData.data.notifications || [],
+          }, {
+            projects: useProjectStore.getState().projects,
+            tasks: useTaskStore.getState().tasks,
+            schedules: useScheduleStore.getState().schedules,
+            requests: useApprovalStore.getState().requests,
+            notifications: useNotificationStore.getState().notifications,
+          });
+          replaceProjects(merged.projects);
+          replaceTasks(merged.tasks);
           replaceUsers(operationData.data.personnel || []);
-          replaceSchedules(operationData.data.personalSchedules || []);
-          replaceRequests(operationData.data.approvalRequests || []);
-          replaceNotifications(operationData.data.notifications || []);
+          replaceSchedules(merged.schedules);
+          replaceRequests(merged.requests);
+          replaceNotifications(merged.notifications);
           replaceSettings(operationData.data.settings || []);
         } else {
           // EMPTY fallback as per requirements: "JSON 운영 데이터가 없으면 ... 조용히 demo fallback되지 않고 empty state가 되게 한다."
@@ -72,13 +98,13 @@ export function DataLoader() {
 
       case 'DEMO_SEED_DATA':
         // Load mock/full seed data for testing
-        replaceProjects(fullProjects);
+        replaceProjects(withPersistedEstimateProjects(fullProjects));
         replaceTasks(fullTasks);
         replaceUsers(mockUsers);
         replaceSchedules(fullSchedules);
         
-        if (processTemplateStore.templates.length === 0) {
-          processTemplateStore.loadInitialData(defaultProcessTemplates, defaultProcessStages, defaultProcessTasks);
+        if (processTemplates.length === 0) {
+          loadInitialProcessData(defaultProcessTemplates, defaultProcessStages, defaultProcessTasks);
         }
         // Do not reset settings to empty, let's keep current or load defaults, for now just skip settings/approvals
         break;
@@ -97,7 +123,7 @@ export function DataLoader() {
         // The store is manipulated via ImportPreview Apply button. We don't overwrite it here.
         break;
     }
-  }, [dataSourceMode, replaceProjects, resetProjects, replaceTasks, resetTasks, replaceUsers, resetUsers, replaceSchedules, resetSchedules, replaceSettings, resetSettings, replaceRequests, resetRequests, replaceNotifications, resetNotifications]);
+  }, [dataSourceMode, replaceProjects, resetProjects, replaceTasks, resetTasks, replaceUsers, resetUsers, replaceSchedules, resetSchedules, replaceSettings, resetSettings, replaceRequests, resetRequests, replaceNotifications, resetNotifications, processTemplates.length, loadInitialProcessData]);
 
   return null;
 }

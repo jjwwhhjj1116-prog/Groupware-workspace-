@@ -11,7 +11,7 @@ app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:3000',
   credentials: true
 }));
-app.use(express.json());
+app.use(express.json({ limit: '3mb' }));
 app.use(cookieParser());
 
 // Operational Endpoints
@@ -31,6 +31,14 @@ import processRoutes from './routes/process';
 import auditRoutes from './routes/audit';
 import notificationRoutes from './routes/notifications';
 import importRoutes from './routes/import';
+import estimateRequestRoutes from './routes/estimateRequests';
+import estimateDatabaseRoutes from './routes/estimateDatabase';
+import projectIntakeRoutes from './routes/projectIntakes';
+import projectPmScheduleRoutes from './routes/projectPmSchedules';
+import projectOperationRoutes from './routes/projectOperations';
+import projectQcRoutes from './routes/projectQc';
+import projectDeliveryRoutes from './routes/projectDeliveries';
+import projectProfitRoutes from './routes/projectProfits';
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -40,6 +48,14 @@ app.use('/api/process', processRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/import', importRoutes);
+app.use('/api/estimate-requests', estimateRequestRoutes);
+app.use('/api/estimate-database', estimateDatabaseRoutes);
+app.use('/api/project-intakes', projectIntakeRoutes);
+app.use('/api/project-pm-schedules', projectPmScheduleRoutes);
+app.use('/api/project-operations', projectOperationRoutes);
+app.use('/api/project-qc', projectQcRoutes);
+app.use('/api/project-deliveries', projectDeliveryRoutes);
+app.use('/api/project-profits', projectProfitRoutes);
 app.get('/api/ping', (req, res) => {
   res.json({ message: 'pong' });
 });
@@ -50,10 +66,12 @@ app.use((req, res) => {
 });
 
 // Global Error Handler
-app.use((err: unknown, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  void _next;
+  const handled = err as { status?: number; message?: string };
   console.error('Unhandled Error:', err);
-  res.status((err as any).status || 500).json({
-    error: (err as any).message || 'Internal Server Error',
+  res.status(handled.status || 500).json({
+    error: handled.message || 'Internal Server Error',
     requestId: req.headers['x-request-id']
   });
 });

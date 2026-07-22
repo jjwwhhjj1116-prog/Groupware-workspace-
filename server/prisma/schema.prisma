@@ -71,6 +71,7 @@ model PersonnelCard {
   pmProjects         Project[]    @relation("PMProjects")
   tasks              Task[]       @relation("AssigneeTasks")
   assignments        ProcessTemplateAssignment[] @relation("PMAssignments")
+  estimateRequests   EstimateRequest[] @relation("EstimateRequestOwner")
 }
 
 model Project {
@@ -87,6 +88,772 @@ model Project {
   manager     PersonnelCard @relation("ManagerProjects", fields: [managerId], references: [id])
   pm          PersonnelCard @relation("PMProjects", fields: [pmId], references: [id])
   tasks       Task[]
+  estimateRequest EstimateRequest?
+  estimateDbRecords EstimateDbRecord[]
+  commercialDecision CommercialDecision?
+  projectIntake ProjectIntake?
+  pmSchedule ProjectPmSchedule?
+  operation ProjectOperation?
+  qcChecklist ProjectQcChecklist?
+  deliveryWorkspace ProjectDeliveryWorkspace?
+  profitAnalysis ProjectProfitAnalysis?
+}
+
+model EstimateDbRecord {
+  id             String   @id @default(uuid())
+  idempotencyKey String?  @unique
+  section        String
+  projectId      String?
+  sourceRecordId String?
+  pjNo           String?
+  year           Int?
+  sortOrder      Int      @default(0)
+  schemaVersion  Int      @default(1)
+  dataJson       String   @db.Text
+  version        Int      @default(1)
+  createdBy      String
+  updatedBy      String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@unique([section, sourceRecordId])
+  @@index([section, year, sortOrder])
+  @@index([projectId])
+  @@index([pjNo])
+}
+
+model EstimateDbVendor {
+  id              String   @id @default(uuid())
+  normalizedName  String
+  normalizedTrade String
+  dataJson        String   @db.Text
+  version         Int      @default(1)
+  createdBy       String
+  updatedBy       String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([normalizedName, normalizedTrade])
+  @@index([normalizedTrade])
+}
+
+model EstimateDbMonthlyTarget {
+  id        String   @id @default(uuid())
+  type      String
+  year      Int
+  month     Int
+  amount    Decimal  @db.Decimal(18, 2)
+  version   Int      @default(1)
+  updatedBy String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([type, year, month])
+  @@index([year, type])
+}
+model EstimateRequest {
+  id                String   @id @default(uuid())
+  requestNo         String   @unique
+  idempotencyKey    String?  @unique
+  status            String   @default("REQUEST_MEMO")
+  projectName       String
+  company           String?
+  client            String?
+  contact           String?
+  contactDepartment String?
+  phone             String?
+  email             String?
+  ownerId           String?
+  departmentId      String
+  requestDate       DateTime @default(now())
+  memo              String?  @db.Text
+  rawMemo           String?  @db.Text
+  firstDelivery     String?
+  secondDelivery    String?
+  thirdDelivery     String?
+  finalDelivery     String?
+  expectedStartDate String?
+  areaPy            String?
+  floors            String?
+  scope             String?
+  usage             String?
+  buildingCount     String?
+  unitWork          String?
+  bidDate           String?
+  estimateType      String?
+  estimateId        String?
+  projectId         String?  @unique
+  version           Int      @default(1)
+  createdBy         String
+  updatedBy         String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  owner       PersonnelCard? @relation("EstimateRequestOwner", fields: [ownerId], references: [id])
+  project     Project? @relation(fields: [projectId], references: [id])
+  activities  EstimateRequestActivity[]
+  attachments EstimateRequestAttachment[]
+  histories   EstimateRequestHistory[]
+  estimateSheet EstimateSheet?
+  commercialDecisions CommercialDecision[]
+  projectIntake ProjectIntake?
+
+  @@index([departmentId, status])
+  @@index([ownerId])
+  @@index([createdAt])
+}
+
+model EstimateTemplate {
+  id          String   @id @default(uuid())
+  type        String   @unique
+  sheetName   String
+  version     Int      @default(1)
+  sourceHash  String
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sheets      EstimateSheet[]
+}
+
+model EstimateSheet {
+  id                String   @id @default(uuid())
+  estimateRequestId String   @unique
+  templateId        String
+  templateType      String
+  status            String   @default("DRAFT")
+  currentVersion    Int      @default(1)
+  idempotencyKey    String?  @unique
+  createdBy         String
+  updatedBy         String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  estimateRequest EstimateRequest @relation(fields: [estimateRequestId], references: [id], onDelete: Cascade)
+  template        EstimateTemplate @relation(fields: [templateId], references: [id])
+  versions        EstimateSheetVersion[]
+  exports         EstimateSheetExport[]
+  submissions     EstimateSubmission[]
+  commercialDecisions CommercialDecision[]
+
+  @@index([templateType, status])
+}
+
+model EstimateSubmission {
+  id              String    @id @default(uuid())
+  estimateSheetId String
+  version         Int
+  status          String    @default("SUBMITTED")
+  submittedAt     DateTime  @default(now())
+  submittedBy     String
+  sentAt          DateTime?
+  sentBy          String?
+  recipient       String?
+  deliveryChannel String?
+  documentHash    String
+  summaryJson     String    @db.Text
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  estimateSheet EstimateSheet @relation(fields: [estimateSheetId], references: [id], onDelete: Cascade)
+  commercialDecisions CommercialDecision[]
+
+  @@unique([estimateSheetId, version])
+  @@index([status, submittedAt])
+  @@index([sentAt])
+}
+
+model CommercialDecision {
+  id                   String   @id @default(uuid())
+  estimateRequestId    String
+  estimateSheetId      String?
+  estimateSubmissionId String?
+  projectId            String?  @unique
+  idempotencyKey       String   @unique
+  decision             String
+  reason               String?  @db.Text
+  agreedAmount         Decimal? @db.Decimal(18, 2)
+  agreedScope          String?  @db.Text
+  agreedSchedule       String?  @db.Text
+  startCondition       String?  @db.Text
+  decidedAt            DateTime @default(now())
+  decidedBy            String
+  createdAt            DateTime @default(now())
+
+  estimateRequest    EstimateRequest     @relation(fields: [estimateRequestId], references: [id], onDelete: Cascade)
+  estimateSheet      EstimateSheet?      @relation(fields: [estimateSheetId], references: [id], onDelete: SetNull)
+  estimateSubmission EstimateSubmission? @relation(fields: [estimateSubmissionId], references: [id], onDelete: SetNull)
+  project            Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  projectIntake      ProjectIntake?
+
+  @@index([estimateRequestId, decidedAt])
+  @@index([decision, decidedAt])
+}
+
+model ProjectIntake {
+  id                   String   @id @default(uuid())
+  estimateRequestId    String   @unique
+  commercialDecisionId String   @unique
+  projectId            String   @unique
+  status               String   @default("DRAFT")
+  projectNo            String
+  sourceSnapshotJson   String   @db.Text
+  draftJson            String?  @db.Text
+  reviewNote           String?  @db.Text
+  reviewedBy           String?
+  reviewedAt           DateTime?
+  acceptedBy           String?
+  acceptedAt           DateTime?
+  version              Int      @default(1)
+  createdBy            String
+  updatedBy            String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  estimateRequest    EstimateRequest    @relation(fields: [estimateRequestId], references: [id], onDelete: Cascade)
+  commercialDecision CommercialDecision @relation(fields: [commercialDecisionId], references: [id], onDelete: Cascade)
+  project            Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  histories          ProjectIntakeHistory[]
+
+  @@index([status, updatedAt])
+}
+
+model ProjectIntakeHistory {
+  id              String   @id @default(uuid())
+  projectIntakeId String
+  action          String
+  fromStatus      String?
+  toStatus        String?
+  changesJson     String?  @db.Text
+  actorId         String
+  createdAt       DateTime @default(now())
+
+  projectIntake ProjectIntake @relation(fields: [projectIntakeId], references: [id], onDelete: Cascade)
+
+  @@index([projectIntakeId, createdAt])
+}
+
+model ProjectPmSchedule {
+  id                 String   @id @default(uuid())
+  projectId          String   @unique
+  status             String   @default("PENDING_ASSIGNMENT")
+  assignmentsJson    String   @db.Text
+  requestTargetsJson String   @db.Text
+  requestMemo        String?  @db.Text
+  plan1Json          String   @db.Text
+  plan2Json          String   @db.Text
+  selectedProposal   String?
+  approvedPlan       String?
+  rejectReason       String?  @db.Text
+  requestedBy        String?
+  requestedAt        DateTime?
+  submittedBy        String?
+  submittedAt        DateTime?
+  approvedBy         String?
+  approvedAt         DateTime?
+  version            Int      @default(1)
+  createdBy          String
+  updatedBy          String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  project   Project                    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  histories ProjectPmScheduleHistory[]
+
+  @@index([status, updatedAt])
+}
+
+model ProjectPmScheduleHistory {
+  id                  String   @id @default(uuid())
+  projectPmScheduleId String
+  action              String
+  fromStatus          String?
+  toStatus            String?
+  detailsJson         String?  @db.Text
+  actorId             String
+  createdAt           DateTime @default(now())
+
+  projectPmSchedule ProjectPmSchedule @relation(fields: [projectPmScheduleId], references: [id], onDelete: Cascade)
+
+  @@index([projectPmScheduleId, createdAt])
+}
+
+model ProjectOperation {
+  id                     String   @id
+  projectId              String   @unique
+  awardDate              DateTime?
+  expectedCompletionDate DateTime?
+  actualCompletionDate   DateTime?
+  startApprovalStatus    String   @default("PENDING")
+  startApprovedBy        String?
+  startApprovedAt        DateTime?
+  version                Int      @default(1)
+  createdBy              String
+  updatedBy              String
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  project    Project                    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  activities ProjectOperationActivity[]
+
+  @@index([updatedAt])
+}
+
+model ProjectOperationActivity {
+  id                 String   @id @default(uuid())
+  projectOperationId String
+  kind               String
+  occurredAt         DateTime
+  title              String
+  body               String   @db.Text
+  metadataJson       String?  @db.Text
+  createdBy          String
+  createdAt          DateTime @default(now())
+  deletedBy          String?
+  deletedAt          DateTime?
+
+  projectOperation ProjectOperation @relation(fields: [projectOperationId], references: [id], onDelete: Cascade)
+
+  @@index([projectOperationId, occurredAt])
+  @@index([kind, occurredAt])
+}
+
+model ProjectQcChecklist {
+  id        String   @id
+  projectId String   @unique
+  status    String   @default("OPEN")
+  version   Int      @default(1)
+  createdBy String
+  updatedBy String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project  Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  items    ProjectQcItem[]
+  histories ProjectQcHistory[]
+
+  @@index([updatedAt])
+}
+
+model ProjectQcItem {
+  id                 String   @id @default(uuid())
+  projectQcChecklistId String
+  group              String
+  middleCategory     String?
+  subCategory        String?
+  trade              String
+  serialNo           String
+  item               String   @db.Text
+  method             String   @db.Text
+  targetsJson        String   @db.Text
+  checksJson         String   @db.Text
+  status             String   @default("PENDING")
+  comment            String   @db.Text
+  objectionJson      String?  @db.Text
+  eliminated         Boolean  @default(false)
+  sentAt             DateTime?
+  sentBy             String?
+  createdBy          String
+  updatedBy          String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  deletedBy          String?
+  deletedAt          DateTime?
+
+  checklist  ProjectQcChecklist  @relation(fields: [projectQcChecklistId], references: [id], onDelete: Cascade)
+  attachments ProjectQcAttachment[]
+  histories   ProjectQcHistory[]
+
+  @@index([projectQcChecklistId, group, serialNo])
+  @@index([status, updatedAt])
+}
+
+model ProjectQcAttachment {
+  id           String   @id @default(uuid())
+  projectQcItemId String
+  originalName String
+  mimeType     String
+  size         Int
+  storageKey   String?
+  checksum     String?
+  createdBy    String
+  createdAt    DateTime @default(now())
+  deletedBy    String?
+  deletedAt    DateTime?
+
+  item ProjectQcItem @relation(fields: [projectQcItemId], references: [id], onDelete: Cascade)
+
+  @@index([projectQcItemId, createdAt])
+}
+
+model ProjectQcHistory {
+  id                 String   @id @default(uuid())
+  projectQcChecklistId String
+  projectQcItemId    String?
+  action             String
+  detailsJson        String?  @db.Text
+  actorId            String
+  createdAt          DateTime @default(now())
+
+  checklist ProjectQcChecklist @relation(fields: [projectQcChecklistId], references: [id], onDelete: Cascade)
+  item      ProjectQcItem?      @relation(fields: [projectQcItemId], references: [id], onDelete: SetNull)
+
+  @@index([projectQcChecklistId, createdAt])
+  @@index([projectQcItemId, createdAt])
+}
+
+model ProjectQcTerm {
+  id         String   @id @default(uuid())
+  term       String   @unique
+  definition String   @db.Text
+  createdBy  String
+  updatedBy  String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([updatedAt])
+}
+
+model ProjectDeliveryWorkspace {
+  id            String   @id
+  projectId     String   @unique
+  status        String   @default("OPEN")
+  progressRate  Int      @default(0)
+  currentStage  String?
+  version       Int      @default(1)
+  createdBy     String
+  updatedBy     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  project          Project                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  rounds           ProjectDeliveryRound[]
+  records          ProjectDeliveryRecord[]
+  downloadRequests ProjectDownloadRequest[]
+  dailyReports     ProjectDailyReport[]
+  histories        ProjectDeliveryHistory[]
+
+  @@index([status, updatedAt])
+}
+
+model ProjectDeliveryRound {
+  id                         String   @id @default(uuid())
+  projectDeliveryWorkspaceId String
+  roundNo                    Int
+  kind                       String   @default("DELIVERY")
+  parentRoundId              String?
+  label                      String
+  deliveryDate               DateTime
+  memo                       String   @db.Text
+  status                     String   @default("REGISTERED")
+  createdBy                  String
+  createdAt                  DateTime @default(now())
+
+  workspace ProjectDeliveryWorkspace @relation(fields: [projectDeliveryWorkspaceId], references: [id], onDelete: Cascade)
+  files     ProjectDeliveryFile[]
+  parentRound ProjectDeliveryRound?  @relation("DeliveryRoundRevisions", fields: [parentRoundId], references: [id], onDelete: SetNull)
+  redeliveries ProjectDeliveryRound[] @relation("DeliveryRoundRevisions")
+
+  @@unique([projectDeliveryWorkspaceId, roundNo])
+  @@index([projectDeliveryWorkspaceId, deliveryDate])
+  @@index([parentRoundId])
+}
+
+model ProjectDeliveryFile {
+  id                     String   @id @default(uuid())
+  projectDeliveryRoundId String
+  logicalFileKey         String
+  version                Int
+  originalName           String
+  mimeType               String
+  size                   Int
+  storageKey             String?
+  checksum               String?
+  memo                   String   @db.Text
+  createdBy              String
+  createdAt              DateTime @default(now())
+
+  round ProjectDeliveryRound @relation(fields: [projectDeliveryRoundId], references: [id], onDelete: Cascade)
+
+  @@unique([projectDeliveryRoundId, logicalFileKey, version])
+  @@index([projectDeliveryRoundId, createdAt])
+}
+
+model ProjectDeliveryRecord {
+  id                         String   @id @default(uuid())
+  projectDeliveryWorkspaceId String
+  occurredAt                 DateTime
+  type                       String
+  memo                       String   @db.Text
+  writerId                   String
+  createdAt                  DateTime @default(now())
+
+  workspace ProjectDeliveryWorkspace @relation(fields: [projectDeliveryWorkspaceId], references: [id], onDelete: Cascade)
+
+  @@index([projectDeliveryWorkspaceId, occurredAt])
+}
+
+model ProjectDownloadRequest {
+  id                         String   @id @default(uuid())
+  projectDeliveryWorkspaceId String
+  targetFile                 String
+  reason                     String   @db.Text
+  status                     String   @default("PENDING")
+  requestedBy                String
+  requestedAt                DateTime @default(now())
+  reviewedBy                 String?
+  reviewedAt                 DateTime?
+  reviewNote                 String?  @db.Text
+
+  workspace ProjectDeliveryWorkspace @relation(fields: [projectDeliveryWorkspaceId], references: [id], onDelete: Cascade)
+
+  @@index([projectDeliveryWorkspaceId, requestedAt])
+  @@index([status, requestedAt])
+}
+
+model ProjectDailyReport {
+  id                         String   @id @default(uuid())
+  projectDeliveryWorkspaceId String
+  scheduleRowId              String?
+  reportDate                 DateTime
+  stage                      String
+  planMemo                   String   @db.Text
+  resultMemo                 String   @db.Text
+  progressRate               Int
+  delayReason                String   @db.Text
+  overtimeReason             String   @db.Text
+  pmStatus                   String   @default("NOT_REQUIRED")
+  managerStatus              String   @default("NOT_REQUIRED")
+  executiveStatus            String   @default("NOT_REQUIRED")
+  createdBy                  String
+  updatedBy                  String
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  workspace ProjectDeliveryWorkspace @relation(fields: [projectDeliveryWorkspaceId], references: [id], onDelete: Cascade)
+
+  @@index([projectDeliveryWorkspaceId, reportDate])
+  @@index([createdBy, reportDate])
+}
+
+model ProjectDeliveryHistory {
+  id                         String   @id @default(uuid())
+  projectDeliveryWorkspaceId String
+  entityType                 String
+  entityId                   String?
+  action                     String
+  detailsJson                String?  @db.Text
+  actorId                    String
+  createdAt                  DateTime @default(now())
+
+  workspace ProjectDeliveryWorkspace @relation(fields: [projectDeliveryWorkspaceId], references: [id], onDelete: Cascade)
+
+  @@index([projectDeliveryWorkspaceId, createdAt])
+}
+
+model ProjectProfitAnalysis {
+  id                         String   @id
+  projectId                  String   @unique
+  status                     String   @default("OPEN")
+  unitPriceTableId           String?
+  sourceCommercialDecisionId String?
+  version                    Int      @default(1)
+  createdBy                  String
+  updatedBy                  String
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  project         Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  unitPriceTable  UnitPriceTable?        @relation(fields: [unitPriceTableId], references: [id], onDelete: SetNull)
+  contractAmounts ProfitContractAmount[]
+  rounds          ProjectProfitRound[]
+  histories       ProjectProfitHistory[]
+
+  @@index([status, updatedAt])
+  @@index([unitPriceTableId])
+}
+
+model ProfitContractAmount {
+  id                      String   @id @default(uuid())
+  projectProfitAnalysisId String
+  category                String
+  amount                  Decimal  @db.Decimal(18, 2)
+  sourceType              String
+  sourceRef               String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  analysis ProjectProfitAnalysis @relation(fields: [projectProfitAnalysisId], references: [id], onDelete: Cascade)
+
+  @@unique([projectProfitAnalysisId, category])
+}
+
+model ProjectProfitRound {
+  id                      String   @id @default(uuid())
+  projectProfitAnalysisId String
+  roundNo                 Int
+  startDate               DateTime?
+  endDate                 DateTime?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  analysis  ProjectProfitAnalysis @relation(fields: [projectProfitAnalysisId], references: [id], onDelete: Cascade)
+  members   ProjectProfitMember[]
+  otherCosts ProjectProfitOtherCost[]
+
+  @@unique([projectProfitAnalysisId, roundNo])
+}
+
+model ProjectProfitMember {
+  id                   String   @id @default(uuid())
+  projectProfitRoundId String
+  personnelId          String?
+  sourceScheduleRowId  String?
+  category             String
+  grade                String
+  name                 String
+  workDatesJson        String   @db.Text
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  round ProjectProfitRound @relation(fields: [projectProfitRoundId], references: [id], onDelete: Cascade)
+
+  @@index([projectProfitRoundId, category])
+  @@index([personnelId])
+}
+
+model ProjectProfitOtherCost {
+  id                   String   @id @default(uuid())
+  projectProfitRoundId String
+  category             String
+  amount               Decimal  @db.Decimal(18, 2)
+  sourceType           String
+  sourceRef            String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  round ProjectProfitRound @relation(fields: [projectProfitRoundId], references: [id], onDelete: Cascade)
+
+  @@unique([projectProfitRoundId, category])
+}
+
+model UnitPriceTable {
+  id            String   @id @default(uuid())
+  version       Int      @unique
+  effectiveDate DateTime
+  active        Boolean  @default(true)
+  createdBy     String
+  createdAt     DateTime @default(now())
+
+  entries  UnitPriceEntry[]
+  analyses ProjectProfitAnalysis[]
+
+  @@index([active, effectiveDate])
+}
+
+model UnitPriceEntry {
+  id               String   @id @default(uuid())
+  unitPriceTableId String
+  grade            String
+  unitPrice        Decimal  @db.Decimal(18, 2)
+  createdAt        DateTime @default(now())
+
+  table UnitPriceTable @relation(fields: [unitPriceTableId], references: [id], onDelete: Cascade)
+
+  @@unique([unitPriceTableId, grade])
+}
+
+model ProjectProfitHistory {
+  id                      String   @id @default(uuid())
+  projectProfitAnalysisId String
+  action                  String
+  detailsJson             String?  @db.Text
+  actorId                 String
+  createdAt               DateTime @default(now())
+
+  analysis ProjectProfitAnalysis @relation(fields: [projectProfitAnalysisId], references: [id], onDelete: Cascade)
+
+  @@index([projectProfitAnalysisId, createdAt])
+}
+
+model EstimateSheetVersion {
+  id              String   @id @default(uuid())
+  estimateSheetId String
+  version         Int
+  templateVersion Int
+  templateHash    String
+  stateJson       String   @db.Text
+  createdBy       String
+  createdAt       DateTime @default(now())
+
+  estimateSheet EstimateSheet @relation(fields: [estimateSheetId], references: [id], onDelete: Cascade)
+
+  @@unique([estimateSheetId, version])
+  @@index([estimateSheetId, createdAt])
+}
+
+model EstimateSheetExport {
+  id              String   @id @default(uuid())
+  estimateSheetId String
+  version         Int
+  format          String
+  fileName        String
+  actorId         String
+  createdAt       DateTime @default(now())
+
+  estimateSheet EstimateSheet @relation(fields: [estimateSheetId], references: [id], onDelete: Cascade)
+
+  @@index([estimateSheetId, createdAt])
+}
+
+model EstimateRequestActivity {
+  id                String   @id @default(uuid())
+  estimateRequestId String
+  kind              String
+  content           String   @db.Text
+  occurredAt        DateTime @default(now())
+  createdBy         String
+  createdAt         DateTime @default(now())
+
+  estimateRequest EstimateRequest @relation(fields: [estimateRequestId], references: [id], onDelete: Cascade)
+
+  @@index([estimateRequestId, occurredAt])
+}
+
+model EstimateRequestAttachment {
+  id                String   @id @default(uuid())
+  estimateRequestId String
+  category          String
+  label             String
+  originalName      String
+  size              Int
+  mimeType          String?
+  memo              String?  @db.Text
+  storageKey        String?
+  status            String   @default("REGISTERED")
+  createdBy         String
+  createdAt         DateTime @default(now())
+
+  estimateRequest EstimateRequest @relation(fields: [estimateRequestId], references: [id], onDelete: Cascade)
+
+  @@index([estimateRequestId, category])
+}
+
+model EstimateRequestHistory {
+  id                String   @id @default(uuid())
+  estimateRequestId String
+  action            String
+  fromStatus        String?
+  toStatus          String?
+  changes           String?  @db.Text
+  actorId           String
+  createdAt         DateTime @default(now())
+
+  estimateRequest EstimateRequest @relation(fields: [estimateRequestId], references: [id], onDelete: Cascade)
+
+  @@index([estimateRequestId, createdAt])
 }
 
 model Task {

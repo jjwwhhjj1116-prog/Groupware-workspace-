@@ -73,7 +73,7 @@ export const PMDashboard = ({ selectedMonth }: { selectedMonth: string | 'ALL' }
         />
       </div>
 
-      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-card)] overflow-hidden shadow-sm">
+      <div className="cc-panel">
         <div className="px-5 py-4 border-b border-[var(--color-border)] flex items-center justify-between">
           <h2 className="text-[15px] font-bold text-[var(--color-text-main)]">{t('dashboard.sa.projectSummary')}</h2>
           <select
@@ -144,7 +144,7 @@ export const PMDashboard = ({ selectedMonth }: { selectedMonth: string | 'ALL' }
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="h-[350px]">
           <WorkManagementWidget />
         </div>

@@ -11,19 +11,51 @@ interface SummaryCardProps {
 }
 
 export const SummaryCard: React.FC<SummaryCardProps> = ({ title, value, icon: Icon, colorClass, subtitle, onClick }) => {
-  return (
-    <div 
-      className={`p-5 rounded-[var(--radius-card)] shadow-sm border border-[var(--color-border)] bg-[var(--color-surface)] flex items-start gap-4 ${onClick ? 'cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors hover:shadow-md' : ''}`}
-      onClick={onClick}
-    >
-      <div className={`p-3.5 rounded-xl ${colorClass}`}>
-        <Icon className="w-5 h-5 text-white" />
+  const tone = colorClass.includes('red')
+    ? 'danger'
+    : colorClass.includes('green')
+      ? 'success'
+      : colorClass.includes('orange') || colorClass.includes('yellow')
+        ? 'warning'
+        : colorClass.includes('blue')
+          ? 'info'
+          : 'brand';
+  const toneClasses = {
+    brand: 'bg-[var(--cc-orange-50)] text-[var(--cc-orange-700)]',
+    danger: 'bg-[var(--cc-danger-50)] text-[var(--cc-danger-700)]',
+    success: 'bg-[var(--cc-success-50)] text-[var(--cc-success-700)]',
+    warning: 'bg-[var(--cc-warning-50)] text-[var(--cc-warning-700)]',
+    info: 'bg-[var(--cc-info-50)] text-[var(--cc-info-700)]',
+  }[tone];
+
+  const content = (
+    <>
+      <div className={`p-3.5 rounded-2xl ${toneClasses}`}>
+        <Icon className="w-5 h-5" aria-hidden="true" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[13px] text-[var(--color-text-sub)] font-bold mb-1 truncate">{title}</p>
-        <p className="text-3xl font-extrabold text-[var(--color-text-main)] tracking-tight mb-1">{value}</p>
-        {subtitle && <p className="text-[12px] text-[var(--color-text-sub)] truncate">{subtitle}</p>}
+        <p className="text-[12px] uppercase tracking-[0.07em] text-[var(--color-text-sub)] font-extrabold mb-1 truncate">{title}</p>
+        <p className="text-3xl font-black text-[var(--color-text-main)] tabular-nums tracking-[-0.035em] mb-1">{value}</p>
+        {subtitle && <p className="text-[12px] leading-5 text-[var(--color-text-sub)] line-clamp-2">{subtitle}</p>}
       </div>
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        className="cc-card cc-interactive w-full p-5 text-left flex items-start gap-4"
+        onClick={onClick}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div className="cc-card p-5 flex items-start gap-4">
+      {content}
     </div>
   );
 };

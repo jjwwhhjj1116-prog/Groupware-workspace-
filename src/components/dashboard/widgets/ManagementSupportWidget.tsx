@@ -39,28 +39,31 @@ export const ManagementSupportWidget = () => {
   });
 
   return (
-    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-card)] overflow-hidden shadow-sm flex flex-col h-full">
-      <div className="px-4 py-3 border-b border-[var(--color-border)] flex items-center justify-between bg-[var(--color-bg)]/50">
+    <div className="cc-panel flex h-full flex-col">
+      <div className="flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--cc-surface-2)] px-4 py-3">
         <h3 className="font-bold text-[var(--color-text-main)] flex items-center gap-2">
           {t('dashboard.widget.managementSupport')}
         </h3>
         <div className="flex gap-1 text-xs">
           <button
-            className={`px-2 py-1 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] ${activeTab === 'NOTICE' ? 'bg-[var(--color-primary)] text-white font-medium' : 'text-[var(--color-text-sub)] hover:bg-[var(--color-bg)]'}`}
+            aria-pressed={activeTab === 'NOTICE'}
+            className={`min-h-8 px-2 py-1 rounded-lg transition-colors focus-visible:outline-none ${activeTab === 'NOTICE' ? 'bg-[var(--color-primary-strong)] text-white font-bold' : 'text-[var(--color-text-sub)] hover:bg-[var(--cc-surface-3)]'}`}
             onClick={() => setActiveTab('NOTICE')}
           >
             <span className="flex items-center gap-1"><Bell className="w-3 h-3" /> {t('dashboard.support.tabs.notice')}</span>
           </button>
           {canViewHr && (
             <button
-              className={`px-2 py-1 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] ${activeTab === 'HR' ? 'bg-[var(--color-primary)] text-white font-medium' : 'text-[var(--color-text-sub)] hover:bg-[var(--color-bg)]'}`}
+              aria-pressed={activeTab === 'HR'}
+              className={`min-h-8 px-2 py-1 rounded-lg transition-colors focus-visible:outline-none ${activeTab === 'HR' ? 'bg-[var(--color-primary-strong)] text-white font-bold' : 'text-[var(--color-text-sub)] hover:bg-[var(--cc-surface-3)]'}`}
               onClick={() => setActiveTab('HR')}
             >
               <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {t('dashboard.support.tabs.hr')}</span>
             </button>
           )}
           <button
-            className={`px-2 py-1 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] ${activeTab === 'DOCS' ? 'bg-[var(--color-primary)] text-white font-medium' : 'text-[var(--color-text-sub)] hover:bg-[var(--color-bg)]'}`}
+            aria-pressed={activeTab === 'DOCS'}
+            className={`min-h-8 px-2 py-1 rounded-lg transition-colors focus-visible:outline-none ${activeTab === 'DOCS' ? 'bg-[var(--color-primary-strong)] text-white font-bold' : 'text-[var(--color-text-sub)] hover:bg-[var(--cc-surface-3)]'}`}
             onClick={() => setActiveTab('DOCS')}
           >
             <span className="flex items-center gap-1"><FileText className="w-3 h-3" /> {t('dashboard.support.tabs.form')}</span>

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useProjectStore } from '@/store/projectStore';
 import { useTaskStore } from '@/store/taskStore';
 import { useAuthStore } from '@/store/authStore';
@@ -14,17 +15,25 @@ import { RevisionRequestModal } from '@/components/board/RevisionRequestModal';
 import { ApprovalReviewModal } from '@/components/board/ApprovalReviewModal';
 import { useApprovalStore } from '@/store/approvalStore';
 import { useAuditStore } from '@/store/auditStore';
-import { TaskStatus, ProjectSourceType, Project, ApprovalRequest } from '@/types/models';
+import { TaskStatus, Project, ApprovalRequest } from '@/types/models';
 import { DetailedLineStage, getProjectBoardColumn } from '@/lib/selectors';
 import { canViewProject, canViewTask, canEditProject } from '@/lib/permissions';
-import { FileText, ArrowLeft, ChevronRight, History, Wrench, Code2, Briefcase } from 'lucide-react';
+import { FileText, ArrowLeft, ChevronRight, History, Wrench, Activity, AlertTriangle, CheckCircle2, Clock3, Layers3 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { useTranslationStore } from '@/store/translationStore';
 import { useTranslation } from '@/lib/localization';
+import { ProjectOperationModal } from '@/components/projects/ProjectOperationModal';
+import { ProjectMilestoneModal } from '@/components/projects/ProjectMilestoneModal';
+import { ProjectWorkflowTab } from '@/lib/projectWorkflow';
+import { useProjectWorkflowOverviewSync } from '@/hooks/useProjectWorkflow';
+import { getTechnicalDepartmentLabel, getTechnicalDepartmentScope, matchesTechnicalDepartment } from '@/lib/departmentScope';
 
 export type ExtendedViewType = BoardViewType | 'PART' | 'HISTORY';
 
 export default function ProjectBoardPage() {
+  const searchParams = useSearchParams();
+  const departmentScope = getTechnicalDepartmentScope(searchParams.get('department'));
+  const departmentLabel = getTechnicalDepartmentLabel(departmentScope);
   const projects = useProjectStore(state => state.projects);
   const revisionRequests = useProjectStore(state => state.revisionRequests);
   const postDeliveryWorkRequests = useProjectStore(state => state.postDeliveryWorkRequests);
@@ -39,28 +48,55 @@ export default function ProjectBoardPage() {
   const [showEvaluationModal, setShowEvaluationModal] = useState(false);
   const [showPostDeliveryModal, setShowPostDeliveryModal] = useState(false);
   const [showRevisionModal, setShowRevisionModal] = useState(false);
+  const [milestoneProject, setMilestoneProject] = useState<Project | null>(null);
+  const [revisionProject, setRevisionProject] = useState<Project | null>(null);
   const [dispatchProject, setDispatchProject] = useState<Project | null>(null);
   const [selectedApprovalRequest, setSelectedApprovalRequest] = useState<ApprovalRequest | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<number | 'ALL'>('ALL');
-  const [activeTab, setActiveTab] = useState<ProjectSourceType>('INTERNAL_DEVELOPMENT');
   const [historyFilter, setHistoryFilter] = useState<'ALL' | 'APPROVAL' | 'COMPLETED' | 'AUDIT'>('ALL');
+  const [workflowTarget, setWorkflowTarget] = useState<{ projectId: string; tab: ProjectWorkflowTab } | null>(null);
 
   const { settings } = useTranslationStore();
   const t = useTranslation(settings.uiLanguage);
+  const workflowActor = currentUser ? { id: currentUser.id, role: currentUser.role, departmentId: currentUser.departmentId } : null;
+  useProjectWorkflowOverviewSync(workflowActor);
 
-  const applyPreset = (preset: string) => {
-    if (preset === 'ASSIGNEE_VIEW') {
-      setViewType('DETAILED');
-      setGroupBy('ASSIGNEE');
-    } else if (preset === 'PRIORITY_VIEW') {
-      setViewType('DETAILED');
-      setGroupBy('PRIORITY');
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const projectId = params.get('workflow');
+    const requestedTab = params.get('tab') as ProjectWorkflowTab | null;
+    const tabs: ProjectWorkflowTab[] = ['OVERVIEW', 'ACTIVITY', 'ASSIGNMENTS', 'TIMELINE', 'QC', 'DELIVERY', 'DAILY', 'PROFIT'];
+    if (!projectId) return;
+    const timer = window.setTimeout(() => setWorkflowTarget({ projectId, tab: requestedTab && tabs.includes(requestedTab) ? requestedTab : 'OVERVIEW' }), 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  const updateWorkflowUrl = (projectId: string | null, tab?: ProjectWorkflowTab) => {
+    const url = new URL(window.location.href);
+    if (projectId) {
+      url.searchParams.set('workflow', projectId);
+      url.searchParams.set('tab', tab || 'OVERVIEW');
+    } else {
+      url.searchParams.delete('workflow');
+      url.searchParams.delete('tab');
     }
+    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+  };
+
+  const openWorkflow = (projectId: string, tab: ProjectWorkflowTab = 'OVERVIEW') => {
+    setWorkflowTarget({ projectId, tab });
+    updateWorkflowUrl(projectId, tab);
+  };
+
+  const closeWorkflow = () => {
+    setWorkflowTarget(null);
+    updateWorkflowUrl(null);
   };
 
   if (!currentUser) return <div className="py-10 text-center text-[var(--color-text-sub)]">{t('header.loginRequired')}</div>;
 
   const accessibleProjects = projects.filter(p => {
+    if (!matchesTechnicalDepartment(departmentScope, p)) return false;
     if (canViewProject(currentUser, p)) return true;
     if (currentUser.role === 'WORKER') {
       return tasks.some(t => t.projectId === p.id && t.assigneeId === currentUser.id && !t.isDeleted);
@@ -83,9 +119,6 @@ export default function ProjectBoardPage() {
 
       return start <= targetMonthEnd && end >= targetMonthStart;
     });
-  }).filter(p => {
-    const pSource = p.projectSourceType || 'CLIENT_ORDER';
-    return pSource === activeTab;
   });
 
   // Auto-select removed to show Project Summary Board by default
@@ -107,6 +140,19 @@ export default function ProjectBoardPage() {
   };
 
   const selectedProject = projects.find(p => p.id === selectedProjectId);
+  const now = new Date();
+  const projectStats = {
+    total: accessibleProjects.filter((project) => !project.isDeleted && project.archiveStatus !== 'ARCHIVED').length,
+    active: accessibleProjects.filter((project) => ['IN_PROGRESS', 'QA_REVIEW', 'SCHEDULE_APPROVED'].includes(project.status)).length,
+    dueSoon: accessibleProjects.filter((project) => {
+      const due = project.deliveryDate || project.dueDate;
+      if (!due || ['COMPLETED', 'ARCHIVED'].includes(project.status)) return false;
+      const diff = new Date(due).getTime() - now.getTime();
+      return diff >= 0 && diff <= 1000 * 60 * 60 * 24 * 14;
+    }).length,
+    completed: accessibleProjects.filter((project) => project.status === 'COMPLETED').length,
+    urgent: accessibleProjects.filter((project) => project.priority === 'URGENT' && project.status !== 'COMPLETED').length,
+  };
 
   const handleProjectMove = (projectId: string, sourceColId: string, targetColId: string) => {
     const project = projects.find(p => p.id === projectId);
@@ -138,10 +184,56 @@ export default function ProjectBoardPage() {
     }
   };
 
+  const handleProjectAction = (project: Project, action: 'START' | 'DUE' | 'COMPLETE' | 'REVISION') => {
+    if (!canEditProject(currentUser, project)) {
+      alert(t('projects.noEditAuthAlert'));
+      return;
+    }
+    if (action === 'START') {
+      if (!project.pmId) {
+        alert(t('projects.pmRequiredAlert'));
+        return;
+      }
+      setDispatchProject(project);
+    } else if (action === 'DUE') {
+      setMilestoneProject(project);
+    } else if (action === 'COMPLETE') {
+      openWorkflow(project.id, 'DELIVERY');
+    } else {
+      setRevisionProject(project);
+      setShowRevisionModal(true);
+    }
+  };
+
   return (
     <div className="w-full mx-auto space-y-6 md:space-y-8 animate-in fade-in duration-500">
+      {!selectedProjectId && (
+        <section className="relative overflow-hidden rounded-[26px] border border-white/80 bg-[linear-gradient(135deg,#fff8ee_0%,#f7fbf8_48%,#eef3fb_100%)] p-5 text-slate-900 shadow-[0_24px_60px_rgba(74,78,91,.13),0_2px_8px_rgba(74,78,91,.08)] sm:p-7">
+          <div aria-hidden="true" className="pointer-events-none absolute -right-20 -top-28 h-64 w-64 rounded-full bg-[#ffb86b]/18 blur-3xl" />
+          <div aria-hidden="true" className="pointer-events-none absolute -bottom-36 left-1/3 h-72 w-72 rounded-full bg-[#86d7c1]/18 blur-3xl" />
+          <div className="flex flex-col gap-6 2xl:flex-row 2xl:items-end 2xl:justify-between">
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[.2em] text-[#527266]"><span className="grid h-7 w-7 place-items-center rounded-lg bg-[#dff2ea] shadow-sm"><Layers3 className="h-4 w-4" /></span> Technical HQ workspace</div>
+              <h1 className="mt-3 text-2xl font-black tracking-tight sm:text-[30px]">기술본부 프로젝트 · {departmentLabel}</h1>
+              <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-600">견적·접수부터 PM 배정, 일정 승인, 작업·QC·납품까지 OFFDAY2의 전체 흐름을 한 화면에서 관리합니다.</p>
+            </div>
+            <div className="relative z-10 grid grid-cols-2 gap-2.5 sm:grid-cols-5">
+              {[
+                { label: '전체', value: projectStats.total, icon: Layers3, tone: 'border-slate-200/90 bg-white/90 text-slate-700', iconTone: 'bg-slate-100 text-slate-600', glow: 'hover:shadow-[0_16px_30px_rgba(71,85,105,.16)]' },
+                { label: '진행 중', value: projectStats.active, icon: Activity, tone: 'border-sky-200/80 bg-[#eff8ff]/95 text-[#17618f]', iconTone: 'bg-[#dcefff] text-[#2383bd]', glow: 'hover:shadow-[0_16px_30px_rgba(56,142,191,.18)]' },
+                { label: '14일 내 납품', value: projectStats.dueSoon, icon: Clock3, tone: 'border-amber-200/90 bg-[#fff8e8]/95 text-[#93620c]', iconTone: 'bg-[#ffebba] text-[#b47808]', glow: 'hover:shadow-[0_16px_30px_rgba(192,137,25,.18)]' },
+                { label: '완료', value: projectStats.completed, icon: CheckCircle2, tone: 'border-emerald-200/90 bg-[#edfaf4]/95 text-[#13705a]', iconTone: 'bg-[#d4f3e5] text-[#16856a]', glow: 'hover:shadow-[0_16px_30px_rgba(35,139,109,.17)]' },
+                { label: '긴급', value: projectStats.urgent, icon: AlertTriangle, tone: 'border-rose-200/90 bg-[#fff1f3]/95 text-[#a9354b]', iconTone: 'bg-[#ffdfe4] text-[#c3485e]', glow: 'hover:shadow-[0_16px_30px_rgba(190,69,92,.17)]' },
+              ].map((stat) => {
+                const Icon = stat.icon;
+                return <div key={stat.label} className={`group min-w-[116px] rounded-2xl border ${stat.tone} ${stat.glow} p-3 shadow-[0_8px_18px_rgba(74,78,91,.08),inset_0_1px_0_rgba(255,255,255,.8)] backdrop-blur-sm transition duration-300 hover:-translate-y-1.5`}><div className="flex items-center justify-between gap-3"><span className="text-[10px] font-black tracking-[-.01em]">{stat.label}</span><span className={`grid h-7 w-7 place-items-center rounded-xl ${stat.iconTone} transition duration-300 group-hover:rotate-[-5deg] group-hover:scale-110`}><Icon className="h-3.5 w-3.5" /></span></div><strong className="mt-2 block text-2xl font-black tracking-tight">{stat.value}</strong></div>;
+              })}
+            </div>
+          </div>
+        </section>
+      )}
       {/* Unified Header matching Dashboard */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="cc-panel flex flex-col justify-between gap-4 p-4 md:flex-row md:items-center sm:p-5">
         <div>
           {selectedProject ? (
             <div className="flex items-center gap-2">
@@ -168,32 +260,13 @@ export default function ProjectBoardPage() {
             </div>
           ) : (
             <>
-              <h1 className="text-2xl font-bold text-[var(--color-text-main)] tracking-tight">{t('projects.title')}</h1>
+              <h1 className="text-xl font-black text-[var(--color-text-main)] tracking-tight">프로젝트 실행 보드</h1>
               <p className="text-[var(--color-text-sub)] text-sm mt-1 font-medium">
-                {t('projects.subtitle', { dept: currentUser.departmentName || t('header.dept.hq') })}
+                {departmentLabel} · 상태, 담당 PM, 납품일 기준으로 빠르게 확인합니다.
               </p>
             </>
           )}
         </div>
-
-        {!selectedProjectId && (
-          <div className="flex bg-gray-100/80 p-1 rounded-md border border-[var(--color-border)]">
-            <button
-              onClick={() => setActiveTab('INTERNAL_DEVELOPMENT')}
-              className={`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] flex items-center gap-2 px-4 py-1.5 text-sm font-semibold rounded-[4px] transition-colors ${activeTab === 'INTERNAL_DEVELOPMENT' ? 'bg-[var(--color-surface)] text-[var(--color-primary)] shadow-sm border border-[var(--color-border)]/50' : 'text-[var(--color-text-sub)] hover:text-[var(--color-text-main)]'}`}
-            >
-              <Code2 className="w-4 h-4" />
-              {t('devTeamWork')}
-            </button>
-            <button
-              onClick={() => setActiveTab('CLIENT_ORDER')}
-              className={`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] flex items-center gap-2 px-4 py-1.5 text-sm font-semibold rounded-[4px] transition-colors ${activeTab === 'CLIENT_ORDER' ? 'bg-[var(--color-surface)] text-[var(--color-primary)] shadow-sm border border-[var(--color-border)]/50' : 'text-[var(--color-text-sub)] hover:text-[var(--color-text-main)]'}`}
-            >
-              <Briefcase className="w-4 h-4" />
-              {t('externalProject')}
-            </button>
-          </div>
-        )}
 
         <div className="flex gap-2 flex-wrap items-center">
           {selectedProject && getProjectBoardColumn(selectedProject, new Date(), revisionRequests.some(r => r.projectId === selectedProject.id && (r.status === 'PENDING' || r.status === 'ACCEPTED'))) === 'COMPLETED' && currentUser.role !== 'SUPER_ADMIN' && (
@@ -454,9 +527,18 @@ export default function ProjectBoardPage() {
           revisionRequests={revisionRequests}
           groupBy={groupBy}
           onProjectClick={setSelectedProjectId}
+          onOperationClick={openWorkflow}
+          onProjectAction={handleProjectAction}
           onProjectMove={handleProjectMove}
         />
       )}
+
+      {workflowTarget && <ProjectOperationModal
+        projectId={workflowTarget.projectId}
+        initialTab={workflowTarget.tab}
+        onTabChange={(tab) => { setWorkflowTarget((current) => current ? { ...current, tab } : current); updateWorkflowUrl(workflowTarget.projectId, tab); }}
+        onClose={closeWorkflow}
+      />}
 
       {dispatchProject && (
         <PmDispatchModal
@@ -465,6 +547,8 @@ export default function ProjectBoardPage() {
           onSuccess={() => setDispatchProject(null)}
         />
       )}
+
+      {milestoneProject && <ProjectMilestoneModal project={milestoneProject} onClose={() => setMilestoneProject(null)} />}
 
       {showEvaluationModal && selectedProjectId && (
         <ProjectEvaluationModal
@@ -479,10 +563,10 @@ export default function ProjectBoardPage() {
           onClose={() => setShowPostDeliveryModal(false)}
         />
       )}
-      {showRevisionModal && selectedProjectId && (
+      {showRevisionModal && (revisionProject || selectedProject) && (
         <RevisionRequestModal
-          project={projects.find(p => p.id === selectedProjectId)!}
-          onClose={() => setShowRevisionModal(false)}
+          project={(revisionProject || selectedProject)!}
+          onClose={() => { setShowRevisionModal(false); setRevisionProject(null); }}
         />
       )}
       {selectedApprovalRequest && (

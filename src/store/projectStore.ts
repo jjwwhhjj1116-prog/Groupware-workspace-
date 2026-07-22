@@ -14,7 +14,7 @@ interface ProjectState {
   loadDummyProjects: () => void;
   addRevisionRequest: (request: Omit<RevisionRequest, 'id' | 'createdAt' | 'updatedAt' | 'status'>) => void;
   updateRevisionRequestStatus: (requestId: string, status: RevisionRequest['status']) => void;
-  addProject: (project: Omit<Project, 'id' | 'createdAt' | 'updatedAt' | 'status' | 'progress'>) => void;
+  addProject: (project: Omit<Project, 'id' | 'createdAt' | 'updatedAt' | 'status' | 'progress'>) => Project;
   assignPM: (projectId: string, pmId: string) => void;
   updateProjectStatus: (projectId: string, status: ProjectStatus) => void;
   updateProjectField: <K extends keyof Project>(projectId: string, field: K, value: Project[K]) => void;
@@ -63,7 +63,7 @@ export const useProjectStore = create<ProjectState>()(persist((set, get) => ({
     )
   })),
 
-  addProject: (projectData) => set((state) => {
+  addProject: (projectData) => {
     const newProject: Project = {
       ...projectData,
       id: `p${Date.now()}`,
@@ -72,8 +72,9 @@ export const useProjectStore = create<ProjectState>()(persist((set, get) => ({
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    return { projects: [...state.projects, newProject] };
-  }),
+    set((state) => ({ projects: [...state.projects, newProject] }));
+    return newProject;
+  },
 
   assignPM: (projectId, pmId) => set((state) => {
     const { currentUser, users } = useAuthStore.getState();

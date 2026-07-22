@@ -51,7 +51,7 @@ export const useTaskStore = create<TaskState>()(persist((set) => ({
   addTask: (taskData) => set((state) => {
     const newTask: TaskCard = {
       ...taskData,
-      id: `t_${Date.now()}`,
+      id: `t_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };

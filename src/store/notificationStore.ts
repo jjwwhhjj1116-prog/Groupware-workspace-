@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { Notification } from '@/types/models';
 
 interface NotificationState {
@@ -16,7 +17,7 @@ const mockNotifications: Notification[] = [
   { id: 'n3', userId: 'u3', type: 'PROJECT_ASSIGNMENT', title: '프로젝트 배정', message: '새로운 수주 프로젝트의 PM으로 배정되었습니다.', priority: 'NORMAL', relatedProjectId: 'p1', isRead: true, createdAt: new Date(Date.now() - 86400000).toISOString() },
 ];
 
-export const useNotificationStore = create<NotificationState>((set) => ({
+export const useNotificationStore = create<NotificationState>()(persist((set) => ({
   notifications: mockNotifications,
   markAsRead: (id) => set((state) => ({
     notifications: state.notifications.map(n => n.id === id ? { ...n, isRead: true } : n)
@@ -55,4 +56,4 @@ export const useNotificationStore = create<NotificationState>((set) => ({
   }),
   replaceNotifications: (notifications) => set({ notifications }),
   resetNotifications: () => set({ notifications: [] })
-}));
+}), { name: 'notification-storage-v1' }));

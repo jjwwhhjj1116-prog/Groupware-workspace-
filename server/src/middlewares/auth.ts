@@ -35,7 +35,7 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
     }
 
     // Attach user context to request
-    (req as any).user = {
+    req.user = {
       accountId: account.id,
       personnelId: account.personnelId,
       email: account.email,
@@ -52,7 +52,7 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
 
 export const requireRole = (allowedRoles: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    const user = (req as any).user;
+    const user = req.user;
     if (!user || !allowedRoles.includes(user.role)) {
       return res.status(403).json({ error: 'Forbidden: Insufficient role' });
     }
