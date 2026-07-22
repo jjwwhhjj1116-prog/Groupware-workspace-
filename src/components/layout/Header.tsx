@@ -2,140 +2,90 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ListTodo, TrendingUp, User } from 'lucide-react';
+import { Bell, ChevronDown, LogOut, Menu, MoonStar, Search, Settings2, ShieldCheck, Sun } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useTranslationStore } from '@/store/translationStore';
-import { mockUsers } from '@/data/mockData';
-import { getUserDisplayName, useTranslation } from '@/lib/localization';
+import { useUiStore } from '@/store/uiStore';
 import { BrandLogo } from '@/components/ui/BrandLogo';
 import { NotificationPopover } from './NotificationPopover';
 
-export const Header = () => {
-  const { currentUser, loginAs, appMode, dataSourceMode, setAppMode } = useAuthStore();
+const roleLabels: Record<string, string> = {
+  SUPER_ADMIN: '최고관리자',
+  SYSTEM_ADMIN: '시스템관리자',
+  DEPARTMENT_MANAGER: '본부장',
+  PM: 'PM',
+  WORKER: '실무자',
+  EVALUATION_ADMIN: '평가관리자',
+};
+
+export function Header() {
+  const { currentUser, logout, appMode, setAppMode } = useAuthStore();
   const { settings, updateSettings } = useTranslationStore();
-  const t = useTranslation(settings.uiLanguage);
+  const { isDarkMode, toggleDarkMode } = useUiStore();
+  const [profileOpen, setProfileOpen] = React.useState(false);
 
   React.useEffect(() => {
     document.documentElement.lang = settings.uiLanguage;
   }, [settings.uiLanguage]);
 
-  const getRoleName = (role: string) => {
-    const roleMap: Record<string, string> = {
-      SUPER_ADMIN: t('header.role.superAdmin'),
-      SYSTEM_ADMIN: t('header.role.systemAdmin'),
-      DEPARTMENT_MANAGER: t('header.role.deptManager'),
-      PM: t('header.role.pm'),
-      WORKER: t('header.role.worker'),
-    };
-    return roleMap[role] || role;
-  };
-
-  const getDeptName = () => {
-    if (!currentUser) return '';
-    if (currentUser.departmentName) return currentUser.departmentName;
-    if (currentUser.teamName) return currentUser.teamName;
-    if (currentUser.companyId === 'CON_COST') return t('header.dept.hq');
-    if (currentUser.companyId === 'VIET_QS') return 'Viet_QS';
-    return t('header.dept.none');
-  };
+  if (!currentUser) return null;
+  const isAdmin = ['SUPER_ADMIN', 'SYSTEM_ADMIN'].includes(currentUser.role);
+  const scopeLabel = currentUser.role === 'SUPER_ADMIN' ? '전사' : currentUser.departmentName || currentUser.teamName || '소속부서';
 
   return (
-    <header className="sticky top-0 z-[var(--z-header)] flex h-16 min-w-0 items-center border-b border-[var(--color-border)] bg-[color:var(--color-surface)]/95 px-3 shadow-[0_1px_0_rgba(15,23,42,.03)] backdrop-blur-md sm:px-4 xl:px-6">
-      <div className="mr-3 h-8 w-[108px] shrink-0 md:hidden">
-        <BrandLogo />
-      </div>
+    <header className="sticky top-0 z-[var(--z-header)] flex h-[76px] min-w-0 items-center border-b border-[var(--color-border)] bg-[color:var(--color-surface)]/92 px-4 shadow-[0_8px_24px_rgba(25,45,91,.04)] backdrop-blur-xl sm:px-6">
+      <button type="button" aria-label="메뉴 열기" className="mr-3 rounded-xl border border-[var(--color-border)] bg-[var(--cc-surface-2)] p-2.5 text-[var(--color-text-sub)] xl:hidden"><Menu className="h-5 w-5" /></button>
+      <div className="mr-4 h-9 w-[132px] shrink-0 xl:hidden"><BrandLogo /></div>
 
-      <div className="hidden min-w-0 flex-1 items-center gap-3 lg:flex">
-        <div className="min-w-0">
-          <h2 className="truncate text-[14px] font-bold text-[var(--color-text-main)]">
-            {currentUser ? `${getDeptName()} · ${getRoleName(currentUser.role)}` : t('header.loginRequired')}
-          </h2>
-          <p className="hidden text-[11px] font-semibold text-[var(--color-text-sub)] 2xl:block">
-            {t('header.data.prefix')} {dataSourceMode === 'JSON_OPERATION_DATA' ? t('header.data.json') :
-              dataSourceMode === 'DEMO_SEED_DATA' ? t('header.data.demo') :
-                dataSourceMode === 'EXCEL_IMPORT_DATA' ? t('header.data.excel') : t('header.data.empty')}
-          </p>
-        </div>
+      <label className="hidden min-h-11 w-full max-w-[460px] items-center rounded-2xl border border-[var(--color-border)] bg-[var(--cc-surface-2)] px-4 text-[var(--color-text-sub)] focus-within:border-[#4e6fd8] focus-within:ring-4 focus-within:ring-[#4e6fd8]/10 md:flex">
+        <Search className="mr-3 h-4 w-4" />
+        <input className="w-full bg-transparent text-sm font-semibold text-[var(--color-text-main)] outline-none" placeholder="프로젝트, 문서, 담당자 통합검색" aria-label="통합검색" />
+        <kbd className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-[9px] font-black text-[var(--color-text-sub)]">⌘ K</kbd>
+      </label>
 
-        {currentUser && ['SUPER_ADMIN', 'SYSTEM_ADMIN'].includes(currentUser.role) && (
-          <div className="ml-2 hidden rounded-xl border border-[var(--color-border)] bg-[var(--cc-surface-2)] p-1 xl:flex">
-            <button
-              type="button"
-              aria-pressed={appMode === 'DAILY_WORK'}
-              onClick={() => setAppMode('DAILY_WORK')}
-              className={`min-h-8 rounded-lg px-3 text-[11px] font-bold focus-visible:outline-none ${appMode === 'DAILY_WORK'
-                ? 'bg-[var(--color-surface)] text-[var(--color-primary-strong)] shadow-sm'
-                : 'text-[var(--color-text-sub)] hover:text-[var(--color-text-main)]'}`}
-            >
-              {t('header.mode.real')}
-            </button>
-            <button
-              type="button"
-              aria-pressed={appMode === 'ADMIN_VALIDATION'}
-              onClick={() => setAppMode('ADMIN_VALIDATION')}
-              className={`min-h-8 rounded-lg px-3 text-[11px] font-bold focus-visible:outline-none ${appMode === 'ADMIN_VALIDATION'
-                ? 'bg-[var(--color-surface)] text-[var(--cc-danger-700)] shadow-sm'
-                : 'text-[var(--color-text-sub)] hover:text-[var(--color-text-main)]'}`}
-            >
-              {t('header.mode.validation')}
-            </button>
+      <div className="ml-auto flex min-w-0 items-center gap-1.5 sm:gap-2.5">
+        {isAdmin && (
+          <div className="hidden rounded-xl border border-[var(--color-border)] bg-[var(--cc-surface-2)] p-1 2xl:flex">
+            <button type="button" onClick={() => setAppMode('DAILY_WORK')} className={`rounded-lg px-3 py-2 text-[10px] font-black ${appMode === 'DAILY_WORK' ? 'bg-[var(--color-surface)] text-[#3453a4] shadow-sm' : 'text-[var(--color-text-sub)]'}`}>업무모드</button>
+            <button type="button" onClick={() => setAppMode('ADMIN_VALIDATION')} className={`rounded-lg px-3 py-2 text-[10px] font-black ${appMode === 'ADMIN_VALIDATION' ? 'bg-[var(--color-surface)] text-[#eb6300] shadow-sm' : 'text-[var(--color-text-sub)]'}`}>관리모드</button>
           </div>
         )}
-      </div>
 
-      <div className="ml-auto flex min-w-0 items-center gap-2 sm:gap-3">
-        <div className="flex shrink-0 items-center rounded-lg border border-[var(--color-border)] bg-[var(--cc-surface-2)] p-0.5 text-[10px] font-black" aria-label="Language">
-          <button
-            type="button"
-            aria-pressed={settings.uiLanguage === 'ko'}
-            onClick={() => updateSettings({ uiLanguage: 'ko' })}
-            className={`min-h-7 rounded-md px-2 focus-visible:outline-none ${settings.uiLanguage === 'ko' ? 'bg-[var(--color-surface)] text-[var(--color-primary-strong)] shadow-sm' : 'text-[var(--color-text-sub)]'}`}
-          >
-            KOR
-          </button>
-          <button
-            type="button"
-            aria-pressed={settings.uiLanguage === 'vi'}
-            onClick={() => updateSettings({ uiLanguage: 'vi' })}
-            className={`min-h-7 rounded-md px-2 focus-visible:outline-none ${settings.uiLanguage === 'vi' ? 'bg-[var(--color-surface)] text-[var(--color-primary-strong)] shadow-sm' : 'text-[var(--color-text-sub)]'}`}
-          >
-            VIET
-          </button>
+        <div className="hidden items-center rounded-xl border border-[var(--color-border)] bg-[var(--cc-surface-2)] p-0.5 sm:flex" aria-label="언어 선택">
+          <button type="button" onClick={() => updateSettings({ uiLanguage: 'ko' })} aria-pressed={settings.uiLanguage === 'ko'} className={`min-h-8 rounded-lg px-2.5 text-[10px] font-black ${settings.uiLanguage === 'ko' ? 'bg-[var(--color-surface)] text-[#3453a4] shadow-sm' : 'text-[var(--color-text-sub)]'}`}>KR</button>
+          <button type="button" onClick={() => updateSettings({ uiLanguage: 'vi' })} aria-pressed={settings.uiLanguage === 'vi'} className={`min-h-8 rounded-lg px-2.5 text-[10px] font-black ${settings.uiLanguage === 'vi' ? 'bg-[var(--color-surface)] text-[#3453a4] shadow-sm' : 'text-[var(--color-text-sub)]'}`}>VI</button>
         </div>
 
-        <label className="sr-only" htmlFor="header-account-selector">{t('header.accountSelector')}</label>
-        <select
-          id="header-account-selector"
-          className="min-h-9 min-w-0 max-w-[118px] rounded-lg border border-[var(--color-border)] bg-[var(--cc-surface-2)] px-2 text-xs font-semibold text-[var(--color-text-sub)] outline-none sm:max-w-[190px] xl:max-w-[260px]"
-          value={currentUser?.id || ''}
-          onChange={(event) => loginAs(event.target.value)}
-        >
-          {mockUsers.map((user) => (
-            <option key={user.id} value={user.id}>
-              {getUserDisplayName(user)} ({user.jobTitle || user.organizationRank || user.role})
-            </option>
-          ))}
-        </select>
+        <button type="button" onClick={toggleDarkMode} aria-label={isDarkMode ? '라이트 모드' : '다크 모드'} className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--cc-surface-2)] text-[var(--color-text-sub)] hover:-translate-y-0.5 hover:text-[#3453a4] hover:shadow-md">
+          {isDarkMode ? <Sun className="h-4 w-4 text-amber-400" /> : <MoonStar className="h-4 w-4" />}
+        </button>
 
-        <div className="hidden items-center gap-1 border-l border-[var(--color-border)] pl-3 lg:flex">
-          <Link href="/approvals" className="flex min-h-10 items-center gap-2 rounded-lg px-2.5 text-sm font-semibold text-[var(--color-text-sub)] hover:bg-[var(--cc-orange-50)] hover:text-[var(--color-primary-strong)] focus-visible:outline-none">
-            <ListTodo className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden 2xl:inline">{t('header.nav.approvals')}</span>
-          </Link>
-          <Link href="/evaluation" className="flex min-h-10 items-center gap-2 rounded-lg px-2.5 text-sm font-semibold text-[var(--color-text-sub)] hover:bg-[var(--cc-orange-50)] hover:text-[var(--color-primary-strong)] focus-visible:outline-none">
-            <TrendingUp className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden 2xl:inline">{t('header.nav.evaluation')}</span>
-          </Link>
-          <NotificationPopover />
+        <div className="hidden lg:block"><NotificationPopover /></div>
+        <button type="button" aria-label="알림" className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--cc-surface-2)] text-[var(--color-text-sub)] lg:hidden"><Bell className="h-4 w-4" /></button>
+
+        <div className="relative">
+          <button type="button" onClick={() => setProfileOpen((value) => !value)} aria-expanded={profileOpen} className="flex min-h-11 items-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-1.5 pr-2.5 shadow-[0_7px_18px_rgba(39,62,122,.08)] hover:-translate-y-0.5 hover:shadow-lg">
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#5576dc] to-[#273e7a] text-xs font-black text-white shadow-sm">{currentUser.name.slice(0, 1)}</span>
+            <span className="hidden min-w-0 text-left sm:block">
+              <strong className="block max-w-[112px] truncate text-[11px] font-black text-[var(--color-text-main)]">{currentUser.displayName || currentUser.name}</strong>
+              <span className="flex items-center gap-1 text-[9px] font-bold text-[var(--color-text-sub)]"><ShieldCheck className="h-2.5 w-2.5 text-[#eb6300]" /> {roleLabels[currentUser.role]} · {scopeLabel}</span>
+            </span>
+            <ChevronDown className={`hidden h-3.5 w-3.5 text-[var(--color-text-sub)] transition-transform sm:block ${profileOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {profileOpen && (
+            <div className="absolute right-0 top-[calc(100%+10px)] w-60 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-2 shadow-[var(--cc-shadow-3)]">
+              <div className="mb-2 rounded-xl bg-[var(--cc-surface-2)] p-3">
+                <p className="text-xs font-black text-[var(--color-text-main)]">{currentUser.name}</p>
+                <p className="mt-1 text-[10px] font-semibold text-[var(--color-text-sub)]">접근등급 · {roleLabels[currentUser.role]} / {scopeLabel}</p>
+              </div>
+              <Link href="/settings" onClick={() => setProfileOpen(false)} className="flex min-h-10 items-center gap-2 rounded-xl px-3 text-xs font-bold text-[var(--color-text-sub)] hover:bg-[var(--cc-surface-2)] hover:text-[var(--color-text-main)]"><Settings2 className="h-4 w-4" /> 개인 설정</Link>
+              {isAdmin && <Link href="/settings/permissions" onClick={() => setProfileOpen(false)} className="flex min-h-10 items-center gap-2 rounded-xl px-3 text-xs font-bold text-[var(--color-text-sub)] hover:bg-[var(--cc-surface-2)] hover:text-[var(--color-text-main)]"><ShieldCheck className="h-4 w-4" /> 권한 관리</Link>}
+              <button type="button" onClick={logout} className="flex min-h-10 w-full items-center gap-2 rounded-xl px-3 text-left text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"><LogOut className="h-4 w-4" /> 로그아웃</button>
+            </div>
+          )}
         </div>
-
-        <Link href="/settings" aria-label={t('settings')} className="hidden min-h-10 items-center gap-2 rounded-xl px-2 hover:bg-[var(--cc-orange-50)] focus-visible:outline-none sm:flex">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--cc-orange-200)] bg-[var(--cc-orange-50)] text-[var(--color-primary-strong)]">
-            <User className="h-4 w-4" aria-hidden="true" />
-          </span>
-          <span className="hidden text-[13px] font-bold text-[var(--color-text-main)] 2xl:inline">{getUserDisplayName(currentUser)}</span>
-        </Link>
       </div>
     </header>
   );
-};
+}

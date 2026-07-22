@@ -40,10 +40,16 @@
   --cc-info-500: #3b82f6;
   --cc-info-700: #1d4ed8;
 
+  --cc-indigo-950: #172554;
+  --cc-indigo-900: #203468;
+  --cc-indigo-800: #273e7a;
+  --cc-cobalt-500: #4e6fd8;
+  --cc-cobalt-100: #e9efff;
+
   --cc-shadow-0: none;
-  --cc-shadow-1: 0 1px 2px rgb(15 23 42 / 0.04), 0 5px 16px rgb(15 23 42 / 0.06);
-  --cc-shadow-2: 0 5px 12px rgb(15 23 42 / 0.07), 0 14px 30px rgb(15 23 42 / 0.10);
-  --cc-shadow-3: 0 10px 24px rgb(15 23 42 / 0.10), 0 24px 48px rgb(15 23 42 / 0.16);
+  --cc-shadow-1: 0 2px 3px rgb(24 43 88 / 0.05), 0 12px 28px rgb(24 43 88 / 0.07), inset 0 1px 0 rgb(255 255 255 / .7);
+  --cc-shadow-2: 0 5px 12px rgb(24 43 88 / 0.08), 0 18px 38px rgb(24 43 88 / 0.13), inset 0 1px 0 rgb(255 255 255 / .86);
+  --cc-shadow-3: 0 12px 28px rgb(24 43 88 / 0.13), 0 30px 56px rgb(24 43 88 / 0.18), inset 0 1px 0 rgb(255 255 255 / .9);
   --cc-shadow-orange: 0 10px 24px rgb(235 99 0 / 0.16), 0 18px 42px rgb(235 99 0 / 0.12);
 
   --background: var(--cc-canvas);
@@ -117,7 +123,7 @@ body {
   min-width: 320px;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Noto Sans KR", "Inter", "Pretendard", Arial, Helvetica, sans-serif;
   text-rendering: optimizeLegibility;
 }
 
@@ -158,8 +164,93 @@ textarea {
   box-shadow: var(--cc-shadow-1);
 }
 
+.cc-tactile-card {
+  position: relative;
+  isolation: isolate;
+  border: 1px solid color-mix(in srgb, var(--cc-cobalt-500) 8%, var(--color-border));
+  border-radius: 20px;
+  background: var(--color-surface);
+  box-shadow: var(--cc-shadow-1);
+  transition: transform 220ms cubic-bezier(.2, .8, .2, 1), box-shadow 220ms cubic-bezier(.2, .8, .2, 1), border-color 220ms ease;
+}
+
+.cc-tactile-card::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgb(255 255 255 / .5), transparent 20%);
+  pointer-events: none;
+  content: "";
+}
+
+:root.dark .cc-tactile-card::before {
+  background: linear-gradient(180deg, rgb(255 255 255 / .08), transparent 18%);
+}
+
+:root.dark .cc-tactile-card,
+:root.dark .cc-card,
+:root.dark .cc-ops-panel {
+  box-shadow: 0 2px 4px rgb(0 0 0 / .18), 0 16px 34px rgb(0 0 0 / .22), inset 0 1px 0 rgb(255 255 255 / .04);
+}
+
+.cc-tactile-card[data-interactive="true"]:hover,
+.cc-tactile-card[data-interactive="true"]:focus-within {
+  z-index: 2;
+  border-color: rgb(78 111 216 / .34);
+  box-shadow: var(--cc-shadow-3);
+  transform: translateY(-5px) scale(1.008);
+}
+
+.cc-login-shell {
+  background:
+    radial-gradient(circle at 12% 16%, rgb(78 111 216 / .30), transparent 32%),
+    radial-gradient(circle at 88% 86%, rgb(235 99 0 / .13), transparent 26%),
+    linear-gradient(135deg, #314b98 0%, #233970 50%, #172554 100%);
+}
+
 .cc-panel {
   overflow: hidden;
+}
+
+.cc-ops-panel {
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--cc-orange-500) 24%, var(--color-border));
+  border-radius: 16px;
+  background: var(--color-surface);
+  box-shadow: 0 1px 3px rgb(11 18 32 / 0.07);
+  transition: transform 220ms cubic-bezier(.2, .8, .2, 1), box-shadow 220ms cubic-bezier(.2, .8, .2, 1), border-color 220ms ease;
+}
+
+.cc-card:hover,
+.cc-ops-panel:hover {
+  z-index: 2;
+  border-color: rgb(78 111 216 / .32);
+  box-shadow: var(--cc-shadow-3);
+  transform: translateY(-5px) scale(1.006);
+}
+
+.cc-section-heading {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+}
+
+.cc-section-heading h2 {
+  color: var(--color-text-main);
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.cc-heading-mark {
+  display: block;
+  width: 5px;
+  height: 22px;
+  flex: none;
+  border-radius: 999px;
 }
 
 .cc-interactive {
@@ -243,6 +334,16 @@ textarea {
   .cc-interactive:hover,
   .cc-interactive:focus-visible,
   .cc-interactive:active {
+    transform: none;
+  }
+
+  .cc-tactile-card[data-interactive="true"]:hover,
+  .cc-tactile-card[data-interactive="true"]:focus-within {
+    transform: none;
+  }
+
+  .cc-card:hover,
+  .cc-ops-panel:hover {
     transform: none;
   }
 }
